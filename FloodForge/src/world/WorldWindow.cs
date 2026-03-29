@@ -653,12 +653,7 @@ public static class WorldWindow {
 		if (ConnectionStart == null || ConnectionEnd == null || CurrentConnection == null)
 			return;
 
-		if (CurrentConnectionValid) {
-			Immediate.Color(1f, 1f, 0f);
-		}
-		else {
-			Immediate.Color(1f, 0f, 0f);
-		}
+		Immediate.Color(CurrentConnectionValid ? Themes.RoomConnectionHover : Themes.RoomConnectionInvalid);
 
 		int segments = Mathf.RoundToInt((ConnectionStart - ConnectionEnd).Value.Length / 2f);
 		segments = Math.Clamp(segments, 4, 100);
@@ -1158,6 +1153,18 @@ public static class WorldWindow {
 	}
 
 	public class WorldMenuItems : MenuItems {
+		private static void ExportMap() {
+			WorldExporter.ExportMapFile();
+			WorldExporter.ExportWorldFile();
+
+			string image = PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, $"map_{WorldWindow.region.acronym}.png");
+			WorldExporter.ExportImageFile(image);
+
+			WorldExporter.ExportPropertiesFile(PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, "properties.txt"));
+			PopupManager.Add(new InfoPopup("Exported successfully!"));
+			if (Main.AprilFools) Sfx.Play("assets/objects/yay.wav");
+		}
+
 		public WorldMenuItems() {
 			this.buttons = [
 				new Button("New", button => {
@@ -1199,15 +1206,7 @@ public static class WorldWindow {
 					}
 
 					if (!string.IsNullOrEmpty(WorldWindow.region.exportPath)) {
-						WorldExporter.ExportMapFile();
-						WorldExporter.ExportWorldFile();
-
-						string imagePath1 = PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, $"map_{WorldWindow.region.acronym}.png");
-						WorldExporter.ExportImageFile(imagePath1);
-
-						WorldExporter.ExportPropertiesFile(PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, "properties.txt"));
-						PopupManager.Add(new InfoPopup("Exported successfully!"));
-						if (Main.AprilFools) Sfx.Play("assets/objects/yay.wav");
+						ExportMap();
 					}
 					else {
 						if (string.IsNullOrEmpty(WorldWindow.region.acronym)) {
@@ -1226,15 +1225,7 @@ public static class WorldWindow {
 								Directory.CreateDirectory(WorldWindow.region.exportPath);
 								Directory.CreateDirectory(WorldWindow.region.roomsPath);
 
-								WorldExporter.ExportMapFile();
-								WorldExporter.ExportWorldFile();
-
-								string imagePath1 = PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, $"map_{WorldWindow.region.acronym}.png");
-								WorldExporter.ExportImageFile(imagePath1);
-
-								WorldExporter.ExportPropertiesFile(PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, "properties.txt"));
-								PopupManager.Add(new InfoPopup("Exported successfully!"));
-								if (Main.AprilFools) Sfx.Play("assets/objects/yay.wav");
+								ExportMap();
 							}, 0)
 							.Filter(FilesystemPopup.SelectionType.Folder)
 							.Hint("YOUR_MOD/world/")

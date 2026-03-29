@@ -370,7 +370,7 @@ public class Room {
 				this.shortcutPaths[currentPosition] = (exitPath.ToArray(), initialDirection);
 			}
 			string outString = "";
-			foreach(Vector2i item in exitPath) {
+			foreach (Vector2i item in exitPath) {
 				outString += string.Format("item: {0}; {1}\n", item.x, item.y);
 			}
 			Logger.Info("Final exitPath for room " + this.Name + "<" + i + "> with exitTile position " + currentPosition + ":\n" + outString);
@@ -846,7 +846,7 @@ public class Room {
 			if ((this.GetTile(x, y + 1) & FLAG_SHORTCUT) > 0) {
 				direction = direction != 0 ? 128 : 4;
 			}
-			Themes.ThemeColor color = Themes.Layer1Color;
+			Color color = Themes.RoomShortcutArrow;
 			if (direction != 0) {
 				if (direction == 1) {
 					this.AddTriangle(
@@ -918,7 +918,7 @@ public class Room {
 				if ((this.GetTile(x, y + 1) & FLAG_SHORTCUT) > 0) {
 					direction = direction != 0 ? 128 : 4;
 				}
-				Themes.ThemeColor color = Themes.RoomShortcutRoom;
+				Color color = Themes.RoomShortcutArrow;
 				if (direction != 0) {
 					if (direction == 1) {
 						this.AddTriangle(

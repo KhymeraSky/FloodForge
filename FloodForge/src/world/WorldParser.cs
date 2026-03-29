@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Stride.Core;
 using Stride.Core.Extensions;
 
@@ -107,7 +108,7 @@ public static class WorldParser {
 			WorldWindow.region.rooms.Add(room);
 		}
 
-		string[] data = [.. line[(line.IndexOf(':') + 1)..].Split('>').Select(x => x.Replace("<", ""))];
+		string[] data = [.. line[(line.IndexOf(':') + 1)..].Split('>').Select(x => x.Replace("<", "").Trim())];
 		float canonX = float.Parse(data[0]) / 3f;
 		float canonY = float.Parse(data[1]) / 3f;
 		float devX = float.Parse(data[2]) / 3f;
@@ -166,7 +167,7 @@ public static class WorldParser {
 			else if (line.StartsWith("Connection: ")) {
 				// LATER
 			}
-			else if (line.StartsWith("SpawnMigrationStream: ") || line.StartsWith("SpawnMigrationStreamMidpoint: ")) {
+			else if (line.StartsWith("SpawnMigrationStream: ") || line.StartsWith("SpawnMigrationStreamMidpoint: ") || line.StartsWith("Def_Mat: ") || line.StartsWith("R: ") || line.StartsWith("[REFERENCE]") || line.StartsWith("I: ") || line.StartsWith("[IMAGE]")) {
 				WorldWindow.region.extraMap += line + "\n";
 				// LATER
 			}
@@ -329,14 +330,16 @@ public static class WorldParser {
 			}
 			first = false;
 
-			string[] sections = creatureInDen.Split('-', StringSplitOptions.TrimEntries);
+			string[] sections = Regex.Split(creatureInDen, @"-(?![^{]*})");
 			creature.type = CreatureTextures.Parse(sections[0]);
 			creature.count = 1;
-			creature.lineageChance = float.Parse(sections[^1]);
+			string chanceString, lineageString;
+			chanceString = sections[1][0] == '{' ? (sections.Length == 3 ? sections[2] : "") : sections[1];
+			lineageString = sections[1][0] == '{' ? sections[1] : (sections.Length == 3 ? sections[2] : "");
+			creature.lineageChance = float.Parse(chanceString);
 
-			if (sections.Length == 3 && sections[1][0] == '{') {
-				string tag = sections[1][1..^1];
-				(creature.tag, creature.data) = ParseCreatureTag(tag);
+			if (!lineageString.IsNullOrEmpty()) {
+				(creature.tag, creature.data) = ParseCreatureTag(lineageString[1..^1]);
 			}
 		}
 
@@ -401,7 +404,7 @@ public static class WorldParser {
 	}
 
 	private static bool ParseWorldCreature(string line) {
-		string[] splits = line.Split(':', StringSplitOptions.TrimEntries);
+		string[] splits = line.Split(" : ", StringSplitOptions.TrimEntries);
 		TimelineType timelineType = TimelineType.All;
 		HashSet<string> timelines = [];
 
