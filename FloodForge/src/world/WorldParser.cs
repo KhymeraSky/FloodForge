@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Stride.Core;
 using Stride.Core.Extensions;
 
@@ -107,7 +108,7 @@ public static class WorldParser {
 			WorldWindow.region.rooms.Add(room);
 		}
 
-		string[] data = [.. line[(line.IndexOf(':') + 1)..].Split('>').Select(x => x.Replace("<", ""))];
+		string[] data = [.. line[(line.IndexOf(':') + 1)..].Split('>').Select(x => x.Replace("<", "").Trim())];
 		float canonX = float.Parse(data[0]) / 3f;
 		float canonY = float.Parse(data[1]) / 3f;
 		float devX = float.Parse(data[2]) / 3f;
@@ -166,7 +167,7 @@ public static class WorldParser {
 			else if (line.StartsWith("Connection: ")) {
 				// LATER
 			}
-			else if (line.StartsWith("SpawnMigrationStream: ") || line.StartsWith("SpawnMigrationStreamMidpoint: ")) {
+			else if (line.StartsWith("SpawnMigrationStream: ") || line.StartsWith("SpawnMigrationStreamMidpoint: ") || line.StartsWith("Def_Mat: ") || line.StartsWith("R: ") || line.StartsWith("[REFERENCE]") || line.StartsWith("I: ") || line.StartsWith("[IMAGE]")) {
 				WorldWindow.region.extraMap += line + "\n";
 				// LATER
 			}
@@ -329,14 +330,16 @@ public static class WorldParser {
 			}
 			first = false;
 
-			string[] sections = creatureInDen.Split('-', StringSplitOptions.TrimEntries);
+			string[] sections = Regex.Split(creatureInDen, @"-(?![^{]*})");
 			creature.type = CreatureTextures.Parse(sections[0]);
 			creature.count = 1;
-			creature.lineageChance = float.Parse(sections[^1]);
+			string chanceString, lineageString;
+			chanceString = sections[1][0] == '{' ? (sections.Length == 3 ? sections[2] : "") : sections[1];
+			lineageString = sections[1][0] == '{' ? sections[1] : (sections.Length == 3 ? sections[2] : "");
+			creature.lineageChance = float.Parse(chanceString);
 
-			if (sections.Length == 3 && sections[1][0] == '{') {
-				string tag = sections[1][1..^1];
-				(creature.tag, creature.data) = ParseCreatureTag(tag);
+			if (!lineageString.IsNullOrEmpty()) {
+				(creature.tag, creature.data) = ParseCreatureTag(lineageString[1..^1]);
 			}
 		}
 
@@ -401,7 +404,7 @@ public static class WorldParser {
 	}
 
 	private static bool ParseWorldCreature(string line) {
-		string[] splits = line.Split(':', StringSplitOptions.TrimEntries);
+		string[] splits = line.Split(" : ", StringSplitOptions.TrimEntries);
 		TimelineType timelineType = TimelineType.All;
 		HashSet<string> timelines = [];
 
@@ -787,13 +790,19 @@ public static class WorldParser {
 		room.data.devItems = [ ..devItems ];
 	}
 
-	public static bool ImportWorldFile(string path) {
+	public static string GetRegionDisplayname(string worldPath) {
+		string? displaynamePath = PathUtil.FindFile(PathUtil.Parent(worldPath), "displayname.txt");
+
+		return displaynamePath == null ? "" : File.ReadAllText(displaynamePath).Trim();
+	}
+
+	public static bool ImportWorldFile(string worldPath) {
 		History.Clear();
-		RecentFiles.AddPath(path);
+		RecentFiles.AddPath(worldPath);
 		roomAttractiveness.Clear();
 		WorldWindow.Reset();
-		WorldWindow.region.exportPath = PathUtil.Parent(path);
-		WorldWindow.region.acronym = Path.GetFileNameWithoutExtension(path);
+		WorldWindow.region.exportPath = PathUtil.Parent(worldPath);
+		WorldWindow.region.acronym = Path.GetFileNameWithoutExtension(worldPath);
 		WorldWindow.region.acronym = WorldWindow.region.acronym[(WorldWindow.region.acronym.IndexOfReverse('_') + 1)..];
 		string? regionsPath = Path.GetDirectoryName(PathUtil.Parent(WorldWindow.region.exportPath))?.ToLowerInvariant() == "world"
 			? PathUtil.FindFile(PathUtil.Parent(WorldWindow.region.exportPath), "regions.txt")
@@ -847,21 +856,24 @@ public static class WorldParser {
 
 		Logger.Info("Loading world");
 
-		if (!ParseWorld(path)) return false;
+		if (!ParseWorld(worldPath)) return false;
 
 		Logger.Info("Loading extra room data");
 
 		foreach (Room room in WorldWindow.region.rooms) {
 			if (room is OffscreenRoom) continue;
 
-			foreach (var x in roomAttractiveness) {
-				if (!x.Item1.Equals(room.Name, StringComparison.InvariantCultureIgnoreCase)) continue;
+			foreach (var attr in roomAttractiveness) {
+				if (!attr.Item1.Equals(room.Name, StringComparison.InvariantCultureIgnoreCase)) continue;
 
-				room.data.attractiveness = x.Item2;
+				room.data.attractiveness = attr.Item2;
 			}
 
 			LoadExtraRoomData(PathUtil.FindFile(WorldWindow.region.roomsPath, room.Name + "_settings.txt"), room);
 		}
+
+		Logger.Info("Searching for display name");
+		WorldWindow.region.displayName = GetRegionDisplayname(worldPath);
 
 		Logger.Info("World file imported");
 
