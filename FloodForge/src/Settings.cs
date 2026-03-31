@@ -1,3 +1,4 @@
+using System.Globalization;
 using FloodForge.SettingTypes;
 
 namespace FloodForge;
@@ -25,6 +26,7 @@ public static class Settings {
 	public static SubregionColorsSetting SubregionColors = new SubregionColorsSetting("SubregionColors", [ Color.Red, Color.Green, Color.Blue, Color.Yellow, Color.Cyan, Color.Magenta, new Color(1f, 0.5f, 0f), new Color(0.5f, 0.5f, 0.5f), new Color(0.5f, 0f, 1f), new Color(1f, 0.5f, 1f) ]);
 	public static Setting<bool> DisableAprilFoolsUpdates = Setting.Of("DisableAprilFoolsUpdates", false);
 	public static Setting<bool> DiscordRichPresence = Setting.Of("DiscordRichPresence", true);
+	public static Setting<bool> RoundedUI = Setting.Of("RoundedUI", false);
 
 	public static Setting<bool> DEBUGVisibleOutputPadding = Setting.Of("DebugVisibleOutputPadding", false);
 	public static Setting<bool> DEBUGVisiblePopupVisuals = Setting.Of("DebugVisiblePopupVisuals", false);
@@ -47,7 +49,8 @@ public static class Settings {
 
 			if (settings.TryGetValue(key, out Setting? setting)) {
 				setting.Set(value);
-			} else {
+			}
+			else {
 				Logger.Warn($"No setting '{key}'");
 			}
 		}
@@ -114,7 +117,7 @@ public static class Settings {
 				}
 			}
 
-			this.value = T.Parse(stringValue, null);
+			this.value = T.Parse(stringValue, CultureInfo.InvariantCulture);
 		}
 
 		public Setting<T> Override(Func<string, (bool, T)> func) {
