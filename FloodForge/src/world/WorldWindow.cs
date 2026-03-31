@@ -280,7 +280,7 @@ public static class WorldWindow {
 
 				if (selectingState == SelectingState.None) {
 					bool isPanning = isOriginal && !Keys.Modifier(Keymod.Shift);
-					
+	
 					selectingState = isPanning ? SelectingState.Panning : SelectingState.Selecting;
 					selectionStart = isPanning ? Mouse.Pos : worldMouse;
 					selectionEnd = selectionStart;
@@ -300,7 +300,7 @@ public static class WorldWindow {
 				}
 
 				if (selectingState == SelectingState.Selecting) selectionEnd = worldMouse;
-				
+	
 				if (selectingState == SelectingState.Panning) {
 					selectionEnd = Mouse.Pos;
 					cameraPanTo += (selectionStart - selectionEnd) * cameraScale;
@@ -359,11 +359,12 @@ public static class WorldWindow {
 			Vector2 dev = Vector2.Zero, canon = Vector2.Zero;
 
 			bool moveBoth = Keys.Modifier(Keymod.Alt) || PositionType == RoomPosition.Both;
-			
+	
 			if (PositionType == RoomPosition.Canon) {
 				canon = diff;
 				if (moveBoth) dev = canon - room.DevPosition + room.CanonPosition;
-			} else {
+			}
+			else {
 				dev = diff;
 				if (moveBoth) canon = dev - room.CanonPosition + room.DevPosition;
 			}
@@ -374,7 +375,8 @@ public static class WorldWindow {
 		if (continueDrag && History.Last is MoveChange moveChange) {
 			change.Redo();
 			moveChange.Merge(change);
-		} else {
+		}
+		else {
 			History.Apply(change);
 			continueDrag = true;
 		}
@@ -717,7 +719,8 @@ public static class WorldWindow {
 					vel1.x = v1Next;
 					vel2.x = v2Next;
 				}
-			} else {
+			}
+			else {
 				float dir = diffY > 0 ? 1 : -1;
 
 				pos1.y += overlapY * 0.5f * dir;
@@ -731,7 +734,7 @@ public static class WorldWindow {
 					vel2.y = v2Next;
 				}
 			}
-			
+	
 			if (Math.Abs(vel1.Length + vel2.Length) > 5f) {
 				Sfx.Play($"assets/objects/bump{Random.Shared.Next(1, 6)}.wav");
 			}
@@ -836,7 +839,7 @@ public static class WorldWindow {
 
 	public static void DebugDen(Den den, Room room, ref List<string> debugText) {
 		debugText.Add("");
-		debugText.Add($"Den: {room.Name}");
+		debugText.Add($"Den: {room.name}");
 		foreach (DenLineage lineage in den.creatures) {
 			DenCreature creature = lineage;
 			string line = "";
@@ -872,9 +875,9 @@ public static class WorldWindow {
 		if (hoveringConnection != null) {
 			debugText.Add("");
 			debugText.Add("    Connection:");
-			debugText.Add($"Room A: {hoveringConnection.roomA.Name}");
+			debugText.Add($"Room A: {hoveringConnection.roomA.name}");
 			debugText.Add($"Connection A: {hoveringConnection.connectionA}");
-			debugText.Add($"Room B: {hoveringConnection.roomB.Name}");
+			debugText.Add($"Room B: {hoveringConnection.roomB.name}");
 			debugText.Add($"Connection B: {hoveringConnection.connectionB}");
 		}
 
@@ -883,10 +886,10 @@ public static class WorldWindow {
 			debugText.Add("    Room:");
 			if (!hoveringRoom.valid) {
 				debugText.Add($"INVALID - Check {region.acronym}-rooms");
-				debugText.Add($"Name: {hoveringRoom.Name}");
+				debugText.Add($"Name: {hoveringRoom.name}");
 			}
 			else {
-				debugText.Add($"Name: {hoveringRoom.Name}");
+				debugText.Add($"Name: {hoveringRoom.name}");
 				debugText.Add($"Tags: {string.Join(" ", hoveringRoom.data.tags)}");
 				debugText.Add($"Size: {hoveringRoom.width}x{hoveringRoom.height}");
 				debugText.Add($"Dens: {hoveringRoom.dens.Count}");
@@ -900,6 +903,8 @@ public static class WorldWindow {
 		}
 
 		if (VisibleCreatures) {
+			bool debuggedDen = false;
+
 			for (int r = region.rooms.Count - 1; r >= 0; r--) {
 				Room room = region.rooms[r];
 				Vector2 roomMouse = worldMouse - room.Position;
@@ -910,6 +915,8 @@ public static class WorldWindow {
 						shortcutPosition = new Vector2(room.width * 0.5f - room.dens.Count * 2f + r * 4f + 2.5f, -room.height * 0.25f - 0.5f);
 						if ((roomMouse - shortcutPosition).Length < SelectorScale) {
 							DebugDen(offscreenRoom.GetDen(), offscreenRoom, ref debugText);
+							debuggedDen = true;
+							break;
 						}
 					}
 				}
@@ -919,9 +926,14 @@ public static class WorldWindow {
 						shortcutPosition = new Vector2(shortcut.x + 0.5f, -1f - shortcut.y + 0.5f);
 						if ((roomMouse - shortcutPosition).Length < SelectorScale) {
 							DebugDen(room.GetDen01(j), room, ref debugText);
+							debuggedDen = true;
+							break;
 						}
 					}
 				}
+
+				if (debuggedDen)
+					break;
 			}
 		}
 

@@ -71,7 +71,8 @@ public class SplashArtPopup : Popup {
 				}
 				AppVersion latest = new AppVersion(value);
 				this.updateStatus = (this.version < latest) ? UpdateStatus.Available : UpdateStatus.Unavailable;
-			} else {
+			}
+			else {
 				string? body = node["body"]?.ToString().Replace("BUILD_DATE: ", "").Trim();
 				if (body == null || !DateTime.TryParse(body, out DateTime date)) {
 					Logger.Warn("Failed to fetch release body");
@@ -162,12 +163,11 @@ public class SplashArtPopup : Popup {
 		UI.font.Write("Recent worlds:", -0.88f, -0.28f, 0.03f, Font.Align.MiddleLeft);
 
 		for (int i = 0; i < 8; i++) {
-			int revIndex = Math.Min(RecentFiles.recents.Count, 8) - 1 - i;
-			if (revIndex < 0) break;
+			if (i >= RecentFiles.recents.Count) break;
 
-			string recent = RecentFiles.recentNames[revIndex];
+			string recent = RecentFiles.recentNames[i];
 			if (recent.IsNullOrEmpty()) {
-				recent = Path.GetFileNameWithoutExtension(RecentFiles.recents[revIndex]);
+				recent = Path.GetFileNameWithoutExtension(RecentFiles.recents[i]);
 			}
 
 			float y = -0.33f - i * 0.04f;
@@ -179,7 +179,7 @@ public class SplashArtPopup : Popup {
 
 				if (Mouse.JustLeft) {
 					this.Close();
-					WorldParser.ImportWorldFile(RecentFiles.recents[revIndex]);
+					WorldParser.ImportWorldFile(RecentFiles.recents[i]);
 					return;
 				}
 			}
@@ -216,9 +216,9 @@ public class SplashArtPopup : Popup {
 			Immediate.UseTexture(this.uiIcons);
 			Program.gl.Enable(EnableCap.Blend);
 			Immediate.Color(1f, 1f, 1f);
-			
+	
 			UI.FillRect(UVRect.FromSize(0.31f, startY - yOffset, 0.05f, 0.05f).UV(button.UVs.u1, button.UVs.v1, button.UVs.u2, button.UVs.v2));
-			
+	
 			Immediate.UseTexture(0);
 			Program.gl.Disable(EnableCap.Blend);
 
