@@ -63,6 +63,8 @@ public static class WorldWindow {
 	public static bool CurrentConnectionValid;
 	private static ConnectionState connectionState;
 
+	public static bool EnableParallax = true;
+	public static float ParallaxStrength = 3f;
 	public static bool EnableProfilerScreen = false;
 	public static bool EnableLayeredRoomBehaviour = false;
 

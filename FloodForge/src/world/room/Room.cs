@@ -681,6 +681,19 @@ public class Room {
 		return WorldWindow.changeConnectBehaviour ? this.GetRoomExitDirectionFromShortcut(this.GetRoomEntranceShortcutPosition(i)) : this.GetRoomEntranceDirectionVector(i);
 	}
 
+	public static Vector2 GetParallaxPosition(float layerDepth, Vector2 truePosition) {
+		return WorldWindow.cameraOffset + (truePosition - WorldWindow.cameraOffset) * (1f + (layerDepth * WorldWindow.ParallaxStrength / Mathf.Sqrt(WorldWindow.cameraScale)));
+	}
+	public static Vector2 GetParallaxOffset(float layerDepth, Vector2 truePosition) {
+		return truePosition - Room.GetParallaxPosition(layerDepth, truePosition);
+	}
+	public Vector2 GetParallaxPosition(Vector2 truePosition) {
+		return WorldWindow.cameraOffset + (truePosition - WorldWindow.cameraOffset) * (1f + (this.data.layer * WorldWindow.ParallaxStrength / Mathf.Sqrt(WorldWindow.cameraScale)));
+	}
+	public Vector2 GetParallaxOffset(Vector2 truePosition) {
+		return truePosition - this.GetParallaxPosition(truePosition);
+	}
+
 	public Vector2 Position {
 		get {
 			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
@@ -1102,7 +1115,7 @@ public class Room {
 			Immediate.Alpha(0.5f);
 		}
 
-		Vector2 position = positionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
+		Vector2 position =  WorldWindow.EnableParallax ? this.GetParallaxPosition(this.Position) : this.Position;
 		UI.FillRect(position.x, position.y - this.height, position.x + this.width, position.y);
 	}
 
@@ -1125,18 +1138,19 @@ public class Room {
 		if (Settings.DEBUGRoomWireframe) {
 			Program.gl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Line);
 		}
-		Vector2 position = positionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
+		Vector2 position = WorldWindow.EnableParallax ? this.GetParallaxPosition(this.Position) : this.Position;
+		float scaleFactor = WorldWindow.EnableParallax ? (this.GetParallaxPosition(this.Position + new Vector2(this.width, 0f)).x / (this.width / 2)) : 1f;
 
 		if (!this.valid) {
 			Immediate.Color(1f, 0f, 0f);
 			Immediate.Begin(Immediate.PrimitiveType.LINES);
 			Immediate.Vertex(position.x, position.y);
-			Immediate.Vertex(position.x + this.width, position.y - this.height);
-			Immediate.Vertex(position.x + this.width, position.y);
-			Immediate.Vertex(position.x, position.y - this.height);
+			Immediate.Vertex(position.x + this.width * scaleFactor, position.y - this.height * scaleFactor);
+			Immediate.Vertex(position.x + this.width * scaleFactor, position.y);
+			Immediate.Vertex(position.x, position.y - this.height * scaleFactor);
 			Immediate.End();
 
-			UI.StrokeRect(position.x, position.y, position.x + this.width, position.y - this.height);
+			UI.StrokeRect(position.x, position.y, position.x + this.width * scaleFactor, position.y - this.height * scaleFactor);
 
 			return;
 		}
@@ -1179,7 +1193,7 @@ public class Room {
 			Immediate.Color(0f, 1f, 0f);
 			Immediate.Begin(Immediate.PrimitiveType.LINE_STRIP);
 			foreach (Vector2 point in this.visuals.terrain) {
-				Immediate.Vertex(position.x + point.x / 20f, position.y + point.y / 20f - this.height);
+				Immediate.Vertex(position.x + point.x * scaleFactor / 20f, position.y + point.y * scaleFactor / 20f - this.height);
 			}
 			Immediate.End();
 		}
@@ -1192,13 +1206,13 @@ public class Room {
 		if (positionType == WorldWindow.PositionType) {
 			if (WorldWindow.VisibleDevItems) {
 				foreach (DevObject devObject in this.data.objects) {
-					devObject.Draw(this.Position + new Vector2(0f, -this.height));
+					devObject.Draw(this.Position + new Vector2(0f, -this.height) * scaleFactor);
 				}
 			}
 
 			if (WorldWindow.VisibleCreatures) {
 				for (int i = 0; i < this.denShortcutEntrances.Count; i++) {
-					this.DrawDen(this.dens[i], position.x + this.denShortcutEntrances[i].x, position.y - this.denShortcutEntrances[i].y, i == this.hoveredDen);
+					this.DrawDen(this.dens[i], position.x + this.denShortcutEntrances[i].x * scaleFactor, position.y - this.denShortcutEntrances[i].y * scaleFactor, i == this.hoveredDen);
 				}
 			}
 
@@ -1245,7 +1259,7 @@ public class Room {
 						if(shouldBeHighlighted && (WorldWindow.cameraScale < 75f || Keys.Pressed(Silk.NET.Input.Key.P))) {
 							bool drawnExit = false;
 							foreach (Vector2i dot in result.Item1) { // DRAWING SHORTCUT PATH, STARTS FROM ROOMEXIT, WHICH IS WHY IT DRAWS THE FIRST ORB BIGGER
-								UI.FillCircle(dot * new Vector2(1, -1) + positionOffset, drawnExit ? 0.4f : 0.5f , 8);
+								UI.FillCircle(dot * new Vector2(1, -1) * scaleFactor + positionOffset, drawnExit ? 0.4f : 0.5f , 8);
 								drawnExit = true; 
 							}
 						}
@@ -1264,12 +1278,12 @@ public class Room {
 									lastPos = pointA;
 								}
 								else if(newDir != lastDir) {
-									UI.Line(lastPos + positionOffset, pointA + positionOffset);
+									UI.Line((Vector2)lastPos * scaleFactor + positionOffset, (Vector2)pointA * scaleFactor + positionOffset);
 									lastPos = pointA;
 									lastDir = newDir;
 								}
 								if(j == result.Item1.Length - 1) {
-									UI.Line(lastPos + positionOffset, pointB + positionOffset);
+									UI.Line((Vector2)lastPos * scaleFactor + positionOffset, (Vector2)pointB * scaleFactor + positionOffset);
 								}
 							}
 						}

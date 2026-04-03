@@ -57,6 +57,7 @@ public class Connection {
 	}
 
 	Vector2[] BezierPoints = [];
+	float[] DepthValues = [];
 	Vector2 BezierCenter;
 	public bool recalculateBezier = true;
 
@@ -88,13 +89,18 @@ public class Connection {
 			
 			float overSegments = 1f / this.segments;
 			List<Vector2> bezierPoints = [];
+			List<float> depthValues = [];
 			Rect bounds = new(pointA, pointB);
+			int roomALayer = this.roomA.data.layer;
+			int roomBLayer = this.roomB.data.layer;
 
 			bezierPoints.Add(pointA);
+			if(WorldWindow.EnableParallax) depthValues.Add(roomALayer);
 			for (float t = overSegments; t < 1 + overSegments; t += overSegments) {
 				t = Mathf.Clamp01(t);
 				Vector2 point = MathUtil.BezierCubic(t, pointA, pointA + directionA, pointB + directionB, pointB);
 				bezierPoints.Add(point);
+				if(WorldWindow.EnableParallax) depthValues.Add(Mathf.Lerp(roomALayer, roomBLayer, t));
 				bounds = new(
 					Math.Min(bounds.x0, point.x),
 					Math.Min(bounds.y0, point.y),
@@ -104,6 +110,7 @@ public class Connection {
 				if(t==1) break;
 			}
 			this.BezierPoints = bezierPoints.ToArray();
+			this.DepthValues = depthValues.ToArray();
 			this.fittedAABB = bounds;
 		}
 		this.recalculateBezier = false;
@@ -238,14 +245,14 @@ public class Connection {
 				this.DrawCustomLine(pointA.x, pointA.y, pointB.x, pointB.y, alphaA, alphaB);
 			}
 			else {
-				Vector2 lastPoint = this.BezierPoints![0];
+				Vector2 lastPoint = WorldWindow.EnableParallax ? Room.GetParallaxPosition(this.DepthValues![0], this.BezierPoints![0]) : this.BezierPoints![0];
 				int curveLength = this.BezierPoints.Length;
 				for (int i = 1; i < curveLength; i++) {
 					float curveProgress = i / (float)curveLength;
 					if (blendColors) {
 						Immediate.Color(Color.Lerp(connectionColorA, connectionColorB, curveProgress));
 					}
-					Vector2 point = this.BezierPoints[i];
+					Vector2 point =  WorldWindow.EnableParallax ? Room.GetParallaxPosition(this.DepthValues[i], this.BezierPoints[i]) : this.BezierPoints[i];
 					this.DrawCustomLine(lastPoint.x, lastPoint.y, point.x, point.y, Mathf.Lerp(alphaA, alphaB, curveProgress - (1f / curveLength)), Mathf.Lerp(alphaA, alphaB, curveProgress));
 					lastPoint = point;
 				}
