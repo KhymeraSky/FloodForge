@@ -64,6 +64,7 @@ public static class WorldWindow {
 	private static ConnectionState connectionState;
 
 	public static bool EnableProfilerScreen = false;
+	public static bool EnableLayeredRoomBehaviour = false;
 
 	private enum ConnectionState {
 		None,
@@ -767,66 +768,79 @@ public static class WorldWindow {
 		Profiler.MarkPoint("DrawGrid");
 
 		Program.gl.Enable(EnableCap.Blend);
-		foreach (Room room in WorldWindow.region.rooms) {
-			if (!room.data.merge)
-				continue;
-			if (!VisibleLayers[room.data.layer])
-				continue;
-
-			if (PositionType == RoomPosition.Both) {
-				room.DrawBlack(RoomPosition.Canon);
-				room.DrawBlack(RoomPosition.Dev);
-			}
-			else {
-				room.DrawBlack(PositionType);
-			}
+		List<Room>[] layeredRooms = [[], [], []];
+		if (EnableLayeredRoomBehaviour) {
+			foreach (Room room in WorldWindow.region.rooms) {
+				layeredRooms[room.data.layer].Add(room);
+			}	
 		}
-		foreach (Room room in WorldWindow.region.rooms) {
-			if (Main.AprilFools) {
-				room.CanonPosition += room.CanonVel * 0.1f;
-				room.DevPosition += room.DevVel * 0.1f;
-				room.CanonVel *= 0.95f;
-				room.DevVel *= 0.95f;
-				foreach (Room room2 in WorldWindow.region.rooms) {
-					if (room == room2) continue;
-					ResolveCollision(ref room.DevPosition, ref room.DevVel, room.width, room.height, ref room2.DevPosition, ref room2.DevVel, room2.width, room2.height);
-					ResolveCollision(ref room.CanonPosition, ref room.CanonVel, room.width, room.height, ref room2.CanonPosition, ref room2.CanonVel, room2.width, room2.height);
-				}
-				room.MoveUpdate();
-			}
+		else {
+			layeredRooms = [WorldWindow.region.rooms];
+		}
 
-			if (!VisibleLayers[room.data.layer])
-				continue;
-
-			if(WorldWindow.CullTest(new Rect(room.Position.x, room.Position.y - room.height, room.Position.x + room.width, room.Position.y))) {
-				if (!room.data.merge) {
-					if (PositionType == RoomPosition.Both) {
-						room.DrawBlack(RoomPosition.Canon);
-						room.DrawBlack(RoomPosition.Dev);
-					}
-					else {
-						room.DrawBlack(PositionType);
-					}
-				}
+		foreach (List<Room> roomsInLayer in layeredRooms) {
+			foreach (Room room in roomsInLayer) {
+				if (!room.data.merge)
+					continue;
+				if (!VisibleLayers[room.data.layer])
+					continue;
 
 				if (PositionType == RoomPosition.Both) {
-					room.Draw(RoomPosition.Canon);
-					room.Draw(RoomPosition.Dev);
+					room.DrawBlack(RoomPosition.Canon);
+					room.DrawBlack(RoomPosition.Dev);
 				}
 				else {
-					room.Draw(PositionType);
-					if (Keys.Modifier(Keymod.Alt)) {
-						room.Draw((PositionType == RoomPosition.Canon) ? RoomPosition.Dev : RoomPosition.Canon);
+					room.DrawBlack(PositionType);
+				}
+			}
+			foreach (Room room in roomsInLayer) {
+				if (Main.AprilFools) {
+					room.CanonPosition += room.CanonVel * 0.1f;
+					room.DevPosition += room.DevVel * 0.1f;
+					room.CanonVel *= 0.95f;
+					room.DevVel *= 0.95f;
+					foreach (Room room2 in roomsInLayer) {
+						if (room == room2)
+							continue;
+						ResolveCollision(ref room.DevPosition, ref room.DevVel, room.width, room.height, ref room2.DevPosition, ref room2.DevVel, room2.width, room2.height);
+						ResolveCollision(ref room.CanonPosition, ref room.CanonVel, room.width, room.height, ref room2.CanonPosition, ref room2.CanonVel, room2.width, room2.height);
 					}
+					room.MoveUpdate();
 				}
 
-				if (selectedRooms.Contains(room)) {
-					Immediate.Color(Themes.SelectionBorder);
-					if (PositionType == RoomPosition.Dev || PositionType == RoomPosition.Both) {
-						UI.StrokeRect(Rect.FromSize(room.DevPosition.x, room.DevPosition.y, room.width, -room.height), cameraScale / 4f);
+				if (!VisibleLayers[room.data.layer])
+					continue;
+
+				if (WorldWindow.CullTest(new Rect(room.Position.x, room.Position.y - room.height, room.Position.x + room.width, room.Position.y))) {
+					if (!room.data.merge) {
+						if (PositionType == RoomPosition.Both) {
+							room.DrawBlack(RoomPosition.Canon);
+							room.DrawBlack(RoomPosition.Dev);
+						}
+						else {
+							room.DrawBlack(PositionType);
+						}
 					}
-					if (PositionType == RoomPosition.Canon || PositionType == RoomPosition.Both) {
-						UI.StrokeRect(Rect.FromSize(room.CanonPosition.x, room.CanonPosition.y, room.width, -room.height), cameraScale / 4f);
+
+					if (PositionType == RoomPosition.Both) {
+						room.Draw(RoomPosition.Canon);
+						room.Draw(RoomPosition.Dev);
+					}
+					else {
+						room.Draw(PositionType);
+						if (Keys.Modifier(Keymod.Alt)) {
+							room.Draw((PositionType == RoomPosition.Canon) ? RoomPosition.Dev : RoomPosition.Canon);
+						}
+					}
+
+					if (selectedRooms.Contains(room)) {
+						Immediate.Color(Themes.SelectionBorder);
+						if (PositionType == RoomPosition.Dev || PositionType == RoomPosition.Both) {
+							UI.StrokeRect(Rect.FromSize(room.DevPosition.x, room.DevPosition.y, room.width, -room.height), cameraScale / 4f);
+						}
+						if (PositionType == RoomPosition.Canon || PositionType == RoomPosition.Both) {
+							UI.StrokeRect(Rect.FromSize(room.CanonPosition.x, room.CanonPosition.y, room.width, -room.height), cameraScale / 4f);
+						}
 					}
 				}
 			}
