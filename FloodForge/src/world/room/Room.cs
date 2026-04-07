@@ -3,7 +3,7 @@ using Stride.Core.Extensions;
 namespace FloodForge.World;
 
 // TODO: Fix room water behind level rendering
-public class Room {
+public class Room : WorldObject {
 	public const uint FLAG_VERTICAL_POLE = 16;
 	public const uint FLAG_HORIZONTAL_POLE = 32;
 	public const uint FLAG_ROOM_EXIT = 64;
@@ -762,7 +762,7 @@ public class Room {
 	}
 	#endregion
 
-	public Vector2 Position {
+	public new Vector2 Position {
 		get {
 			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
 		}

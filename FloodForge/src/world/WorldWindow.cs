@@ -40,11 +40,14 @@ public static class WorldWindow {
 	public static Vector2 worldMouse;
 
 	public static List<Room> selectedRooms = []; // REVIEW - HashSet?
+	public static List<ReferenceImage> selectedReferenceImages = [];
 	public static List<Room> oldSelection = [];
 	public static Room? roomPossibleSelect = null;
+	public static ReferenceImage? referencePossibleSelect = null;
 	private static SelectingState selectingState = SelectingState.None;
 	public static Vector2 selectionStart;
 	public static Vector2 selectionEnd;
+	public static List<ReferenceImage> referenceImages = [];
 
 	private static bool roomSnap;
 	public static bool placingRoom = false;
@@ -52,6 +55,7 @@ public static class WorldWindow {
 	public static Vector2i placingRoomSize;
 
 	public static Room? holdingRoom = null;
+	public static ReferenceImage? holdingReferenceImage = null;
 	public static Vector2? holdingStart = null;
 	public static int holdingType = 0;
 	public static bool continueDrag = false;
@@ -80,6 +84,7 @@ public static class WorldWindow {
 	}
 
 	public static Room? HoveringRoom => region.rooms.LastOrDefault(r => r.Visible && r.Inside(worldMouse));
+	public static ReferenceImage? HoveringReferenceImage => referenceImages.LastOrDefault(r => r.visible && r.Inside(worldMouse));
 
 	public static Connection? HoveringConnection => region.connections?.LastOrDefault(c => {
 		return c.roomA.Visible && c.roomB.Visible && c.Hovered;
@@ -109,6 +114,7 @@ public static class WorldWindow {
 
 	public static void Reset() {
 		selectedRooms.Clear();
+		selectedReferenceImages.Clear();
 		roomPossibleSelect = null;
 		selectingState = SelectingState.None;
 		region = new Region();
@@ -300,6 +306,7 @@ public static class WorldWindow {
 	private static void UpdateControls() {
 		if (Mouse.Disabled) return;
 
+		Main.mouse?.Cursor.StandardCursor = StandardCursor.Default;
 		bool isOriginal = Settings.OriginalControls;
 
 		if (Mouse.Left) {
@@ -311,8 +318,21 @@ public static class WorldWindow {
 						holdingRoom = room;
 						holdingStart = worldMouse;
 						roomPossibleSelect = room;
+						referencePossibleSelect = null;
 						selectingState = SelectingState.PendingDrag;
 						if (!isOriginal && Main.AprilFools) Sfx.Play($"assets/objects/click{new Random().Next(1, 3)}.wav");
+					}
+				}
+
+				if (selectingState == SelectingState.None) {
+					ReferenceImage? hoveringReferenceImage = HoveringReferenceImage;
+
+					if (hoveringReferenceImage != null) {
+						holdingReferenceImage = hoveringReferenceImage;
+						holdingStart = worldMouse;
+						referencePossibleSelect = hoveringReferenceImage;
+						roomPossibleSelect = null;
+						selectingState = SelectingState.PendingDrag;
 					}
 				}
 
@@ -324,17 +344,27 @@ public static class WorldWindow {
 					selectionEnd = selectionStart;
 
 					bool isAdditive = (!isOriginal && Keys.Modifier(Keymod.Shift)) || Keys.Modifier(Keymod.Ctrl);
-					if (!isAdditive && !isPanning) selectedRooms.Clear();
+					if (!isAdditive && !isPanning) { selectedRooms.Clear(); selectedReferenceImages.Clear();}
 				}
 			}
 			else {
-				if ((selectingState == SelectingState.PendingDrag && Mouse.Moved || selectingState == SelectingState.Dragging) && roomPossibleSelect != null && holdingStart != null) {
-					if (selectingState == SelectingState.PendingDrag) {
-						HandleSelectionLogic(roomPossibleSelect);
-						selectingState = SelectingState.Dragging;
+				if ((selectingState == SelectingState.PendingDrag && Mouse.Moved || selectingState == SelectingState.Dragging) && holdingStart != null) {
+					Main.mouse?.Cursor.StandardCursor = StandardCursor.ResizeAll;
+					if(roomPossibleSelect != null || referencePossibleSelect != null) {
+						if(selectingState == SelectingState.PendingDrag) {
+							if(roomPossibleSelect != null) {
+								HandleSelectionLogic(roomPossibleSelect);
+								referencePossibleSelect = null;
+							}
+							else if(referencePossibleSelect != null) {
+								HandleSelectionLogic(referencePossibleSelect);
+								roomPossibleSelect = null;
+							}
+							selectingState = SelectingState.Dragging;
+						}
+						
+						ApplyMovement();
 					}
-
-					ApplyMovement();
 				}
 
 				if (selectingState == SelectingState.Selecting) selectionEnd = worldMouse;
@@ -347,10 +377,15 @@ public static class WorldWindow {
 			}
 		}
 		else {
-			if (selectingState == SelectingState.PendingDrag && roomPossibleSelect != null) {
-				HandleSelectionLogic(roomPossibleSelect);
-				if (roomSnap) {
-					foreach (Room room in selectedRooms) room.Position = room.Position.Rounded();
+			if (selectingState == SelectingState.PendingDrag) {
+				if(roomPossibleSelect != null) {
+					HandleSelectionLogic(roomPossibleSelect);
+					if (roomSnap) {
+						foreach (Room room in selectedRooms) room.Position = room.Position.Rounded();
+					}
+				}
+				else if(referencePossibleSelect != null) {
+					HandleSelectionLogic(referencePossibleSelect);
 				}
 			}
 
@@ -358,9 +393,13 @@ public static class WorldWindow {
 				foreach (Room room in region.rooms) {
 					if (room.Intersects(selectionStart, selectionEnd)) selectedRooms.Add(room);
 				}
+				foreach (ReferenceImage image in referenceImages) {
+					if (image.Intersects(selectionStart, selectionEnd)) selectedReferenceImages.Add(image);
+				}
 			}
 
 			holdingRoom = null;
+			holdingReferenceImage = null;
 			continueDrag = false;
 			selectingState = SelectingState.None;
 		}
@@ -380,6 +419,17 @@ public static class WorldWindow {
 			}
 		}
 	}
+	private static void HandleSelectionLogic(ReferenceImage referenceImage) {
+		bool isAdditive = Keys.Modifier(Keymod.Shift) || Keys.Modifier(Keymod.Ctrl);
+		if (isAdditive) {
+			if (!selectedReferenceImages.Remove(referenceImage)) selectedReferenceImages.Add(referenceImage);
+		} else {
+			if (!selectedReferenceImages.Contains(referenceImage)) {
+				selectedReferenceImages.Clear();
+				selectedReferenceImages.Add(referenceImage);
+			}
+		}
+	}
 
 	private static void ApplyMovement() {
 		if (holdingStart == null) return;
@@ -388,26 +438,34 @@ public static class WorldWindow {
 		Vector2 offset = worldMouse - (Vector2) holdingStart;
 		if (roomSnap) offset.Round();
 
-		foreach (Room room in selectedRooms) {
-			Vector2 newPos = room.Position;
+		List<WorldObject> selectedObjects = [..selectedRooms];
+		foreach(WorldObject worldObject in selectedReferenceImages) selectedObjects.Add(worldObject);
+
+		foreach (WorldObject worldObject in selectedObjects) {
+			Vector2 newPos = worldObject.Position;
 			if (roomSnap) newPos.Round();
 			newPos += offset;
 
-			Vector2 diff = newPos - room.Position;
+			Vector2 diff = newPos - worldObject.Position;
 			Vector2 dev = Vector2.Zero, canon = Vector2.Zero;
 
 			bool moveBoth = Keys.Modifier(Keymod.Alt) || PositionType == RoomPosition.Both;
-	
-			if (PositionType == RoomPosition.Canon) {
-				canon = diff;
-				if (moveBoth) dev = canon - room.DevPosition + room.CanonPosition;
+
+			if(worldObject is Room room) {
+				if (PositionType == RoomPosition.Canon) {
+					canon = diff;
+					if (moveBoth) dev = canon - room.DevPosition + room.CanonPosition;
+				}
+				else {
+					dev = diff;
+					if (moveBoth) canon = dev - room.CanonPosition + room.DevPosition;
+				}
+				room.MoveUpdate();
+				change.AddRoom(room, dev, canon);
 			}
-			else {
-				dev = diff;
-				if (moveBoth) canon = dev - room.CanonPosition + room.DevPosition;
+			else if(worldObject is ReferenceImage image) {
+				image.Position += diff;
 			}
-			room.MoveUpdate();
-			change.AddRoom(room, dev, canon);
 		}
 
 		holdingStart += offset;
@@ -433,6 +491,13 @@ public static class WorldWindow {
 		Room? room = HoveringRoom;
 		if (room != null && room is OffscreenRoom)
 			return;
+
+		ReferenceImage? referenceImage = HoveringReferenceImage;
+		if(referenceImage != null) {
+			PopupManager.Add(new ConfirmPopup("Delete reference image?").SetButtons("Delete", "Keep").Okay(() => {
+				referenceImages.Remove(referenceImage);
+			}));
+		}
 
 		RoomAndConnectionChange change = new RoomAndConnectionChange(false);
 
@@ -794,9 +859,14 @@ public static class WorldWindow {
 		Immediate.LoadIdentity();
 		Immediate.Ortho(cameraOffset.x, cameraOffset.y, cameraScale * Main.screenBounds.x, cameraScale * Main.screenBounds.y);
 		DrawGrid();
+		UI.StrokeCircle(Vector2.Zero, 1f, 8);
 		Profiler.MarkPoint("DrawGrid");
 
 		Program.gl.Enable(EnableCap.Blend);
+		foreach(ReferenceImage image in referenceImages) {
+			image.Draw();
+		}
+
 		foreach (Room room in WorldWindow.region.rooms) {
 			if (!room.data.merge)
 				continue;
@@ -922,6 +992,7 @@ public static class WorldWindow {
 
 		Connection? hoveringConnection = HoveringConnection;
 		Room? hoveringRoom = HoveringRoom;
+		ReferenceImage? hoveringReferenceImage = HoveringReferenceImage;
 		int screenCount = region.rooms.Aggregate(0, (a, b) => a + b.data.cameras.Count);
 		RichPresenceManager.Acronym = region.acronym;
 		RichPresenceManager.DisplayName = region.displayName;
@@ -944,6 +1015,14 @@ public static class WorldWindow {
 			debugText.Add($"Connection B: {hoveringConnection.roomBExitID}");
 		}
 
+		if (hoveringReferenceImage != null) {
+			debugText.Add("");
+			debugText.Add("    ReferenceImage:");
+			debugText.Add($"Path: {Font.CropText(hoveringReferenceImage.imagePath, 2f, out _, true)}");
+			debugText.Add($"Resolution: {hoveringReferenceImage.image.width}x{hoveringReferenceImage.image.height}");
+			debugText.Add($"Scale: {hoveringReferenceImage.scale}");
+		}
+
 		if (hoveringRoom != null) {
 			debugText.Add("");
 			debugText.Add("    Room:");
@@ -962,6 +1041,17 @@ public static class WorldWindow {
 					debugText.Add("No Merge");
 				if (hoveringRoom.data.hidden)
 					debugText.Add("Hidden");
+			}
+		}
+
+		if (selectedRooms.Count != 0 || selectedReferenceImages.Count != 0) {
+			debugText.Add("");
+			debugText.Add("    Selected: ");
+			foreach (Room room in selectedRooms) {
+				debugText.Add(room.name);
+			}
+			foreach (ReferenceImage image in selectedReferenceImages) {
+				debugText.Add(image.imagePath.Split('\\').Last());
 			}
 		}
 
@@ -1411,7 +1501,14 @@ public static class WorldWindow {
 							renderRoomsTask = Task.Run(MassRenderRooms);
 						});
 					PopupManager.Add(confirmRenderPopup);
-				}, () => { return oldSelection.Count != 0; })
+				}, () => { return oldSelection.Count != 0; }),
+
+				new Button("Add Reference", button => {
+					PopupManager.Add(new FilesystemPopup((pathstring) => {
+						if(pathstring.Length != 0)
+							referenceImages.Add(new(pathstring.First()));
+					}));
+				})
 			];
 		}
 
