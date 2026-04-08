@@ -51,7 +51,33 @@ public class ColorEditPopup : Popup {
 			this._modelLocC = Program.gl.GetUniformLocation(Preload.ColorSquareShader, "model");
 		}
 		Program.gl.Uniform1(this._hueLoc, this.hue / 360f);
-		Program.gl.UniformMatrix4(this._projLocC, false, [..Matrix4X4.CreateOrthographicOffCenter(-Main.screenBounds.x, Main.screenBounds.x, -Main.screenBounds.y, Main.screenBounds.y, 0f, 1f)]);
+
+#region debug for debug purposes, a mess
+		static void Message(string message) => Profiler.Debug.AddProfilerMessage(message + "    ", true);
+		Message($"ColorEditPopup:");
+		Message($"Rect: x:{this.bounds.x0}-{this.bounds.x1} ({this.bounds.x1 - this.bounds.x0})");
+		Message($"y:{this.bounds.y0}-{this.bounds.y1} ({this.bounds.y1 - this.bounds.y0})");
+		Message($"selectorRect: x:{this.selectorRect.x0}-{this.selectorRect.x1} ({this.selectorRect.x1 - this.selectorRect.x0})");
+		Message($"y:{this.selectorRect.y0}-{this.selectorRect.y1} ({this.selectorRect.y1 - this.selectorRect.y0})");
+
+		Message($"Screen data:");
+		Message($"ScreenBounds: {Main.screenBounds.x}x{Main.screenBounds.y}");
+		float minScreenBounds = Math.Min(Main.screenBounds.x, Main.screenBounds.y);
+		Message($"MinScreenBounds: {minScreenBounds}");
+		
+		// \/ works on my end
+		//Matrix4X4<float> finalMatrix = Matrix4X4.CreateOrthographicOffCenter(-minScreenBounds, minScreenBounds, -minScreenBounds, minScreenBounds, 0f, 1f);
+
+		// \/ works on your end?
+		Matrix4X4<float> finalMatrix = Matrix4X4.CreateOrthographicOffCenter(-Main.screenBounds.x, Main.screenBounds.x, -Main.screenBounds.y, Main.screenBounds.y, 0f, 1f);
+		Message($"Final Matrix4x4:");
+		Message($"{finalMatrix[0][0]}, {finalMatrix[0][1]}, {finalMatrix[0][2]}, {finalMatrix[0][3]}");
+		Message($"{finalMatrix[1][0]}, {finalMatrix[1][1]}, {finalMatrix[1][2]}, {finalMatrix[1][3]}");
+		Message($"{finalMatrix[2][0]}, {finalMatrix[2][1]}, {finalMatrix[2][2]}, {finalMatrix[2][3]}");
+		Message($"{finalMatrix[3][0]}, {finalMatrix[3][1]}, {finalMatrix[3][2]}, {finalMatrix[3][3]}");
+#endregion
+		
+		Program.gl.UniformMatrix4(this._projLocC, false, [..finalMatrix]);
 		Program.gl.UniformMatrix4(this._modelLocC, false, [..Matrix4X4.CreateTranslation(0f, 0f, 0f)]);
 
 		Immediate.Color(1f, 1f, 1f);
