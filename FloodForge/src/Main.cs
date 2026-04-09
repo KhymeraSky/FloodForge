@@ -121,6 +121,9 @@ public static class Main {
 		if (!Program.window.IsVisible) return;
 		Stopwatch diagnosticsStopwatch = Stopwatch.StartNew();
 		Profiler.InitProfiler();
+		Silk.NET.Windowing.IMonitor mainMonitor = Silk.NET.Windowing.Monitor.GetMainMonitor(Program.window);
+		Profiler.Debug.AddProfilerMessage($"MainMonitor: {mainMonitor.Name} - {mainMonitor.Index}    ", true);
+		Profiler.Debug.AddProfilerMessage($"Monitor Size: {mainMonitor.Bounds.Size.X}x{mainMonitor.Bounds.Size.Y}    ", true);
 		Profiler.Debug.AddProfilerMessage($"postRenderSpan: {Math.Floor(postRenderSpan.TotalMilliseconds * 1000) / 1000}ms;\ngcTimeSpan: {Math.Floor(GC.GetTotalPauseDuration().TotalMilliseconds * 1000) / 1000}ms");
 		Profiler.MarkPoint("RENDER", 1);
 
