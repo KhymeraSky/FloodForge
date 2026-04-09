@@ -708,8 +708,12 @@ public class Room {
 	}
 
 	#region Connection information methods
-	public Vector2 GetConnectionConnectPoint(uint i) {
-		if (!WorldWindow.changeConnectBehaviour) {
+	//public Vector2 GetConnectionConnectPoint(uint i) {
+	//	return this.GetConnectionConnectPoint(i, WorldWindow.changeConnectBehaviour);
+	//}
+
+	public Vector2 GetConnectionConnectPoint(uint i, bool connectBehaviour = false) {
+		if (WorldWindow.changeConnectBehaviour){//connectBehaviour) {
 			RoomConnection connection = this.roomExitPaths[this.roomExits[(int)i]];
 			if(connection.endType == RoomPathEndType.shortcutEntrance) {
 				return this.RoomPositionToWorldPosition(this.roomExitPaths[this.roomExits[(int)i]].path.EndPosition);
@@ -718,8 +722,12 @@ public class Room {
 		return this.RoomPositionToWorldPosition(this.roomExits[(int)i]);
 	}
 	
-	public Vector2i GetConnectionConnectDirection(uint i) {
-		if (!WorldWindow.changeConnectBehaviour) {
+	//public Vector2i GetConnectionConnectDirection(uint i) {
+	//	return this.GetConnectionConnectDirection(i, WorldWindow.changeConnectBehaviour);
+	//}
+	
+	public Vector2i GetConnectionConnectDirection(uint i, bool connectBehaviour = false) {
+		if (WorldWindow.changeConnectBehaviour){//connectBehaviour) {
 			RoomConnection connection = this.roomExitPaths[this.roomExits[(int)i]];
 			if(connection.endType == RoomPathEndType.shortcutEntrance) {
 				return this.roomExitPaths[this.roomExits[(int)i]].path.EndDirection * new Vector2i(-1, 1);

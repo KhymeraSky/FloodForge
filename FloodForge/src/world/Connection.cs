@@ -61,8 +61,44 @@ public class Connection {
 	public bool recalculateBezier = true;
 
 	public void RecalculateBezier() {
-		Vector2 pointA = this.roomA.GetConnectionConnectPoint(this.roomAExitID);
-		Vector2 pointB = this.roomB.GetConnectionConnectPoint(this.roomBExitID);
+		// Checking options.
+		Vector2 pointA;
+		Vector2 pointB;
+		Vector2 directionA;
+		Vector2 directionB;
+		
+		if (!WorldWindow.changeConnectBehaviour) {
+			pointA = this.roomA.GetConnectionConnectPoint(this.roomAExitID);
+			pointB = this.roomB.GetConnectionConnectPoint(this.roomBExitID);
+			directionA = this.roomA.GetConnectionConnectDirection(this.roomAExitID);
+			directionB = this.roomB.GetConnectionConnectDirection(this.roomBExitID);
+		}
+		else {
+			Vector2 defaultPointA = this.roomA.GetConnectionConnectPoint(this.roomAExitID, false);
+			Vector2 defaultPointB = this.roomA.GetConnectionConnectPoint(this.roomBExitID, false);
+			Vector2i defaultDirA = this.roomA.GetConnectionConnectDirection(this.roomAExitID, false);
+			Vector2i defaultDirB = this.roomB.GetConnectionConnectDirection(this.roomBExitID, false);
+			float defaultDistance = (defaultPointA - defaultPointB).Length;
+			float defaultDot = Vector2.Dot(defaultDirA, defaultDirB);
+
+			Vector2 pathPointA = this.roomA.GetConnectionConnectPoint(this.roomAExitID, true);
+			Vector2 pathPointB = this.roomA.GetConnectionConnectPoint(this.roomBExitID, true);
+			Vector2i pathDirA = this.roomA.GetConnectionConnectDirection(this.roomAExitID, true);
+			Vector2i pathDirB = this.roomB.GetConnectionConnectDirection(this.roomBExitID, true);
+			float pathDistance = (defaultPointA - defaultPointB).Length;
+			float pathDot = Vector2.Dot(defaultDirA, defaultDirB);
+			bool preference = true;
+			if(pathDistance < 25f && pathDot < 0) {
+				if((defaultDistance > 50f && defaultDot <= 0) || defaultDistance > 25 && defaultDot > 0) {
+					preference = false;
+				}
+			}
+			pointA = preference ? pathPointA : defaultPointA;
+			pointB = preference ? pathPointB : defaultPointB;
+			directionA = preference ? pathDirA : defaultDirA;
+			directionB = preference ? pathDirB : defaultDirB;
+		}
+
 		this.segments = Math.Clamp((int) ((pointA - pointB).Length / 2f), 4, 100);
 		if (Settings.ConnectionType.value == Settings.STConnectionType.Linear) {
 			this.BezierCenter = (pointA + pointB) * 0.5f;
@@ -70,9 +106,6 @@ public class Connection {
 			this.fittedAABB = new Rect(pointA, pointB);
 		}
 		else {
-			Vector2 directionA = this.roomA.GetConnectionConnectDirection(this.roomAExitID);
-			Vector2 directionB = this.roomB.GetConnectionConnectDirection(this.roomBExitID);
-
 			this.directionStrength = (pointA - pointB).Length;
 			if (this.directionStrength > 300f) {
 				this.directionStrength = this.directionStrength * 0.5f + 150f;
