@@ -123,7 +123,7 @@ public static class Main {
 		Profiler.InitProfiler();
 		Silk.NET.Windowing.IMonitor mainMonitor = Silk.NET.Windowing.Monitor.GetMainMonitor(Program.window);
 		Profiler.Debug.AddProfilerMessage($"MainMonitor: {mainMonitor.Name} - {mainMonitor.Index}    ", true);
-		Profiler.Debug.AddProfilerMessage($"Monitor Size: {mainMonitor.Bounds.Size.X}x{mainMonitor.Bounds.Size.Y}    ", true);
+		Profiler.Debug.AddProfilerMessage($"Resolution: {mainMonitor.VideoMode.Resolution?.X}x{mainMonitor.VideoMode.Resolution?.Y}    ", true);
 		Profiler.Debug.AddProfilerMessage($"postRenderSpan: {Math.Floor(postRenderSpan.TotalMilliseconds * 1000) / 1000}ms;\ngcTimeSpan: {Math.Floor(GC.GetTotalPauseDuration().TotalMilliseconds * 1000) / 1000}ms");
 		Profiler.MarkPoint("RENDER", 1);
 
