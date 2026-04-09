@@ -1,3 +1,5 @@
+using FloodForge.World;
+
 namespace FloodForge.Popups;
 
 public class ColorEditPopup : Popup {
@@ -66,19 +68,26 @@ public class ColorEditPopup : Popup {
 		Message($"MinScreenBounds: {minScreenBounds}");
 		
 		// \/ works on my end
-		//Matrix4X4<float> finalMatrix = Matrix4X4.CreateOrthographicOffCenter(-minScreenBounds, minScreenBounds, -minScreenBounds, minScreenBounds, 0f, 1f);
+		//Matrix4X4<float> projectionMatrix = Matrix4X4.CreateOrthographicOffCenter(-minScreenBounds, minScreenBounds, -minScreenBounds, minScreenBounds, 0f, 1f);
 
 		// \/ works on your end?
-		Matrix4X4<float> finalMatrix = Matrix4X4.CreateOrthographicOffCenter(-Main.screenBounds.x, Main.screenBounds.x, -Main.screenBounds.y, Main.screenBounds.y, 0f, 1f);
-		Message($"\nFinal Matrix4x4:");
-		Message($"{finalMatrix[0][0]}, {finalMatrix[0][1]}, {finalMatrix[0][2]}, {finalMatrix[0][3]}");
-		Message($"{finalMatrix[1][0]}, {finalMatrix[1][1]}, {finalMatrix[1][2]}, {finalMatrix[1][3]}");
-		Message($"{finalMatrix[2][0]}, {finalMatrix[2][1]}, {finalMatrix[2][2]}, {finalMatrix[2][3]}");
-		Message($"{finalMatrix[3][0]}, {finalMatrix[3][1]}, {finalMatrix[3][2]}, {finalMatrix[3][3]}");
+		Matrix4X4<float> projectionMatrix = Matrix4X4.CreateOrthographicOffCenter(-Main.screenBounds.x, Main.screenBounds.x, -Main.screenBounds.y, Main.screenBounds.y, 0f, 1f);
+		Message($"\nFinal Matrix4x4 projectionMatrix:");
+		Message($"{projectionMatrix[0][0]}, {projectionMatrix[0][1]}, {projectionMatrix[0][2]}, {projectionMatrix[0][3]}");
+		Message($"{projectionMatrix[1][0]}, {projectionMatrix[1][1]}, {projectionMatrix[1][2]}, {projectionMatrix[1][3]}");
+		Message($"{projectionMatrix[2][0]}, {projectionMatrix[2][1]}, {projectionMatrix[2][2]}, {projectionMatrix[2][3]}");
+		Message($"{projectionMatrix[3][0]}, {projectionMatrix[3][1]}, {projectionMatrix[3][2]}, {projectionMatrix[3][3]}");
+		
+		Matrix4X4<float> modelMatrix = Matrix4X4.CreateTranslation(0f, 0f, 0f);
+		Message($"\nFinal Matrix4x4 modelMatrix:");
+		Message($"{modelMatrix[0][0]}, {modelMatrix[0][1]}, {modelMatrix[0][2]}, {modelMatrix[0][3]}");
+		Message($"{modelMatrix[1][0]}, {modelMatrix[1][1]}, {modelMatrix[1][2]}, {modelMatrix[1][3]}");
+		Message($"{modelMatrix[2][0]}, {modelMatrix[2][1]}, {modelMatrix[2][2]}, {modelMatrix[2][3]}");
+		Message($"{modelMatrix[3][0]}, {modelMatrix[3][1]}, {modelMatrix[3][2]}, {modelMatrix[3][3]}");
 #endregion
 		
-		Program.gl.UniformMatrix4(this._projLocC, false, [..finalMatrix]);
-		Program.gl.UniformMatrix4(this._modelLocC, false, [..Matrix4X4.CreateTranslation(0f, 0f, 0f)]);
+		Program.gl.UniformMatrix4(this._projLocC, true, [..projectionMatrix]);
+		Program.gl.UniformMatrix4(this._modelLocC, false, [..modelMatrix]);
 
 		Immediate.Color(1f, 1f, 1f);
 		Immediate.Begin(Immediate.PrimitiveType.QUADS);
@@ -88,6 +97,14 @@ public class ColorEditPopup : Popup {
 		Immediate.TexCoord(0f, 0f); Immediate.Vertex(this.selectorRect.x0, this.selectorRect.y0);
 		Immediate.End();
 		Immediate.UseProgram(0);
+
+		if (WorldWindow.EnableProfilerScreen) {
+			Immediate.Color(1f, 0f, 1f);
+			UI.StrokeCircle(new (this.selectorRect.x0, this.selectorRect.y1), 0.03f, 8);
+			UI.StrokeCircle(new (this.selectorRect.x1, this.selectorRect.y1), 0.03f, 8);
+			UI.StrokeCircle(new (this.selectorRect.x1, this.selectorRect.y0), 0.03f, 8);
+			UI.StrokeCircle(new (this.selectorRect.x0, this.selectorRect.y0), 0.03f, 8);
+		}
 	
 		if (Mouse.JustLeft && !Mouse.Disabled && this.selectorRect.Inside(Mouse.Pos)) {
 			this.centerFocused = true;

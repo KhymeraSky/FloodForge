@@ -458,6 +458,10 @@ public static class WorldWindow {
 	}
 
 	private static void UpdateKeybinds() {
+		if (Keys.JustPressed(Key.F2)) {
+			PopupManager.Add(new ColorEditPopup(Color.Red, (Color) => {}));
+		}
+
 		if (Keys.JustPressed(Key.F3)) {
 			EnableProfilerScreen = !EnableProfilerScreen;
 		}
