@@ -1,0 +1,51 @@
+Pink>PinkLizard
+Green>GreenLizard
+Blue>BlueLizard
+Yellow>YellowLizard
+White>WhiteLizard
+Black>BlackLizard
+Cyan>CyanLizard
+Red>RedLizard
+Small Centipede>SmallCentipede
+Cent>Centipede
+Centi>Centipede
+Red Centipede>RedCentipede
+RedCenti>RedCentipede
+Red Centi>RedCentipede
+Drop Bug>DropBug
+DropWig>DropBug
+Drop Wig>DropBug
+Big Spider>BigSpider
+Spitter Spider>SpitterSpider
+Egg Bug>EggBug
+Sea Leech>SeaLeech
+Jet Fish>JetFish
+Lev>BigEeel
+Leviathan>BigEel
+Big Eel>BigEel
+King Vulture>KingVulture
+Needle>BigNeedleWorm
+Needle Worm>BigNeedleWorm
+BigNeedle>BigNeedleWorm
+Big Needle>BigNeedleWorm
+SmallNeedle>SmallNeedleWorm
+Small Needle>SmallNeedleWorm
+Mimic>PoleMimic
+Pole Mimic>PoleMimic
+Tentacle>TentaclePlant
+Tentacle Plant>TentaclePlant
+Lantern Mouse>LanternMouse
+Mouse>LanternMouse
+Miros>MirosBird
+Miros Bird>MirosBird
+Tube>TubeWorm
+Tube Worm>TubeWorm
+Bro>BrotherLongLegs
+BroLongLegs>BrotherLongLegs
+Bro Long Legs>BrotherLongLegs
+Daddy>DaddyLongLegs
+Daddy Long Legs>DaddyLongLegs
+Hunter>HunterDaddy
+Hunter Daddy>HunterDaddy
+Worm>GarbageWorm
+Garbage Worm>GarbageWorm
