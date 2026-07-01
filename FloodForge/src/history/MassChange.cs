@@ -2,8 +2,10 @@ namespace FloodForge.History;
 
 public class MassChange : Change {
 	readonly Change[] changes;
-	public MassChange(Change[] changes) {
+	readonly bool reverseOnUndo;
+	public MassChange(Change[] changes, bool reverseOnUndo = true) {
 		this.changes = changes;
+		this.reverseOnUndo = reverseOnUndo;
 	}
 
 	public override void Redo() {
@@ -13,7 +15,7 @@ public class MassChange : Change {
 	}
 
 	public override void Undo() {
-		foreach (Change change in this.changes.Reverse()) {
+		foreach (Change change in this.reverseOnUndo ? this.changes.Reverse() : this.changes) {
 			change.Undo();
 		}
 	}
