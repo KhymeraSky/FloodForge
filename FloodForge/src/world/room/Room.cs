@@ -29,7 +29,7 @@ public class Room : WorldDraggable {
 	// The room that is replaced by this one in specific timelines
 	public Room? replacedRoom = null;
 	// The rooms that replace this one in specific timelines
-	public HashSet<Room> replacingRooms = [];
+	public HashSet<Room> replacingRooms = []; // Review - have each replacement specify their timelines so that export doesn't need to infer
 	public Timeline timeline = new();
 	public ConditionalPopup? conditionalPopup;
 	public Vector2 CanonPosition;

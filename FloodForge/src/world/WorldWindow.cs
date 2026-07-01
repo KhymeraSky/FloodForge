@@ -474,6 +474,174 @@ public static class WorldWindow {
 							}).Translate(Mouse.Pos, true).Title("Rename Room"));
 						}
 					}),
+					// REVIEW - any room should only ever be a replacing room or a replaced room, never both
+					// (since for example, if room A is replaced by room B in Yellow and Red, and room C replaces B in Red, both should instead replace room A directly)
+					// this may need further consideration when it comes to preprocessorconditions.
+					new SettingsPopup.ButtonContainer("Configure ReplaceRoom", () => {
+						// REVIEW - make this into a separate class
+						// and have a room reference its popup if it exists so that the popup can be updated more easily
+						SettingsPopup? configReplaceRoomPopup = null;
+						configReplaceRoomPopup = (SettingsPopup) new SettingsPopup([]).Translate(Mouse.Pos, true).Title($"ReplaceRoom - {room.name}");
+						SettingsPopup.ButtonContainer? newButton = null;
+						newButton = new SettingsPopup.ButtonContainer("Add new", () => {
+							SettingsPopup? addReplaceRoomPopup = null;
+							Timeline newTimeline = new(TimelineType.Only, []);
+							Room? replacement = null;
+							SettingsPopup.LabelContainer selectionLabel = new SettingsPopup.LabelContainer("No room selected");
+							addReplaceRoomPopup = new SettingsPopup([
+								new SettingsPopup.ButtonContainer("Timeline", () => {
+									PopupManager.Add(new TimelinePopup(newTimeline, type => newTimeline.timelineType = type == TimelineType.All ? TimelineType.Only : type,
+									(enabled, timeline) => {
+										if (!enabled)
+											newTimeline.timelines.Add(timeline);
+										else
+											newTimeline.timelines.Remove(timeline);
+									}, true).SetButtons<TimelinePopup>("", "REPLACE", "").Translate(Mouse.Pos, false).Title("Specify Timeline"));
+								}).SetContextCheck(b => {
+									b.settingName = "Timeline" + (newTimeline.timelines.Count == 0 ? "" : $" - {newTimeline}");
+									return true;
+								}),
+								new SettingsPopup.HorizontalElement([selectionLabel, new SettingsPopup.ButtonContainer("Deselect", () => replacement = null)]),
+								new SettingsPopup.ButtonContainer("Select Replacement", () => {
+									if (SelectedRooms.Count != 1)
+										return;
+									Room? selectedRoom = SelectedRooms.FirstOrDefault();
+									if (selectedRoom == null || selectedRoom == room || selectedRoom.roomExits.Count != room.roomExits.Count)
+										return;
+									replacement = selectedRoom;
+									// idea: if no valid replacement selected, make the "create" button copy the room timeline style
+								}).SetContextCheck(b => {
+									if (replacement != null)
+										selectionLabel.settingName = $"Replacement: {replacement.name}";
+									else
+										selectionLabel.settingName = $"No room selected";
+									if (SelectedRooms.Count == 1) {
+										Room selectedRoom = SelectedRooms.First();
+										if (selectedRoom == room){
+											b.settingName = "Select another room!";
+											return false;
+										}
+										if (selectedRoom == replacement){
+											b.settingName = "Room already selected!";
+											return false;
+										}
+										if (selectedRoom.roomExits.Count != room.roomExits.Count){ // I believe this is necessary?
+											b.settingName = $"Select a room with {room.roomExits.Count} exits!";
+											return false;
+										}
+										b.settingName = $"Click to select {selectedRoom.name}";
+										return true;
+									}
+									else {
+										b.settingName = "Select a single room!";
+										return false;
+									}
+								}, true),
+								new SettingsPopup.ButtonContainer("Create Replaceroom", () => {
+									if (replacement != null){
+										List<Change> changes = [];
+										Room oldReplacedRoom = replacement.replacedRoom!;
+										replacement.replacedRoom = room;
+										changes.Add(new VariableChange<Room>(oldReplacedRoom, replacement.replacedRoom, r => replacement.replacedRoom = r));
+										HashSet<Room> oldReplacingRooms = [.. room.replacingRooms];
+										room.replacingRooms.Add(replacement);
+										changes.Add(new VariableChange<HashSet<Room>>(oldReplacingRooms, room.replacingRooms, r => room.replacingRooms = r));
+										worldHistory.Apply(new MassChange([.. changes]));
+										room.MoveUpdate();
+										RefreshReplacementMenu(room, configReplaceRoomPopup);
+										return;
+									}
+								}).SetContextCheck(b => {
+									if (replacement == null)
+										b.settingName = "Create Replaceroom Copy";
+									else
+										b.settingName = "Create Replaceroom";
+									if (newTimeline.timelines.Count == 0)
+										return false;
+									return true;
+								})
+							]);
+							PopupManager.Add(addReplaceRoomPopup.Translate(Mouse.Pos, true).Title($"Create New Replaceroom"));
+						});
+						void RefreshReplacementMenu(Room room, SettingsPopup popup) {
+							// "top 10 popups that should have been a separate class"
+
+							List<SettingsPopup.SettingContainer> settingContainers = [];
+
+							// step 1: the replacedRoom
+							{
+								SettingsPopup.VerticalElement? element = null;
+								if (room.replacedRoom != null){
+									SettingsPopup.LabelContainer label = new ($"{room.replacedRoom.name} > {room.name}");
+									SettingsPopup.ButtonContainer deleteButton = new ("Delete Link", () => {
+										if (room.replacedRoom == null){
+											RefreshReplacementMenu(room, popup);
+											return;
+										}
+										List<Change> changes = [];
+										// the replacing room changes its replacedroom
+										changes.Add(new VariableChange<Room?>(room.replacedRoom, null, r => {
+											room.replacedRoom = r;
+											r?.MoveUpdate();
+											RefreshReplacementMenu(room, popup);
+										}));
+										// the replaced room changes its replacingrooms
+										HashSet<Room> oldRoomSet = [..room.replacedRoom.replacingRooms];
+										room.replacedRoom.replacingRooms.Remove(room);
+										changes.Add(new VariableChange<HashSet<Room>>(oldRoomSet, room.replacedRoom.replacingRooms, r => {
+											room.replacedRoom.replacingRooms = r;
+											room.MoveUpdate();
+											RefreshReplacementMenu(room, popup);
+										}));
+										worldHistory.Apply(new MassChange([.. changes]));
+										room.MoveUpdate();
+										popup.RemoveSetting(element!);
+									});
+									element = new([label, deleteButton, new SettingsPopup.Divider()]);
+								}
+								else {
+									element = new ([new SettingsPopup.LabelContainer("No replacedRoom"), new SettingsPopup.Divider()]);
+								}
+								settingContainers.Add(element);
+							}
+
+							// step 2: the replacingRooms
+							foreach (Room replacement in room.replacingRooms){
+								SettingsPopup.VerticalElement? element = null;
+								SettingsPopup.LabelContainer label = new ($"{room.name} > {replacement.name}");
+								SettingsPopup.ButtonContainer deleteButton = new ("Delete Link", () => {
+									// REVIEW - add ReplaceRoomChange to clean this and other instances up
+									List<Change> changes = [];
+									changes.Add(new VariableChange<Room?>(replacement.replacedRoom, null, r => {
+										replacement.replacedRoom = r;
+										r?.MoveUpdate();
+										RefreshReplacementMenu(room, popup);
+									}));
+									HashSet<Room> oldRoomSet = [..room.replacingRooms];
+									room.replacingRooms.Remove(replacement);
+									changes.Add(new VariableChange<HashSet<Room>>(oldRoomSet, room.replacingRooms, r => {
+										room.replacingRooms = r;
+										room.MoveUpdate();
+										RefreshReplacementMenu(room, popup);
+									}));
+									worldHistory.Apply(new MassChange([.. changes]));
+									room.MoveUpdate();
+									popup.RemoveSetting(element!);
+								});
+								element = new([label, deleteButton, new SettingsPopup.Divider()]);
+								settingContainers.Add(element);
+							}
+							if (room.replacingRooms.Count == 0) {
+								settingContainers.Add(new SettingsPopup.VerticalElement([new SettingsPopup.LabelContainer("No replacingRooms"), new SettingsPopup.Divider()]));
+							}
+							
+							popup.settingContainers = [.. settingContainers];
+							popup.AddSetting(newButton!);
+						}
+						RefreshReplacementMenu(room, configReplaceRoomPopup);
+						
+						PopupManager.Add(configReplaceRoomPopup);
+					}),
 					// I apologise for the bulk of this constructor. I am now slowly starting to see where lambdas have their drawbacks. Whoops.
 					new SettingsPopup.ButtonContainer("Create Timeline Room", () => {
 						bool copyConnections = true;
