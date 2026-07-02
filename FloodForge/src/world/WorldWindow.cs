@@ -303,24 +303,6 @@ public static class WorldWindow {
 						// roomB replaced by roomB2 in TL1
 						// roomC replaced by roomC2 in TL1
 						// roomA > roomC2 is allowed, despite both roomA and roomC2 having their exits occupied in by replacementvirtualconnections
-						if (NewConnection.roomA.replacedRoom != null || NewConnection.roomB.replacedRoom != null){
-							Room originRoomA = NewConnection.roomA;
-							while (originRoomA.replacedRoom != null && originRoomA.replacedRoom != originRoomA) {
-								originRoomA = originRoomA.replacedRoom;
-							}
-							Room originRoomB = NewConnection.roomB;
-							while (originRoomB.replacedRoom != null && originRoomB.replacedRoom != originRoomB) {
-								originRoomB = originRoomB.replacedRoom;
-							}
-							foreach (Connection connection in originRoomA.connections) {
-								if (connection.roomA == originRoomA && connection.roomB == originRoomB ||
-								connection.roomB == originRoomA && connection.roomA == originRoomB) {
-									CurrentConnectionWarn = false;
-								}
-							}
-							if (originRoomA == originRoomB)
-								CurrentConnectionValid = false;
-						}
 
 						// todo: check for timeline intersections
 						if (NewConnection.roomA.AnyConnectionConnectedTo(NewConnection.roomAExitID) || NewConnection.roomB.AnyConnectionConnectedTo(NewConnection.roomBExitID)) {
@@ -539,15 +521,7 @@ public static class WorldWindow {
 								}, true),
 								new SettingsPopup.ButtonContainer("Create Replaceroom", () => {
 									if (replacement != null){
-										List<Change> changes = [];
-										Room oldReplacedRoom = replacement.replacedRoom!;
-										replacement.replacedRoom = room;
-										changes.Add(new VariableChange<Room>(oldReplacedRoom, replacement.replacedRoom, r => replacement.replacedRoom = r));
-										HashSet<Room> oldReplacingRooms = [.. room.replacingRooms];
-										room.replacingRooms.Add(replacement);
-										changes.Add(new VariableChange<HashSet<Room>>(oldReplacingRooms, room.replacingRooms, r => room.replacingRooms = r));
-										worldHistory.Apply(new MassChange([.. changes]));
-										room.MoveUpdate();
+										worldHistory.Apply(new ReplaceRoomChange(room, replacement, true));
 										RefreshReplacementMenu(room, configReplaceRoomPopup);
 										return;
 									}
@@ -568,41 +542,21 @@ public static class WorldWindow {
 
 							List<SettingsPopup.SettingContainer> settingContainers = [];
 
-							// step 1: the replacedRoom
-							{
+							// step 1: the replacedRooms
+							
+							foreach (Room replaced in room.replacedRooms){
 								SettingsPopup.VerticalElement? element = null;
-								if (room.replacedRoom != null){
-									SettingsPopup.LabelContainer label = new ($"{room.replacedRoom.name} > {room.name}");
-									SettingsPopup.ButtonContainer deleteButton = new ("Delete Link", () => {
-										if (room.replacedRoom == null){
-											RefreshReplacementMenu(room, popup);
-											return;
-										}
-										List<Change> changes = [];
-										// the replacing room changes its replacedroom
-										changes.Add(new VariableChange<Room?>(room.replacedRoom, null, r => {
-											room.replacedRoom = r;
-											r?.MoveUpdate();
-											RefreshReplacementMenu(room, popup);
-										}));
-										// the replaced room changes its replacingrooms
-										HashSet<Room> oldRoomSet = [..room.replacedRoom.replacingRooms];
-										room.replacedRoom.replacingRooms.Remove(room);
-										changes.Add(new VariableChange<HashSet<Room>>(oldRoomSet, room.replacedRoom.replacingRooms, r => {
-											room.replacedRoom.replacingRooms = r;
-											room.MoveUpdate();
-											RefreshReplacementMenu(room, popup);
-										}));
-										worldHistory.Apply(new MassChange([.. changes]));
-										room.MoveUpdate();
-										popup.RemoveSetting(element!);
-									});
-									element = new([label, deleteButton, new SettingsPopup.Divider()]);
-								}
-								else {
-									element = new ([new SettingsPopup.LabelContainer("No replacedRoom"), new SettingsPopup.Divider()]);
-								}
+								SettingsPopup.LabelContainer label = new ($"{replaced.name} > {room.name}");
+								SettingsPopup.ButtonContainer deleteButton = new ("Delete Link", () => {
+									// REVIEW - add ReplaceRoomChange to clean this and other instances up
+									worldHistory.Apply(new ReplaceRoomChange(replaced, room, false));
+									popup.RemoveSetting(element!);
+								});
+								element = new([label, deleteButton, new SettingsPopup.Divider()]);
 								settingContainers.Add(element);
+							}
+							if (room.replacedRooms.Count == 0) {
+								settingContainers.Add(new SettingsPopup.VerticalElement([new SettingsPopup.LabelContainer("No replacedRooms"), new SettingsPopup.Divider()]));
 							}
 
 							// step 2: the replacingRooms
@@ -611,21 +565,7 @@ public static class WorldWindow {
 								SettingsPopup.LabelContainer label = new ($"{room.name} > {replacement.name}");
 								SettingsPopup.ButtonContainer deleteButton = new ("Delete Link", () => {
 									// REVIEW - add ReplaceRoomChange to clean this and other instances up
-									List<Change> changes = [];
-									changes.Add(new VariableChange<Room?>(replacement.replacedRoom, null, r => {
-										replacement.replacedRoom = r;
-										r?.MoveUpdate();
-										RefreshReplacementMenu(room, popup);
-									}));
-									HashSet<Room> oldRoomSet = [..room.replacingRooms];
-									room.replacingRooms.Remove(replacement);
-									changes.Add(new VariableChange<HashSet<Room>>(oldRoomSet, room.replacingRooms, r => {
-										room.replacingRooms = r;
-										room.MoveUpdate();
-										RefreshReplacementMenu(room, popup);
-									}));
-									worldHistory.Apply(new MassChange([.. changes]));
-									room.MoveUpdate();
+									worldHistory.Apply(new ReplaceRoomChange(room, replacement, false));
 									popup.RemoveSetting(element!);
 								});
 								element = new([label, deleteButton, new SettingsPopup.Divider()]);
@@ -1571,8 +1511,8 @@ public static class WorldWindow {
 						debugText.Add($"Name: {room.name}");
 						if (room.pathOutsideRoomsFolder)
 							debugText.Add($" > Room imported from outside {region.acronym}-rooms");
-						if (room.replacedRoom != null)
-							debugText.Add($"Room replaces {room.replacedRoom.name}");
+						foreach (Room replacing in room.replacedRooms)
+							debugText.Add($" > Room replaces {replacing.name} ({replacing.timeline})");
 						foreach (Room replacement in room.replacingRooms)
 							debugText.Add($" > Room replaced by {replacement.name} ({replacement.timeline})");
 						debugText.Add($"Tags: {string.Join(" ", room.data.tags)}");

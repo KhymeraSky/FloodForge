@@ -452,8 +452,8 @@ public static class WorldExporter {
 					}
 
 					stringWriter.Write(" : ");
-					if (room.replacedRoom != null)
-						stringWriter.Write($"REPLACEROOM : {room.replacedRoom.name}");
+					if (room.replacedRooms.Count != 0)
+						stringWriter.Write($"REPLACEROOM : {room.replacedRooms.First().name}"); // REVIEW - this is obviously incomplete.
 					else
 						stringWriter.Write((virtualTimeline.timelineType == TimelineType.Only) ? "EXCLUSIVEROOM" : "HIDEROOM");
 					stringWriter.WriteLine($" : {RoomNameCasing(room.name)}");
@@ -483,7 +483,7 @@ public static class WorldExporter {
 			bool wasGate = false;
 
 			foreach (Room room in sortedRooms) {
-				if (room.replacedRoom != null)
+				if (room.replacedRooms != null)
 					continue;
 
 				bool isGate = room.data.tags.Contains("GATE");

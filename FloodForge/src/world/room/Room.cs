@@ -27,7 +27,7 @@ public class Room : WorldDraggable {
 	public string[] preProcessorConditions = [];
 	
 	// The room that is replaced by this one in specific timelines
-	public Room? replacedRoom = null;
+	public HashSet<Room> replacedRooms = [];
 	// The rooms that replace this one in specific timelines
 	public HashSet<Room> replacingRooms = []; // Review - have each replacement specify their timelines so that export doesn't need to infer
 	public Timeline timeline = new();
@@ -142,9 +142,11 @@ public class Room : WorldDraggable {
 
 	public void Disconnect(Connection connection) {
 		this.connections.Remove(connection);
-		if (this.replacedRoom != null) {
-			foreach (Connection replacedRoomConnection in this.replacedRoom.connections) {
-				replacedRoomConnection.RecalculateReplacementVirtualConnectionBeziers();
+		if (this.replacedRooms != null) {
+			foreach (Room replacedRoom in this.replacedRooms) {
+				foreach (Connection replacedRoomConnection in replacedRoom.connections) {
+					replacedRoomConnection.RecalculateReplacementVirtualConnectionBeziers();
+				}
 			}
 		}
 	}
@@ -153,9 +155,11 @@ public class Room : WorldDraggable {
 		foreach (Connection connection in this.connections) {
 			connection.recalculateBezier = true;
 		}
-		if (this.replacedRoom != null) {
-			foreach (Connection connection in this.replacedRoom.connections) {
-				connection.RefreshReplacementVirtualConnections();
+		if (this.replacedRooms != null) {
+			foreach (Room replacedRoom in this.replacedRooms) {
+				foreach (Connection connection in replacedRoom.connections) {
+					connection.RefreshReplacementVirtualConnections();
+				}
 			}
 		}
 	}
@@ -820,12 +824,14 @@ public class Room : WorldDraggable {
 			if (connection.roomB == this && connection.roomBExitID == i)
 				return true;
 		}
-		if (this.replacedRoom != null) {
-			foreach (Connection connection in this.replacedRoom.connections) {
-				if (connection.roomA == this.replacedRoom && connection.roomAExitID == i)
-					return true;
-				if (connection.roomB == this.replacedRoom && connection.roomBExitID == i)
-					return true;
+		if (this.replacedRooms != null) {
+			foreach (Room replacedRoom in this.replacedRooms) {
+				foreach (Connection connection in replacedRoom.connections) {
+					if (connection.roomA == replacedRoom && connection.roomAExitID == i)
+						return true;
+					if (connection.roomB == replacedRoom && connection.roomBExitID == i)
+						return true;
+				}
 			}
 		}
 

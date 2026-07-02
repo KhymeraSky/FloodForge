@@ -266,7 +266,7 @@ public static class WorldParser {
 		// copy data from roomToReplace
 		replacingRoom.DevPosition = replacedRoom.DevPosition;
 		replacingRoom.CanonPosition = replacedRoom.CanonPosition;
-		replacingRoom.replacedRoom = replacedRoom;
+		replacingRoom.replacedRooms.Add(replacedRoom);
 		replacedRoom.replacingRooms.Add(replacingRoom);
 		// REVIEW - what other parts should be copied?
 

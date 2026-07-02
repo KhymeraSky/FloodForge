@@ -39,14 +39,15 @@ public class RoomAndConnectionChange : Change {
 
 			// LATER: Add into correct index
 			WorldWindow.region.rooms.Add(room);
-			// - if we add a room that replaces another room, add this room to that room's replacingrooms
-			// - if we add a room that is replaced by another room, set that room's replacedroom to this room
-			if (room.replacedRoom != null && WorldWindow.region.rooms.Contains(room.replacedRoom) && !this.rooms.Contains(room.replacedRoom)) {
-				room.replacedRoom.replacingRooms.Add(room);
-				room.replacedRoom.MoveUpdate();
+			foreach (Room replacedRoom in room.replacedRooms) {
+				if (WorldWindow.region.rooms.Contains(replacedRoom)) {
+					replacedRoom.replacingRooms.Add(room);
+				}
 			}
 			foreach (Room replacingRoom in room.replacingRooms) {
-				replacingRoom.replacedRoom = room;
+				if (WorldWindow.region.rooms.Contains(replacingRoom)) {
+					replacingRoom.replacedRooms.Add(room);
+				}
 			}
 		}
 
@@ -78,13 +79,16 @@ public class RoomAndConnectionChange : Change {
 
 			WorldWindow.region.rooms.Remove(room);
 			// if a room replaces another room, remove this room from that room's replacingrooms
-			if (room.replacedRoom != null && WorldWindow.region.rooms.Contains(room.replacedRoom) && !this.rooms.Contains(room.replacedRoom)) {
-				room.replacedRoom.replacingRooms.Remove(room);
-				room.replacedRoom.MoveUpdate();
+			foreach (Room replacedRoom in room.replacedRooms) {
+				if (WorldWindow.region.rooms.Contains(replacedRoom) && !this.rooms.Contains(replacedRoom)) {
+					replacedRoom.replacingRooms.Remove(room);
+				}
 			}
 			// if a room is replaced by another room, remove this room from its replacedroomness
 			foreach (Room replacingRoom in room.replacingRooms) {
-				replacingRoom.replacedRoom = null;
+				if (WorldWindow.region.rooms.Contains(replacingRoom) && !this.rooms.Contains(replacingRoom)) {
+					replacingRoom.replacedRooms.Remove(room);
+				}
 			}
 		}
 	}
