@@ -439,10 +439,6 @@ public static class WorldExporter {
 						stringWriter.Write("}");
 					}
 
-					if (virtualTimeline.timelineType == TimelineType.All || virtualTimeline.timelines.Count == 0) {
-						continue;
-					}
-
 					bool first = true;
 					foreach (string timeline in virtualTimeline.timelines) {
 						if (!first)
@@ -455,7 +451,7 @@ public static class WorldExporter {
 					if (room.replacedRooms.Count != 0)
 						stringWriter.Write($"REPLACEROOM : {room.replacedRooms.First().name}"); // REVIEW - this is obviously incomplete.
 					else
-						stringWriter.Write((virtualTimeline.timelineType == TimelineType.Only) ? "EXCLUSIVEROOM" : "HIDEROOM");
+						stringWriter.Write((virtualTimeline.timelineType == TimelineType.Except) ? "HIDEROOM" : "EXCLUSIVEROOM"); // reordered in case of preprocessorconditions without timeline
 					stringWriter.WriteLine($" : {RoomNameCasing(room.name)}");
 				}
 			}
