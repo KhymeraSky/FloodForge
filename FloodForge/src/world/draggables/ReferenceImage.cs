@@ -1,6 +1,6 @@
 namespace FloodForge.World;
 
-public class ReferenceImage : WorldDraggable {
+public class ReferenceImage : IWorldDraggable {
 	public string imagePath;
 	public Texture image;
 	public float Height => this.image.height * this.scale;
@@ -16,15 +16,20 @@ public class ReferenceImage : WorldDraggable {
 			this.UpdateBounds();
 		}
 	}
-	public override void SetPosition(Vector2 value) {
-		base.SetPosition(value);
-		this.UpdateBounds();
+
+	protected Vector2 position;
+	public Vector2 Position {
+		get {
+			return this.position;
+		}
+		set {
+			this.position = value;
+			this.UpdateBounds();
+		}
 	}
 	public bool lockImage = false;
 	public bool drawUnderGrid = true;
-	public override bool IsDraggable() {
-		return this.Visible & !this.lockImage;
-	}
+	public bool Draggable => !this.lockImage;
 	public Rect imageBounds;
 
 	public ReferenceImage(string path) {
@@ -37,26 +42,24 @@ public class ReferenceImage : WorldDraggable {
 	}
 
 	public void UpdateBounds() {
-		this.imageBounds = new Rect(this.Position.x - this.Width + 0.5f, this.Position.y + this.Height - 0.5f, this.position.x + this.Width + 0.5f, this.Position.y - this.Height - 0.5f);
+		this.imageBounds = new Rect(this.Position.x - this.Width + 0.5f, this.Position.y + this.Height - 0.5f, this.Position.x + this.Width + 0.5f, this.Position.y - this.Height - 0.5f);
 	}
 
 	public void Draw() {
-		if (this.Visible) {
-			Immediate.Color(1f, 1f, 1f);
-			if (this.opacity != 1f) {
-				Program.gl.Enable(EnableCap.Blend);
-				Immediate.Alpha(this.opacity);
-			}
-			UI.CenteredTexture(this.image, this.Position.x, this.Position.y, this.Width * 2);
-			if (this.opacity != 1f) {
-				Program.gl.Disable(EnableCap.Blend);
-				Immediate.Alpha(1f);
-			}
+		Immediate.Color(1f, 1f, 1f);
+		if (this.opacity != 1f) {
+			Program.gl.Enable(EnableCap.Blend);
+			Immediate.Alpha(this.opacity);
+		}
+		UI.CenteredTexture(this.image, this.Position.x, this.Position.y, this.Width * 2);
+		if (this.opacity != 1f) {
+			Program.gl.Disable(EnableCap.Blend);
+			Immediate.Alpha(1f);
+		}
 
-			if (WorldWindow.selectedDraggables.Contains(this)) {
-				Immediate.Color(Themes.RoomBorderHighlight);
-				UI.StrokeRect(this.imageBounds);
-			}
+		if (WorldWindow.selectedDraggables.Contains(this)) {
+			Immediate.Color(Themes.RoomBorderHighlight);
+			UI.StrokeRect(this.imageBounds);
 		}
 	}
 

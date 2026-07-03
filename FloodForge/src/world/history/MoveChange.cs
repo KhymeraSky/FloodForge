@@ -6,7 +6,7 @@ public class MoveChange : MultipleDraggableChange {
 	protected readonly List<Vector2> devOffsets = [];
 	protected readonly List<Vector2> canonOffsets = [];
 
-	public virtual void AddDraggable(WorldDraggable draggable, Vector2 devOffset, Vector2 canonOffset) {
+	public virtual void AddDraggable(IWorldDraggable draggable, Vector2 devOffset, Vector2 canonOffset) {
 		base.AddDraggable(draggable);
 		this.devOffsets.Add(devOffset);
 		this.canonOffsets.Add(canonOffset);

@@ -52,17 +52,17 @@ public static class WorldWindow {
 	public static float SelectorScale { get; private set; } = 1f;
 	public static Vector2 worldMouse;
 
-	public static HashSet<WorldDraggable> selectedDraggables = [];
+	public static HashSet<IWorldDraggable> selectedDraggables = [];
 	public static HashSet<Room> SelectedRooms {
 		get {
 			HashSet<Room> rooms = [];
-			foreach (WorldDraggable draggable in selectedDraggables)
+			foreach (IWorldDraggable draggable in selectedDraggables)
 				if (draggable is Room room and not OffscreenRoom)
 					rooms.Add(room);
 			return rooms;
 		}
 	}
-	public static WorldDraggable? draggablePossibleSelect = null;
+	public static IWorldDraggable? draggablePossibleSelect = null;
 	private static SelectingState selectingState = SelectingState.None;
 	public static Vector2 selectionStart;
 	public static Vector2 selectionEnd;
@@ -73,7 +73,7 @@ public static class WorldWindow {
 	public static bool placingRoom = false;
 	public static RoomPlacementVisualiser roomPlacementVisualiser = new RoomPlacementVisualiser();
 
-	public static WorldDraggable? holdingDraggable = null;
+	public static IWorldDraggable? holdingDraggable = null;
 	public static Vector2? holdingStart = null;
 	public static int holdingType = 0;
 	public static bool continueDrag = false;
@@ -111,8 +111,8 @@ public static class WorldWindow {
 
 	// REVIEW - find a way to make this more flexible - a list of all draggables?
 	public static Room? HoveringRoom => region.rooms.LastOrDefault(r => r.Visible && r.Inside(worldMouse));
-	public static ReferenceImage? HoveringReferenceImage => referenceImages.LastOrDefault(i => i.Visible && i.Inside(worldMouse));
-	public static WorldDraggable? HoveringDraggable => (placingRoom && roomPlacementVisualiser.Inside(worldMouse)) ? roomPlacementVisualiser : (HoveringRoom != null) ? HoveringRoom : HoveringReferenceImage;
+	public static ReferenceImage? HoveringReferenceImage => referenceImages.LastOrDefault(i => i.Inside(worldMouse));
+	public static IWorldDraggable? HoveringDraggable => (placingRoom && roomPlacementVisualiser.Inside(worldMouse)) ? roomPlacementVisualiser : (HoveringRoom != null) ? HoveringRoom : HoveringReferenceImage;
 
 	public static Connection? HoveringConnection => region.connections?.LastOrDefault(c => {
 		return (c.ConnectionVisible || c.roomA.Visible && c.roomB.Visible) && c.Hovered;
@@ -125,7 +125,7 @@ public static class WorldWindow {
 			return true;
 		}
 		else {
-			WorldDraggable? draggable = HoveringDraggable;
+			IWorldDraggable? draggable = HoveringDraggable;
 			if (draggable != null && draggable is Room room && draggable is not OffscreenRoom) {
 				rooms = [room];
 				return true;
@@ -657,7 +657,7 @@ public static class WorldWindow {
 		if (Mouse.Left) {
 			if (!Mouse.LastLeft && !menuItems.Hovered()) { // if just started pressing left
 				if (selectingState == SelectingState.None) { // if we weren't selecting anything before
-					WorldDraggable? draggable = HoveringDraggable; // get hovering room -> WorldDraggable
+					IWorldDraggable? draggable = HoveringDraggable; // get hovering room -> WorldDraggable
 
 					if (draggable != null && draggable.Draggable) { // if there's a hovering room (WorldDraggable)
 						holdingDraggable = draggable; // start holding said room (WorldDraggable)
@@ -705,7 +705,7 @@ public static class WorldWindow {
 			if (selectingState == SelectingState.PendingDrag && draggablePossibleSelect != null) {
 				HandleSelectionLogic(draggablePossibleSelect); // change the selectedRooms list depending on shift/ctrl
 				if (roomSnap) {
-					foreach (WorldDraggable draggable in selectedDraggables)
+					foreach (IWorldDraggable draggable in selectedDraggables)
 						draggable.Position = draggable.Position.Rounded();
 				}
 			}
@@ -727,7 +727,7 @@ public static class WorldWindow {
 		}
 	}
 
-	private static void HandleSelectionLogic(WorldDraggable draggable) {
+	private static void HandleSelectionLogic(IWorldDraggable draggable) {
 		if (draggable is Room room) {
 			region.rooms.Remove(room); // reorder the room to be on top (idk if i like this way of doing it)
 			region.rooms.Add(room);
@@ -759,7 +759,7 @@ public static class WorldWindow {
 		if (roomSnap)
 			offset.Round();
 
-		foreach (WorldDraggable draggable in selectedDraggables) {
+		foreach (IWorldDraggable draggable in selectedDraggables) {
 			Vector2 newPos = draggable.Position;
 			if (roomSnap)
 				newPos.Round();
@@ -815,7 +815,7 @@ public static class WorldWindow {
 			return;
 		}
 
-		WorldDraggable? draggable = HoveringDraggable;
+		IWorldDraggable? draggable = HoveringDraggable;
 		if (draggable != null) {
 			if (draggable is Room room) {
 				if (room is OffscreenRoom)
@@ -826,7 +826,7 @@ public static class WorldWindow {
 					selectedDraggables.Add(room);
 
 				if (selectedDraggables.Count != 0) {
-					foreach (WorldDraggable room1 in selectedDraggables) {
+					foreach (IWorldDraggable room1 in selectedDraggables) {
 						if (room1 is OffscreenRoom || room1 is not Room room2)
 							continue;
 
@@ -1298,7 +1298,7 @@ public static class WorldWindow {
 			return;
 
 		Connection? hoveringConnection = HoveringConnection;
-		WorldDraggable? hoveringDraggable = HoveringDraggable;
+		IWorldDraggable? hoveringDraggable = HoveringDraggable;
 		int screenCount = region.rooms.Aggregate(0, (a, b) => a + b.data.cameras.Count);
 		RichPresenceManager.Acronym = region.acronym;
 		RichPresenceManager.DisplayName = region.displayName;
@@ -1315,7 +1315,7 @@ public static class WorldWindow {
 			if (selectedDraggables.Count != 0) {
 				List<string> totalDebug = [];
 				string debug = "";
-				foreach (WorldDraggable worldDraggable in selectedDraggables) {
+				foreach (IWorldDraggable worldDraggable in selectedDraggables) {
 					if (worldDraggable is Room room) {
 						debug += room.name + "; ";
 					}

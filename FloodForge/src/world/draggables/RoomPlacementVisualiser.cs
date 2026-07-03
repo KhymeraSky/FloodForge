@@ -1,6 +1,16 @@
 namespace FloodForge.World;
 
-public class RoomPlacementVisualiser : WorldDraggable {
+public class RoomPlacementVisualiser : IWorldDraggable {
+    protected Vector2 position;
+    public Vector2 Position {
+        get {
+            return this.position;
+        }
+        set {
+            this.position = value;
+        }
+    }
+
     public Vector2i size;
     public void Draw() {
         Immediate.Color(1f, 1f, 1f, 0.5f);

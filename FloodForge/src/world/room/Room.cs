@@ -4,8 +4,7 @@ using Stride.Core.Extensions;
 
 namespace FloodForge.World;
 
-// TODO: Fix room water behind level rendering
-public class Room : WorldDraggable {
+public class Room : IWorldDraggable {
 	public const uint FLAG_VERTICAL_POLE = 16;
 	public const uint FLAG_HORIZONTAL_POLE = 32;
 	public const uint FLAG_ROOM_EXIT = 64;
@@ -58,9 +57,8 @@ public class Room : WorldDraggable {
 	private int specialExitCount = 0;
 	public int GarbageWormDenIndex => this.specialExitCount + this.nonDenExitCount + this.denShortcutEntrances.Count;
 
-	public override bool IsVisible() {
-		return WorldWindow.VisibleLayers[this.data.layer] && this.timeline.OverlapsWith(WorldWindow.VisibleTimeline);
-	}
+	public bool Visible => WorldWindow.VisibleLayers[this.data.layer] && this.timeline.OverlapsWith(WorldWindow.VisibleTimeline);
+	public bool Draggable => this.Visible;
 
 	public Room(string path, string name, bool pathOutsideRoomsFolder = false) {
 		this.pathOutsideRoomsFolder = pathOutsideRoomsFolder;
@@ -870,16 +868,17 @@ public class Room : WorldDraggable {
 	}
 	#endregion
 
-	public override Vector2 GetPosition() {
-		return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
-	}
-
-	public override void SetPosition(Vector2 value) {
-		if (WorldWindow.PositionType == WorldWindow.RoomPosition.Canon) {
-			this.CanonPosition = value;
+	public Vector2 Position {
+		get {
+			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
 		}
-		else {
-			this.DevPosition = value;
+		set {
+			if (WorldWindow.PositionType == WorldWindow.RoomPosition.Canon) {
+				this.CanonPosition = value;
+			}
+			else {
+				this.DevPosition = value;
+			}
 		}
 	}
 
@@ -1131,7 +1130,6 @@ public class Room : WorldDraggable {
 			], [ "projection", "model", "tintColor", "tintStrength" ]);
 	}
 
-	// TODO - split water mesh generation off from room greedymeshing for performance
 	protected unsafe virtual void GenerateMesh() {
 		this.roomMesh.Clear();
 		this.allShortcutEntrances.Clear();

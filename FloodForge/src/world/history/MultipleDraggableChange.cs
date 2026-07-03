@@ -3,9 +3,9 @@ using FloodForge.World;
 namespace FloodForge.History;
 
 public abstract class MultipleDraggableChange : Change {
-	protected readonly List<WorldDraggable> draggables = [];
+	protected readonly List<IWorldDraggable> draggables = [];
 
-	public virtual void AddDraggable(WorldDraggable draggable) {
+	public virtual void AddDraggable(IWorldDraggable draggable) {
 		this.draggables.Add(draggable);
 	}
 }
