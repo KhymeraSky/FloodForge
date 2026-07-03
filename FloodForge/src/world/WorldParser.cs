@@ -604,7 +604,7 @@ public static class WorldParser {
 			Room? foundRoom = WorldWindow.region.rooms.FirstOrDefault(x => x.name.Equals(parts[2], StringComparison.InvariantCultureIgnoreCase));
 			if (foundRoom != null) {
 				Logger.Info($"Found room {foundRoom.name}!");
-				ReplaceRoom newReplaceRoom = new ReplaceRoom(parts[3], foundRoom, new(), []);
+				ReplaceRoom newReplaceRoom = new ReplaceRoom(parts[3], foundRoom, new(xminus ? TimelineType.Except : TimelineType.Only, [..timelines]), preProcessorConditions);
 				foundRoom.replaceRooms.Add(newReplaceRoom);
 				WorldWindow.replaceRooms.Add(newReplaceRoom);
 			}

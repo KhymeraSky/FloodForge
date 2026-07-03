@@ -412,7 +412,7 @@ public static class WorldExporter {
 
 					roomDefaultStates[RoomNameCasing(room.name)] = defaultState;
 
-					if ((room.timeline.timelineType == TimelineType.All || room.timeline.timelines.Count == 0) && room.preProcessorConditions.Length == 0) {
+					if (room.timeline.timelineType == TimelineType.All || room.timeline.timelines.Count == 0) { // preprocessorconditions only apply when timeline given
 						continue;
 					}
 
@@ -426,10 +426,6 @@ public static class WorldExporter {
 							stringWriter.Write(preProcessor);
 						}
 						stringWriter.Write("}");
-					}
-
-					if (room.timeline.timelineType == TimelineType.All || room.timeline.timelines.Count == 0) {
-						continue;
 					}
 
 					bool first = true;
