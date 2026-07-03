@@ -23,7 +23,6 @@ public class Room : VirtualRoom, IWorldDraggable {
 
 	public bool pathOutsideRoomsFolder = false;
 	public string path;
-	public string name;
 
 	public List<ReplaceRoom> replaceRooms = [];
 
@@ -60,10 +59,9 @@ public class Room : VirtualRoom, IWorldDraggable {
 	public bool Visible => WorldWindow.VisibleLayers[this.data.layer] && this.timeline.OverlapsWith(WorldWindow.VisibleTimeline);
 	public bool Draggable => this.Visible;
 
-	public Room(string path, string name, bool pathOutsideRoomsFolder = false) {
+	public Room(string path, string name, bool pathOutsideRoomsFolder = false) : base(name) {
 		this.pathOutsideRoomsFolder = pathOutsideRoomsFolder;
 		this.path = path;
-		this.name = name;
 
 		this.CanonPosition = Vector2.Zero;
 		this.DevPosition = Vector2.Zero;

@@ -1,6 +1,7 @@
 namespace FloodForge.World;
 
 public class VirtualRoom {
+	public string name;
 	public Vector2 CanonPosition;
 	public Vector2 DevPosition;
 	public Vector2 Position {
@@ -30,5 +31,9 @@ public class VirtualRoom {
 				this.CanonPosition = value;
 			}
 		}
+	}
+
+	public VirtualRoom(string name) {
+		this.name = name;
 	}
 }
