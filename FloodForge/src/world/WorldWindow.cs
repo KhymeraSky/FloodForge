@@ -437,12 +437,12 @@ public static class WorldWindow {
 						});
 					}),
 					new SettingsPopup.ButtonContainer("Rename Room", () => {
-						if (room.data.tags.Contains("GATE") || room.name.StartsWith("GATE")){
+						if (room.data.tags.Contains("GATE") || room.name.StartsWith("GATE")) {
 							PopupManager.Add(new InfoPopup("Cannot rename GATE rooms!"));
 						}
 						else {
 							PopupManager.Add(new RenameRoomPopup(room, name => {
-								if (NameChanger.ChangeRoomName(room, name)){
+								if (NameChanger.ChangeRoomName(room, name)) {
 									PopupManager.Add(new InfoPopup($"Room successfully renamed to\n{name}"));
 								}
 								else {
@@ -490,8 +490,8 @@ public static class WorldWindow {
 								Change[] foundChanges = worldHistory.StopCollectingChanges(key);
 								RoomAndConnectionChange change = new(true);
 								List<Change> unmanagedChanges = [];
-								foreach (Change foundChange in foundChanges){
-									if (foundChange is RoomAndConnectionChange roomChange){
+								foreach (Change foundChange in foundChanges) {
+									if (foundChange is RoomAndConnectionChange roomChange) {
 										foreach (Room room in roomChange.GetRooms()) {
 											change.AddRoom(room);
 										}
@@ -519,36 +519,36 @@ public static class WorldWindow {
 									roomTypeChange.AddRoom(room);
 									tlModifications.Add(roomTypeChange);
 									foreach (string timeline in room.timeline.timelines) {
-										if (!newInvertedAndRoom.timelines.Contains(timeline)){
+										if (!newInvertedAndRoom.timelines.Contains(timeline)) {
 											TimelineChange roomTLChange = new(false, timeline);
 											roomTLChange.AddRoom(room);
 											tlModifications.Add(roomTLChange);
 										}
 									}
-									foreach (string timeline in newInvertedAndRoom.timelines){
-										if (!room.timeline.timelines.Contains(timeline)){
+									foreach (string timeline in newInvertedAndRoom.timelines) {
+										if (!room.timeline.timelines.Contains(timeline)) {
 											TimelineChange roomTLChange = new(true, timeline);
 											roomTLChange.AddRoom(room);
 											tlModifications.Add(roomTLChange);
 										}
 									}
 									
-									if (copyConnections){
-										foreach (Connection connection in room.connections){
+									if (copyConnections) {
+										foreach (Connection connection in room.connections) {
 											Timeline newInvertedAndConnection = connection.timeline.And(newTimeline.Inverted());
 											TimelineTypeChange connectionTypeChange = new (newInvertedAndConnection.timelineType);
 											connectionTypeChange.AddConnection(connection);
 											tlModifications.Add(connectionTypeChange);
 
 											foreach (string timeline in connection.timeline.timelines) {
-												if (!newInvertedAndConnection.timelines.Contains(timeline)){
+												if (!newInvertedAndConnection.timelines.Contains(timeline)) {
 													TimelineChange connectionTLChange = new(false, timeline);
 													connectionTLChange.AddConnection(connection);
 													tlModifications.Add(connectionTLChange);
 												}
 											}
-											foreach (string timeline in newInvertedAndConnection.timelines){
-												if (!connection.timeline.timelines.Contains(timeline)){
+											foreach (string timeline in newInvertedAndConnection.timelines) {
+												if (!connection.timeline.timelines.Contains(timeline)) {
 													TimelineChange connectionTLChange = new(true, timeline);
 													connectionTLChange.AddConnection(connection);
 													tlModifications.Add(connectionTLChange);
@@ -558,7 +558,7 @@ public static class WorldWindow {
 											Room roomA = connection.roomA == room ? newRoom : connection.roomA;
 											Room roomB = connection.roomB == room ? newRoom : connection.roomB;
 											Connection newConnection = new(roomA, roomB, connection.roomAExitID, connection.roomBExitID) { timeline = new(newTimeline) };
-											if(!newConnection.EffectiveConnectionTimeline.IsNone()){
+											if (!newConnection.EffectiveConnectionTimeline.IsNone()) {
 												change.AddConnection(newConnection);
 											}
 										}
@@ -823,7 +823,7 @@ public static class WorldWindow {
 					return;
 
 				RoomAndConnectionChange change = new RoomAndConnectionChange(false);
-				if(room != null)
+				if (room != null)
 					selectedDraggables.Add(room);
 
 				if (selectedDraggables.Count != 0) {
@@ -1168,10 +1168,10 @@ public static class WorldWindow {
 		Immediate.LoadIdentity();
 		Immediate.Ortho(cameraOffset.x, cameraOffset.y, cameraScale * Main.screenBounds.x, cameraScale * Main.screenBounds.y);
 		foreach (ReferenceImage image in referenceImages)
-			if(image.drawUnderGrid) image.Draw();
+			if (image.drawUnderGrid) image.Draw();
 		DrawGrid();
 		foreach (ReferenceImage image in referenceImages)
-			if(!image.drawUnderGrid) image.Draw();
+			if (!image.drawUnderGrid) image.Draw();
 		Profiler.MarkPoint("DrawGrid");
 
 		Program.gl.Enable(EnableCap.Blend);
@@ -2041,11 +2041,11 @@ public static class WorldWindow {
 
 				new Button("Export Map",
 					button => {
-						if(!invalidCreaturesEncountered){
+						if (!invalidCreaturesEncountered) {
 							WorldWindow.ExportFinished = false;
 							ExportButton();
 						}
-						else{
+						else {
 							PopupManager.Add(new ConfirmPopup("This region contains invalid dens!\nExporting may delete or change these dens.").SetOkay("Export anyway").Okay(ExportButton));
 						}
 					},
@@ -2091,7 +2091,7 @@ public static class WorldWindow {
 
 					new Button("Add Reference", button => {
 						PopupManager.Add(new FilesystemPopup((pathstring) => {
-							if(pathstring.Length != 0) {
+							if (pathstring.Length != 0) {
 								ReferenceImage newImage = new ReferenceImage(pathstring.First()) { Position = cameraOffset };
 								referenceImages.Add(newImage);
 								selectedDraggables.Add(newImage);
@@ -2140,18 +2140,18 @@ public static class WorldWindow {
 							(TimelineType) => {
 								WorldWindow.VisibleTimeline.timelineType = TimelineType;
 								UpdateVisibleTimeline?.Invoke(WorldWindow.VisibleTimeline);
-								if(VisibleTimeline.timelineType == TimelineType.All) button.Text = "Timeline";
-								else if(VisibleTimeline.timelineType == TimelineType.Only) button.Text = (VisibleTimeline.timelines.Count == 0 ? "<s:1>" : "") + "<Timeline>";
+								if (VisibleTimeline.timelineType == TimelineType.All) button.Text = "Timeline";
+								else if (VisibleTimeline.timelineType == TimelineType.Only) button.Text = (VisibleTimeline.timelines.Count == 0 ? "<s:1>" : "") + "<Timeline>";
 								else button.Text = ">Timeline<";
 							},
 							(selected, timeline) => {
-								if(selected)
+								if (selected)
 									WorldWindow.VisibleTimeline.timelines.Remove(timeline);
 								else
 									WorldWindow.VisibleTimeline.timelines.Add(timeline);
 								UpdateVisibleTimeline?.Invoke(WorldWindow.VisibleTimeline);
-								if(VisibleTimeline.timelineType == TimelineType.All) button.Text = "Timeline";
-								else if(VisibleTimeline.timelineType == TimelineType.Only) button.Text = (VisibleTimeline.timelines.Count == 0 ? "<s:1>" : "") + "<Timeline>";
+								if (VisibleTimeline.timelineType == TimelineType.All) button.Text = "Timeline";
+								else if (VisibleTimeline.timelineType == TimelineType.Only) button.Text = (VisibleTimeline.timelines.Count == 0 ? "<s:1>" : "") + "<Timeline>";
 								else button.Text = ">Timeline<";
 							},
 							ref UpdateVisibleTimeline));
