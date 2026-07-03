@@ -2,6 +2,7 @@ namespace FloodForge.World;
 
 public class ReplaceRoom : IWorldDraggable {
 	public string name;
+	// here would also be a reference to the VirtualRoom whose visuals the replaceroom inherits
 	public VirtualRoom replacingRoom;
 	public Timeline timeline;
 	public string[] preProcessorConditions;
@@ -73,9 +74,9 @@ public class ReplaceRoom : IWorldDraggable {
 	/// what does this class need to do?
 	/// ok lets get its core functionality in first
 	/// it needs to:
-	/// - know what room it replaces
-	/// - know what timeline and preprocessorconditions it replaces it for
-	/// - know what room it replaces with, initially through name i guess
+	/// X know what room it replaces
+	/// X know what timeline and preprocessorconditions it replaces it for
+	/// \ know what room it replaces with, initially through name i guess
 	/// - then later I can figure out meshgen
 	/// it doesn't need to:
 	/// - keep track of dens, since the replaced room's spawns are used
@@ -84,13 +85,13 @@ public class ReplaceRoom : IWorldDraggable {
 	/// important aspect:
 	/// - if multiple rooms are replaced by the same replaceroom, that exact same replaceroom needs to be drawn multiple times
 	/// so:
-	/// - region has a list of replacerooms
+	/// X region has a list of replacerooms
 	/// - when a replaceroom is parsed, look up whether the replaced room's virtualRoom already exists
 	/// - if it does exist, refer to it, if it doesn't, create a new virtualRoom
 	/// - replacerooms refer to virtualRooms that contain information like mesh etc
 	/// - normal rooms are constructed from virtualRooms
 	/// this way, if a room is used both as a replacement and as a normal room, editing the normal room affects all replacements
-	/// - droplet editing goes through the virtualRoom
+	/// - droplet editing goes through the virtualRoom <<- this may be a good jumping-off point
 	/// 
 	/// virtualRoom:
 	/// - contains geometry information and room data, but does not itself provide rendering or position
