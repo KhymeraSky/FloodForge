@@ -14,5 +14,15 @@ public interface IWorldDraggable {
 		}
 	}
 
+	// currently unused
+	public virtual Vector2 Size {
+		get {
+			return new();
+		}
+		set {
+			
+		}
+	}
+
 	public abstract bool Inside(Vector2 pos);
 }
