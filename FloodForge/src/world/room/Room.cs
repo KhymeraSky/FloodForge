@@ -4,7 +4,7 @@ using Stride.Core.Extensions;
 
 namespace FloodForge.World;
 
-public class Room : IWorldDraggable {
+public class Room : VirtualRoom, IWorldDraggable {
 	public const uint FLAG_VERTICAL_POLE = 16;
 	public const uint FLAG_HORIZONTAL_POLE = 32;
 	public const uint FLAG_ROOM_EXIT = 64;
@@ -28,8 +28,6 @@ public class Room : IWorldDraggable {
 	public string[] preProcessorConditions = [];
 	public Timeline timeline = new();
 	public ConditionalPopup? conditionalPopup;
-	public Vector2 CanonPosition;
-	public Vector2 DevPosition;
 	public int width;
 	public int height;
 	public bool valid;
@@ -867,35 +865,6 @@ public class Room : IWorldDraggable {
 		return roomPosition * new Vector2i(1, -1) + new Vector2(0.5f, -0.5f) + this.Position;
 	}
 	#endregion
-
-	public Vector2 Position {
-		get {
-			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
-		}
-		set {
-			if (WorldWindow.PositionType == WorldWindow.RoomPosition.Canon) {
-				this.CanonPosition = value;
-			}
-			else {
-				this.DevPosition = value;
-			}
-		}
-	}
-
-	public Vector2 InactivePosition {
-		get {
-			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.DevPosition : this.CanonPosition;
-		}
-
-		set {
-			if (WorldWindow.PositionType == WorldWindow.RoomPosition.Canon) {
-				this.DevPosition = value;
-			}
-			else {
-				this.CanonPosition = value;
-			}
-		}
-	}
 
 	public bool Inside(Vector2 pos) {
 		Vector2 position = this.Position;
