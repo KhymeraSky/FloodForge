@@ -5,44 +5,25 @@ using Stride.Core.Extensions;
 namespace FloodForge.World;
 
 public class Room : VirtualRoom, IWorldDraggable {
-	public const uint FLAG_VERTICAL_POLE = 16;
-	public const uint FLAG_HORIZONTAL_POLE = 32;
-	public const uint FLAG_ROOM_EXIT = 64;
-	public const uint FLAG_SHORTCUT = 128;
-	public const uint FLAG_DEN = 256;
-	public const uint FLAG_BACKGROUND_SOLID = 512;
-	// 1024 and 2048 are for slopes
-	public const uint FLAG_SCAVENGER_DEN = 4096;
-	public const uint FLAG_WACK_A_MOLE_HOLE = 8192;
-	public const uint FLAG_GARBAGE_WORM_HOLE = 16384;
-	public const uint FLAG_WORMGRASS = 32768;
-	public const uint FLAG_BATFLY_HIVE = 65536;
-	public const uint FLAG_WATERFALL = 131072;
-	public const uint FLAG_ROCK = 262144;
-	public const uint FLAG_SPEAR = 524288;
-
-	public bool pathOutsideRoomsFolder = false;
-	public string path;
-
 	public List<ReplaceRoom> replaceRooms = [];
 
 	public string[] preProcessorConditions = [];
 	public Timeline timeline = new();
 	public ConditionalPopup? conditionalPopup;
-	public int width;
-	public int height;
-	public bool valid;
-	public readonly RoomData data;
-	public readonly RoomVisuals visuals;
-	public uint[] geometry = null!;
-	public List<(RoomExitType, Vector2i)> allRoomExitPoints = [];
-	public List<Vector2i> allShortcutEntrancePoints = [];
-	public List<Vector2i> roomExits = [];
-	public Dictionary<Vector2i, RoomConnection> roomExitPaths = [];
-	public Dictionary<Vector2i, (RoomConnection, bool matchesWithRoomExitPath)> shortcutEntrancePaths = [];
-	public List<Vector2i> denShortcutEntrances = [];
-	public int nonDenExitCount = 0;
-	public List<Den> dens = [];
+	public int width; //<<<
+	public int height; //<<<
+	public bool valid; //<<<
+	public readonly RoomData data; //<<<
+	public readonly RoomVisuals visuals; //<<<
+	public uint[] geometry = null!; //<<<
+	public List<(RoomExitType, Vector2i)> allRoomExitPoints = []; //<<<
+	public List<Vector2i> allShortcutEntrancePoints = []; //<<<
+	public List<Vector2i> roomExits = []; //<<<
+	public Dictionary<Vector2i, RoomConnection> roomExitPaths = []; //<<<
+	public Dictionary<Vector2i, (RoomConnection, bool matchesWithRoomExitPath)> shortcutEntrancePaths = []; //<<<
+	public List<Vector2i> denShortcutEntrances = []; //<<<
+	public int nonDenExitCount = 0; //<<<
+	public List<Den> dens = []; //<<<
 	public List<GarbageWormDen> garbageWormDens = [];
 	public int hoveredDen = -1; // LATER: Remove / improve
 	public int hoveredRoomExit = -1; // LATER: Remove / improve
@@ -53,7 +34,7 @@ public class Room : VirtualRoom, IWorldDraggable {
 	// IDEA: Room alerts/hints? (an exclamation mark that appears above a room's corner if there's something of note - softlocking shortcuts, lack of cameras)
 	// then, this could also be added to connections so that a room that connects to the same room multiple times isn't allowed to exist without feedback
 
-	private int specialExitCount = 0;
+	private int specialExitCount = 0; //<<<
 	public int GarbageWormDenIndex => this.specialExitCount + this.nonDenExitCount + this.denShortcutEntrances.Count;
 
 	public bool Visible => WorldWindow.VisibleLayers[this.data.layer] && this.timeline.OverlapsWith(WorldWindow.VisibleTimeline);
@@ -730,7 +711,7 @@ public class Room : VirtualRoom, IWorldDraggable {
 		}
 	}
 
-	public void RegenerateGeometry() {
+	public void RegenerateGeometry() { //<<<
 		this.allRoomExitPoints.Clear();
 		this.allShortcutEntrancePoints.Clear();
 
@@ -769,11 +750,11 @@ public class Room : VirtualRoom, IWorldDraggable {
 		this.GenerateWaterMesh();
 	}
 
-	public uint GetTile(Vector2i pos, bool repeatOutside = false) {
+	public uint GetTile(Vector2i pos, bool repeatOutside = false) { //<<<
 		return this.GetTile(pos.x, pos.y, repeatOutside);
 	}
 
-	public uint GetTile(int x, int y, bool repeatOutside = false) {
+	public uint GetTile(int x, int y, bool repeatOutside = false) { //<<<
 		if (!this.valid)
 			return 1u;
 		if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
@@ -871,11 +852,11 @@ public class Room : VirtualRoom, IWorldDraggable {
 		return pos.x >= position.x && pos.y >= position.y - this.height && pos.x < position.x + this.width && pos.y <= position.y;
 	}
 
-	public bool Inside(int x, int y) {
+	public bool Inside(int x, int y) { //<<<
 		return x >= 0 && x < this.width && y >= 0 && y < this.height;
 	}
 
-	public bool Inside(Vector2i pos) {
+	public bool Inside(Vector2i pos) { //<<<
 		return pos.x >= 0 && pos.x < this.width && pos.y >= 0 && pos.y < this.height;
 	}
 
@@ -1467,7 +1448,7 @@ public class Room : VirtualRoom, IWorldDraggable {
 			], [ "projection", "model", "tintColor", "tintStrength" ]);
 	}
 
-	public virtual void DrawTerrain(Vector2 pos) {
+	public virtual void DrawTerrain(Vector2 pos) { //<<<
 		if (!this.visuals.hasTerrain || this.visuals.terrain.Count < 2) {
 			return;
 		}

@@ -1,7 +1,45 @@
+using FloodForge.Rendering;
+
 namespace FloodForge.World;
 
 public class VirtualRoom {
+	public const uint FLAG_VERTICAL_POLE = 16;
+	public const uint FLAG_HORIZONTAL_POLE = 32;
+	public const uint FLAG_ROOM_EXIT = 64;
+	public const uint FLAG_SHORTCUT = 128;
+	public const uint FLAG_DEN = 256;
+	public const uint FLAG_BACKGROUND_SOLID = 512;
+	// 1024 and 2048 are for slopes
+	public const uint FLAG_SCAVENGER_DEN = 4096;
+	public const uint FLAG_WACK_A_MOLE_HOLE = 8192;
+	public const uint FLAG_GARBAGE_WORM_HOLE = 16384;
+	public const uint FLAG_WORMGRASS = 32768;
+	public const uint FLAG_BATFLY_HIVE = 65536;
+	public const uint FLAG_WATERFALL = 131072;
+	public const uint FLAG_ROCK = 262144;
+	public const uint FLAG_SPEAR = 524288;
+
+	public bool pathOutsideRoomsFolder = false;
+	public string path;
 	public string name;
+
+	public int width; //<<<
+	public int height; //<<<
+	public bool valid; //<<<
+	public readonly RoomData data; //<<<
+	public readonly RoomVisuals visuals; //<<<
+	public uint[] geometry = null!; //<<<
+	public List<(RoomExitType, Vector2i)> allRoomExitPoints = []; //<<<
+	public List<Vector2i> allShortcutEntrancePoints = []; //<<<
+	public List<Vector2i> roomExits = []; //<<<
+	public Dictionary<Vector2i, RoomConnection> roomExitPaths = []; //<<<
+	public Dictionary<Vector2i, (RoomConnection, bool matchesWithRoomExitPath)> shortcutEntrancePaths = []; //<<<
+	public List<Vector2i> denShortcutEntrances = []; //<<<
+	public int nonDenExitCount = 0; //<<<
+	public List<Den> dens = []; //<<<
+	
+	protected int specialExitCount = 0; //<<<
+
 	public Vector2 CanonPosition;
 	public Vector2 DevPosition;
 	public Vector2 Position {
@@ -36,4 +74,1007 @@ public class VirtualRoom {
 	public VirtualRoom(string name) {
 		this.name = name;
 	}
+
+	void CheckShortcutEntrancePoints() {
+		this.allShortcutEntrancePoints.Clear();
+		for (int y = 0; y < this.height; y++) {
+			for (int x = 0; x < this.width; x++) {
+				if ((this.GetTile(x, y) & FLAG_SHORTCUT) > 0) {
+					int[] tiles = new int[9];
+
+					int index = 0;
+					for (int y2 = y - 1; y2 < y + 2; y2++) {
+						for (int x2 = x - 1; x2 < x + 2; x2++) {
+							int result = ((this.GetTile(x2, y2) & 15) == 1) ? 1 : 0;                    //  1 == solid
+							result += ((this.GetTile(x2, y2) & FLAG_SHORTCUT) > 0) ? 2 : 0;         //  2 == shortcut
+							result += ((this.GetTile(x2, y2) & FLAG_ROOM_EXIT) > 0) ? 4 : 0;            //  4 == roomexit
+							result += ((this.GetTile(x2, y2) & FLAG_DEN) > 0) ? 8 : 0;              //  8 == den
+							result += ((this.GetTile(x2, y2) & FLAG_SCAVENGER_DEN) > 0) ? 16 : 0;       // 16 == scav
+							result += ((this.GetTile(x2, y2) & FLAG_WACK_A_MOLE_HOLE) > 0) ? 32 : 0;    // 32 == wack-a-mole-hole
+							tiles[index] = result;
+							index++;
+						}
+					}
+
+					int directionCount = 0;
+					int airGaps = 0;
+
+					// only check rest if the tile is just a shortcut
+					if (tiles[4] == 2 || tiles[4] == 3) {
+						// check if all corners are solid
+						if ((tiles[0] & 1) == 0 || (tiles[2] & 1) == 0 || (tiles[6] & 1) == 0 || (tiles[8] & 1) == 0)
+							airGaps = 99;
+
+						int dirFlags = 0;
+						int airFlags = 0;
+						if ((tiles[1] & 62) > 0) {
+							directionCount++;
+							dirFlags |= 1;
+						}
+						if ((tiles[1] & 1) == 0) {
+							airGaps++;
+							airFlags |= 8;
+						}
+						if ((tiles[3] & 62) > 0) {
+							directionCount++;
+							dirFlags |= 2;
+						}
+						if ((tiles[3] & 1) == 0) {
+							airGaps++;
+							airFlags |= 4;
+						}
+						if ((tiles[5] & 62) > 0) {
+							directionCount++;
+							dirFlags |= 4;
+						}
+						if ((tiles[5] & 1) == 0) {
+							airGaps++;
+							airFlags |= 2;
+						}
+						if ((tiles[7] & 62) > 0) {
+							directionCount++;
+							dirFlags |= 8;
+						}
+						if ((tiles[7] & 1) == 0) {
+							airGaps++;
+							airFlags |= 1;
+						}
+
+						// check:
+						// - that only one of the sides is air,
+						// - that only one of the sides has direction
+						// - that the shortcut's direction and the airgap's direction are correct
+						// (correct as in opposite, which is why the bit assignments are opposite)
+						if ((directionCount == 1) && (airGaps == 1) && (airFlags == dirFlags)) {
+							this.allShortcutEntrancePoints.Add(new Vector2i(x, y));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public struct RoomConnection(RoomPath path, RoomPathEndType startType, RoomPathEndType endType) {
+		public RoomPath path = path;
+		public RoomPathEndType startType = startType;
+		public RoomPathEndType endType = endType;
+	}
+
+	public enum RoomPathEndType {
+		deadend,
+		shortcutEntrance,
+		roomExit,
+		den,
+		wackAMoleHole,
+		scavengerDen
+	}
+
+	public class RoomPath {
+		public Vector2i[] Path;
+		public Vector2i StartPosition {
+			get {
+				return this.Path?.Length > 0 ? this.Path[0] : Vector2i.Zero;
+			}
+		}
+		public Vector2i EndPosition {
+			get {
+				return this.Path?.Length > 1 ? this.Path[^1] : this.StartPosition;
+			}
+		}
+		public Vector2i StartDirection {
+			get {
+				return this.Path.Length > 1 ? (this.Path[1] - this.Path[0]) * new Vector2i(-1, 1) : Vector2i.Zero;
+			}
+		}
+		public bool isDeadEnd = false;
+		public Vector2i EndDirection => (this.isDeadEnd || this.Path.Length <= 1) ? Vector2i.Zero : (this.Path[^1] - this.Path[^2]);
+		public RoomPath(Room room, Vector2i startPosition) {
+			Vector2i forwardDirection = Vector2i.Zero;
+			Vector2i currentPosition = startPosition;
+			bool hasDirection = true;
+			if (room.TileIsShortcut(currentPosition.x - 1, currentPosition.y)) {
+				forwardDirection.x = -1;
+			}
+			else if (room.TileIsShortcut(currentPosition.x, currentPosition.y + 1)) {
+				forwardDirection.y = 1;
+			}
+			else if (room.TileIsShortcut(currentPosition.x + 1, currentPosition.y)) {
+				forwardDirection.x = 1;
+			}
+			else if (room.TileIsShortcut(currentPosition.x, currentPosition.y - 1)) {
+				forwardDirection.y = -1;
+			}
+
+			List<Vector2i> pathTaken = [];
+			pathTaken.Add(currentPosition);
+			uint pathEndFlag = FLAG_ROOM_EXIT | FLAG_WACK_A_MOLE_HOLE | FLAG_DEN | FLAG_SCAVENGER_DEN;
+			for (int runs = 0; runs < 10000; runs++) {
+				currentPosition += forwardDirection;
+				if (!pathTaken.Contains(currentPosition))
+					pathTaken.Add(currentPosition);
+
+				if (!room.TileIsShortcut(currentPosition.x + forwardDirection.x, currentPosition.y + forwardDirection.y)) {
+					Vector2i lastDirection = forwardDirection;
+
+					forwardDirection.x = 0;
+					forwardDirection.y = 0;
+					hasDirection = false;
+					if (lastDirection.x != 1 && (room.TileIsShortcut(currentPosition.x - 1, currentPosition.y) || ((room.GetTile(currentPosition.x - 1, currentPosition.y) & pathEndFlag) > 0))) {
+						forwardDirection.x = -1;
+						hasDirection = true;
+					}
+					else if (lastDirection.y != -1 && room.TileIsShortcut(currentPosition.x, currentPosition.y + 1) || ((room.GetTile(currentPosition.x, currentPosition.y + 1) & pathEndFlag) > 0)) {
+						forwardDirection.y = 1;
+						hasDirection = true;
+					}
+					else if (lastDirection.x != -1 && room.TileIsShortcut(currentPosition.x + 1, currentPosition.y) || ((room.GetTile(currentPosition.x + 1, currentPosition.y) & pathEndFlag) > 0)) {
+						forwardDirection.x = 1;
+						hasDirection = true;
+					}
+					else if (lastDirection.y != 1 && room.TileIsShortcut(currentPosition.x, currentPosition.y - 1) || ((room.GetTile(currentPosition.x, currentPosition.y - 1) & pathEndFlag) > 0)) {
+						forwardDirection.y = -1;
+						hasDirection = true;
+					}
+				}
+
+				if ((room.GetTile(currentPosition.x, currentPosition.y) & 15) == 4 || (room.GetTile(currentPosition.x, currentPosition.y) & pathEndFlag) > 0) {
+					hasDirection = true;
+					break;
+				}
+
+				if (!hasDirection)
+					break;
+				if (runs + 1 == 10000)
+					hasDirection = false;
+			}
+			this.Path = [.. pathTaken];
+			this.isDeadEnd = !hasDirection;
+		}
+	}
+
+	protected void EnsureConnections() {
+		this.specialExitCount = 0;
+		this.nonDenExitCount = 0;
+		this.roomExits.Clear();
+		this.roomExitPaths.Clear();
+		this.shortcutEntrancePaths.Clear();
+		this.denShortcutEntrances.Clear();
+
+		List<(RoomExitType type, Vector2i position)> newList = [];
+		for (int y = 0; y < this.height; y++) {
+			for (int x = 0; x < this.width; x++) {
+				// REVIEW - DOES THIS DO WHAT I THINK IT DOES????
+				// Because I'm not sure what specialExitCount actually does,
+				// so I don't know if I've inadvertently messed something up by
+				// incrementing it here.
+				if ((this.GetTile(x, y) & FLAG_GARBAGE_WORM_HOLE) > 0)
+					this.specialExitCount++;
+				foreach ((RoomExitType _, Vector2i position) item in this.allRoomExitPoints) {
+					if (item.position == new Vector2i(x, y)) {
+						newList.Add(item);
+					}
+				}
+			}
+		}
+		this.allRoomExitPoints = newList[..];
+
+		for (int i = 0; i < this.allRoomExitPoints.Count; i++) {
+			if (this.allRoomExitPoints[i].Item1 == RoomExitType.Room)
+				this.roomExits.Add(this.allRoomExitPoints[i].Item2);
+
+			RoomPath roomExitPath = new RoomPath(this, this.allRoomExitPoints[i].Item2);
+
+			uint Tile = this.GetTile(roomExitPath.StartPosition);
+
+			RoomPathEndType startType = RoomPathEndType.roomExit;
+			if ((Tile & FLAG_DEN) > 0)
+				startType = RoomPathEndType.den;
+			else if ((Tile & FLAG_SCAVENGER_DEN) > 0)
+				startType = RoomPathEndType.scavengerDen;
+			else if ((Tile & FLAG_WACK_A_MOLE_HOLE) > 0)
+				startType = RoomPathEndType.wackAMoleHole;
+
+			Tile = this.GetTile(roomExitPath.EndPosition);
+
+			RoomPathEndType endType = RoomPathEndType.deadend;
+			if (!roomExitPath.isDeadEnd) {
+				endType = RoomPathEndType.shortcutEntrance;
+				if ((Tile & FLAG_ROOM_EXIT) > 0)
+					endType = RoomPathEndType.roomExit;
+				else if ((Tile & FLAG_DEN) > 0)
+					endType = RoomPathEndType.den;
+				else if ((Tile & FLAG_SCAVENGER_DEN) > 0)
+					endType = RoomPathEndType.scavengerDen;
+				else if ((Tile & FLAG_WACK_A_MOLE_HOLE) > 0)
+					endType = RoomPathEndType.wackAMoleHole;
+			}
+
+			if (startType == RoomPathEndType.roomExit) {
+				this.roomExitPaths.Add(this.allRoomExitPoints[i].Item2, new RoomConnection(roomExitPath, startType, endType));
+			}
+		}
+
+		for (int i = 0; i < this.allShortcutEntrancePoints.Count; i++) {
+			RoomPath shortcutPath = new RoomPath(this, this.allShortcutEntrancePoints[i]);
+
+			RoomPathEndType startType = RoomPathEndType.shortcutEntrance;
+
+			uint Tile = this.GetTile(shortcutPath.EndPosition);
+			RoomPathEndType endType = RoomPathEndType.deadend;
+			if (!shortcutPath.isDeadEnd) {
+				endType = RoomPathEndType.shortcutEntrance;
+				if ((Tile & FLAG_ROOM_EXIT) > 0)
+					endType = RoomPathEndType.roomExit;
+				else if ((Tile & FLAG_DEN) > 0)
+					endType = RoomPathEndType.den;
+				else if ((Tile & FLAG_SCAVENGER_DEN) > 0)
+					endType = RoomPathEndType.scavengerDen;
+				else if ((Tile & FLAG_WACK_A_MOLE_HOLE) > 0)
+					endType = RoomPathEndType.wackAMoleHole;
+			}
+			bool hasMatchingRoomExit = false;
+			if (this.roomExitPaths.TryGetValue(shortcutPath.EndPosition, out RoomConnection value)) {
+				if (value.endType == RoomPathEndType.shortcutEntrance && value.path.EndPosition == shortcutPath.StartPosition) {
+					hasMatchingRoomExit = true;
+				}
+			}
+			this.shortcutEntrancePaths.Add(this.allShortcutEntrancePoints[i], (new RoomConnection(shortcutPath, startType, endType), hasMatchingRoomExit));
+			if (endType == RoomPathEndType.den) {
+				this.denShortcutEntrances.Add(shortcutPath.StartPosition);
+			}
+			else if (endType == RoomPathEndType.roomExit) {
+				this.nonDenExitCount++;
+			}
+		}
+
+		// Side Exits
+		bool wasL = false, wasR = false;
+		for (int y = 0; y < this.height; y++) {
+			bool airL = (this.GetTile(0, y) & 15) != 1;
+			bool airR = (this.GetTile(this.width - 1, y) & 15) != 1;
+			if (airL && !wasL)
+				this.specialExitCount++;
+			if (airR && !wasR)
+				this.specialExitCount++;
+			wasL = airL;
+			wasR = airR;
+		}
+
+		// Sky & Sea Exits
+		wasL = false;
+		wasR = false;
+		for (int x = 0; x < this.width; x++) {
+			bool airL = (this.GetTile(x, 0) & 15) != 1;
+			bool airR = (this.GetTile(x, this.height - 1) & 15) != 1;
+			if (airL && !wasL)
+				this.specialExitCount++;
+			if (airR && !wasR && this.data.waterHeight >= 0)
+				this.specialExitCount++;
+			wasL = airL;
+			wasR = airR;
+		}
+
+		// Batfly Hives
+		for (int y = 0; y < this.height; y++) {
+			wasL = false;
+			for (int x = 0; x < this.width; x++) {
+				bool hive = (this.GetTile(x, y) & FLAG_BATFLY_HIVE) > 0;
+				if (!wasL && hive)
+					this.specialExitCount++;
+				wasL = hive;
+			}
+		}
+	}
+
+	public void RegenerateGeometry() { //<<<
+		this.allRoomExitPoints.Clear();
+		this.allShortcutEntrancePoints.Clear();
+
+		int idx = 0;
+		for (int x = 0; x < this.width; x++) {
+			for (int y = 0; y < this.height; y++) {
+				if ((this.geometry[idx] & FLAG_ROOM_EXIT) > 0) {
+					this.allRoomExitPoints.Add((RoomExitType.Room, new Vector2i(x, y)));
+				}
+				if ((this.geometry[idx] & FLAG_DEN) > 0) {
+					this.allRoomExitPoints.Add((RoomExitType.Den, new Vector2i(x, y)));
+				}
+				if ((this.geometry[idx] & FLAG_SCAVENGER_DEN) > 0) {
+					this.allRoomExitPoints.Add((RoomExitType.Scavenger, new Vector2i(x, y)));
+				}
+				idx++;
+			}
+		}
+
+		this.CheckShortcutEntrancePoints();
+		this.EnsureConnections();
+
+		// LATER: Parse dens
+		while (this.dens.Count < this.denShortcutEntrances.Count) {
+			this.dens.Add(new Den());
+		}
+		while (this.dens.Count > this.denShortcutEntrances.Count) {
+			this.dens.RemoveAt(0);
+		}
+
+		this.GenerateMesh();
+		this.GenerateWaterMesh();
+	}
+
+	public void RegenerateWater() {
+		this.GenerateWaterMesh();
+	}
+
+	public uint GetTile(Vector2i pos, bool repeatOutside = false) { //<<<
+		return this.GetTile(pos.x, pos.y, repeatOutside);
+	}
+
+	public uint GetTile(int x, int y, bool repeatOutside = false) { //<<<
+		if (!this.valid)
+			return 1u;
+		if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+			if (!repeatOutside)
+				return 1u;
+			else {
+				return this.GetTile(Math.Clamp(x, 0, this.width - 1), Math.Clamp(y, 0, this.height - 1), false);
+			}
+		}
+
+		return this.geometry[x * this.height + y];
+	}
+
+	public bool Inside(int x, int y) { //<<<
+		return x >= 0 && x < this.width && y >= 0 && y < this.height;
+	}
+
+	public bool Inside(Vector2i pos) { //<<<
+		return pos.x >= 0 && pos.x < this.width && pos.y >= 0 && pos.y < this.height;
+	}
+
+	#region Rendering
+	protected Mesh waterMesh = new Mesh();
+	protected MeshRenderable? waterRenderable;
+	protected Mesh roomMesh = new Mesh();
+	protected MeshRenderable? roomRenderable;
+	readonly List<Vector2i> allShortcutEntrances = [];
+
+	protected static uint TwelveBitLimit = 4095;
+	protected static uint HeightMask = 65520;
+	protected static uint WidthMask = 268369920;
+
+	protected unsafe virtual void GenerateWaterMesh() {
+		if (this.data.waterHeight < 0)
+			return;
+		this.waterMesh.Clear();
+
+		int waterStartPoint = this.height - this.data.waterHeight - 1;
+		int marginedWaterHeight = this.data.waterHeight + 1; // if you want a funny striped water mesh, remove this +1, it's kind of? cool
+
+		List<byte> waterMeshTiles = [];
+		// 0000 = nothing
+		// 0001 = solid
+		// x100 = slope 0 - top, left - NOTE! for generating meshes, keep in mind that this describes the solid slope, not the air slope, which is the part that is meshed.
+		// x101 = slope 1 - bottom, left
+		// x110 = slope 2 - top, right
+		// x111 = slope 3 - bottom, right
+		Dictionary<Vector2i, uint> greedyTiles = [];
+		// greedyTile
+		// contains: startX, startY, width, height, type
+		// Dictionary<Vector2i, uint> greedyTiles
+		// Vector2i = startX and startY
+		// uint = ____xxxxxxxxxxxxyyyyyyyyyyyyzzzz
+		// x = width = (uint & 268369920) >> 16
+		// y = height = (uint & 65520) >> 4
+		// z = type = uint & 15
+
+		for (int x = 0; x < this.width; x++) {
+			for (int y = waterStartPoint; y < this.height; y++) {
+				uint tile = this.GetTile(x, y);
+				uint type = tile & 15;
+
+				if (type == 1)
+					waterMeshTiles.Add(1); // add x0001 ==> type = solid
+				else if (type == 2) {
+					uint direction = (tile >> 10) & 3;
+					if (direction == 0)
+						waterMeshTiles.Add(4); // add x0100 ==> type = slope 0
+					else if (direction == 1)
+						waterMeshTiles.Add(5); // add x0101 ==> type = slope 1
+					else if (direction == 2)
+						waterMeshTiles.Add(6); // add x0110 ==> type = slope 2
+					else if (direction == 3)
+						waterMeshTiles.Add(7); // add x0111 ==> type = slope 3
+				}
+				else
+					waterMeshTiles.Add(0);
+			}
+		}
+
+		// REVIEW - supply tile array to unified GreedyMesher algorithm for less duplicated code
+		// merging tiles horizontally
+		for (int y = waterStartPoint; y < this.height; y++) {
+			for (int x = 0; x < this.width;) {
+				// first: get tiletype
+				Vector2i key = new Vector2i(x, y);
+				int indexer = x * marginedWaterHeight + (y - waterStartPoint);
+				byte tileType = waterMeshTiles[indexer];
+				// then: look rightwards
+				uint stripWidth = 1;
+				x++;
+				indexer += marginedWaterHeight;
+				for (;x <= this.width; x++, indexer += marginedWaterHeight) {
+					// until a nonmatching tiletype is encountered OR y >= this.height OR stripHeight >= 4095 (12-bit limit)
+					if (indexer >= waterMeshTiles.Count) indexer = waterMeshTiles.Count - 1;
+					if(x == this.width || stripWidth >= TwelveBitLimit || waterMeshTiles[indexer] != tileType) {
+						// then: if not solid, add to greedyTiles
+						if(tileType != 1) {
+							uint data = tileType;
+							data |= stripWidth << 16;
+							greedyTiles.Add(key, data);
+						}
+						break;
+					}
+					else
+						stripWidth++;
+				}
+				// new loop starts from the end point of the previous one OR, if x reaches the cap, from the start of the next line, therefore no tiles are missed.
+			}
+		}
+
+		// merging tiles vertically
+		for (int x = 0; x < this.width; x++) {
+			for (int y = waterStartPoint; y < this.height; y++) {
+				Vector2i key = new Vector2i(x, y);
+				if(greedyTiles.TryGetValue(key, out uint data)) {
+					byte tileType = (byte)(data & 15);
+					uint height = 1;
+					uint width = (data & WidthMask) >> 16;
+					for (int y1 = y + 1; y1 < this.height; y1++) {
+						if(height < TwelveBitLimit && greedyTiles.TryGetValue(new (x, y1), out uint compareData)
+							&& (byte)(compareData & 15) == tileType && ((compareData & WidthMask) >> 16) == width) {
+							greedyTiles.Remove(new (x, y1));
+							height++;
+						}
+						else
+							break;
+					}
+					data |= height << 4;
+					greedyTiles[key] = data;
+				}
+			}
+		}
+
+		foreach (KeyValuePair<Vector2i, uint> greedyTile in greedyTiles) {
+			byte tileType = (byte)(greedyTile.Value & 15);
+			uint height = (greedyTile.Value & HeightMask) >> 4;
+			uint width = (greedyTile.Value & WidthMask) >> 16;
+			int x = greedyTile.Key.x;
+			int y = greedyTile.Key.y;
+			float x0 = x;// + 0.1f;
+			float y0 = -y;// - 0.1f;
+			float x1 = x + width;// - 0.1f;
+			float y1 = -y - height;// + 0.1f;
+
+			int waterY = this.data.waterHeight - this.height;
+			float cutoffY0 = waterY + 0.5f;
+			bool addWater = y1 <= waterY;
+			bool isTopOfwater = y0 >= cutoffY0;
+
+			// tiletypes we need: air, solid, slope
+			if (!addWater)
+				continue;
+			if(tileType == 0) { // if it's air, we add full water
+				this.waterMesh.AddQuad(
+					new Vertex(x0, isTopOfwater ? cutoffY0 : y0, Themes.RoomWater),
+					new Vertex(x1, isTopOfwater ? cutoffY0 : y0, Themes.RoomWater),
+					new Vertex(x1, y1, Themes.RoomWater),
+					new Vertex(x0, y1, Themes.RoomWater)
+				);
+			}
+			else { // otherwise, it's a slope
+				float x2 = x + 0.5f;
+				float y2 = -y - 0.5f;
+				switch (tileType & 3) {
+					case 0:
+						if (isTopOfwater)
+							this.waterMesh.AddQuad(
+								new Vertex(x1, y1, Themes.RoomWater),
+								new Vertex(x0, y1, Themes.RoomWater),
+								new Vertex(x2, y2, Themes.RoomWater),
+								new Vertex(x1, y2, Themes.RoomWater)
+							);
+						else 
+							this.waterMesh.AddTriangle(
+								new Vertex(x1, y1, Themes.RoomWater),
+								new Vertex(x0, y1, Themes.RoomWater),
+								new Vertex(x1, y0, Themes.RoomWater)
+							);
+					break;
+					case 1:
+						if (isTopOfwater)
+							this.waterMesh.AddTriangle(
+								new Vertex(x1, y2, Themes.RoomWater),
+								new Vertex(x2, y2, Themes.RoomWater),
+								new Vertex(x1, y1, Themes.RoomWater)
+							);
+						else
+							this.waterMesh.AddTriangle(
+								new Vertex(x1, y0, Themes.RoomWater),
+								new Vertex(x0, y0, Themes.RoomWater),
+								new Vertex(x1, y1, Themes.RoomWater)
+							);
+					break;
+					case 2:
+						if (isTopOfwater)
+							this.waterMesh.AddQuad(
+								new Vertex(x0, y1, Themes.RoomWater),
+								new Vertex(x1, y1, Themes.RoomWater),
+								new Vertex(x2, y2, Themes.RoomWater),
+								new Vertex(x0, y2, Themes.RoomWater)
+							);
+						else
+							this.waterMesh.AddTriangle(
+								new Vertex(x0, y1, Themes.RoomWater),
+								new Vertex(x1, y1, Themes.RoomWater),
+								new Vertex(x0, y0, Themes.RoomWater)
+							);
+					break;
+					case 3:
+						if (isTopOfwater)
+							this.waterMesh.AddTriangle(
+								new Vertex(x0, y2, Themes.RoomWater),
+								new Vertex(x2, y2, Themes.RoomWater),
+								new Vertex(x0, y1, Themes.RoomWater)
+							);
+						else
+							this.waterMesh.AddTriangle(
+								new Vertex(x0, y0, Themes.RoomWater),
+								new Vertex(x1, y0, Themes.RoomWater),
+								new Vertex(x0, y1, Themes.RoomWater)
+							);
+					break;
+				}
+			}
+		}
+
+		this.waterRenderable = new MeshRenderable(this.waterMesh, Preload.RoomShader, [
+				new (0, 2, VertexAttribPointerType.Float, false, (uint) sizeof(Vertex), (void*) 0),
+				new (1, 4, VertexAttribPointerType.Float, false, (uint) sizeof(Vertex), (void*) (sizeof(float) * 2))
+			], [ "projection", "model", "tintColor", "tintStrength" ]);
+	}
+
+	protected unsafe virtual void GenerateMesh() {
+		this.roomMesh.Clear();
+		this.allShortcutEntrances.Clear();
+
+		List<byte> roomMeshTiles = [];
+		// 0000 = nothing
+		// 0001 = solid
+		// 0010 = shortcutentrance - NOTE! though shortcutentrances and slopes aren't exactly greedy-meshable, they - unlike poles - cannot share any tile.
+		// x100 = slope 0 - top, left - NOTE! for generating meshes, keep in mind that this describes the solid slope, not the air slope, which is the part that is meshed.
+		// x101 = slope 1 - bottom, left
+		// x110 = slope 2 - top, right
+		// x111 = slope 3 - bottom, right
+		// 1xxx = layer 2 solid
+		List<byte> overlappingTiles = [];	// poles, shortcutdots, platforms; in general harder to greedy-mesh. In fact, let's just not.
+		// 0000 = nothing
+		// 0001 = shortcutdot
+		// 0010 = pole H
+		// 0100 = pole V
+		// 1000 = platform
+		Dictionary<Vector2i, uint> greedyTiles = [];
+		// greedyTile
+		// contains: startX, startY, width, height, type
+		// Dictionary<Vector2i, uint> greedyTiles
+		// Vector2i = startX and startY
+		// uint = ____xxxxxxxxxxxxyyyyyyyyyyyyzzzz
+		// x = width = (uint & 268369920) >> 16
+		// y = height = (uint & 65520) >> 4
+		// z = type = uint & 15
+
+		for (int x = 0; x < this.width; x++) {
+			for (int y = 0; y < this.height; y++) {
+				uint tile = this.GetTile(x, y);
+				uint type = tile & 15;
+
+				if (type == 1)
+					roomMeshTiles.Add(1); // add x0001 ==> type = solid
+				else if (type == 4) {
+					roomMeshTiles.Add(2); // add x0010 ==> type = shortcutentrance;
+					this.allShortcutEntrances.Add(new (x, y));
+				}
+				else {
+					byte bgSolidFlag = (byte)((tile & FLAG_BACKGROUND_SOLID) > 0 ? 8 : 0); // flag x?xxx true if bgsolid
+
+					if (type == 2) {
+						uint direction = (tile >> 10) & 3;
+						if (direction == 0)
+							roomMeshTiles.Add((byte)(4 | bgSolidFlag)); // add x?100 ==> type = slope 0
+						else if (direction == 1)
+							roomMeshTiles.Add((byte)(5 | bgSolidFlag)); // add x?101 ==> type = slope 1
+						else if (direction == 2)
+							roomMeshTiles.Add((byte)(6 | bgSolidFlag)); // add x?110 ==> type = slope 2
+						else if (direction == 3)
+							roomMeshTiles.Add((byte)(7 | bgSolidFlag));// add x?111 ==> type = slope 3
+					}
+					else
+						roomMeshTiles.Add(bgSolidFlag); // add x?000 ==> type =? bgsolid
+				}
+
+				byte overlappingTileVal = 0;
+				if ((tile & FLAG_SHORTCUT) > 0 && tile != 4)
+					overlappingTileVal |= 1; // 0001 = shortcutdot
+				if (type != 1) {
+					if ((tile & FLAG_HORIZONTAL_POLE) > 0)
+						overlappingTileVal |= 2; // 0010 = pole H
+					if ((tile & FLAG_VERTICAL_POLE) > 0)
+						overlappingTileVal |= 4; // 0100 = pole V
+					if (type == 3)
+						overlappingTileVal |= 8; // 1000 = platform
+				}
+				overlappingTiles.Add(overlappingTileVal);
+			}
+		}
+
+		// merging horizontally
+		for (int y = 0; y < this.height; y++) {
+			for (int x = 0; x < this.width;) {
+				// first: get tiletype
+				Vector2i key = new Vector2i(x, y);
+				int indexer = x * this.height + y;
+				byte tileType = roomMeshTiles[indexer];
+				// then: look rightwards
+				uint stripWidth = 1;
+				x++;
+				indexer += this.height;
+				for (;x <= this.width; x++, indexer += this.height) {
+					// until a nonmatching tiletype is encountered OR y >= this.height OR stripHeight >= 4095 (12-bit limit)
+					if (indexer >= roomMeshTiles.Count) indexer = roomMeshTiles.Count - 1;
+					if(x == this.width || stripWidth >= TwelveBitLimit || roomMeshTiles[indexer] != tileType) {
+						// then: if not solid, add to greedyTiles
+						if(tileType != 1) {
+							uint data = tileType;
+							data |= stripWidth << 16;
+							greedyTiles.Add(key, data);
+						}
+						break;
+					}
+					else
+						stripWidth++;
+				}
+				// new loop starts from the end point of the previous one OR, if x reaches the cap, from the start of the next line, therefore no tiles are missed.
+			}
+		}
+
+		// merging vertically
+		for (int x = 0; x < this.width; x++) {
+			for (int y = 0; y < this.height; y++) {
+				Vector2i key = new Vector2i(x, y);
+				if(greedyTiles.TryGetValue(key, out uint data)) {
+					byte tileType = (byte)(data & 15);
+					uint height = 1;
+					uint width = (data & WidthMask) >> 16;
+					for (int y1 = y + 1; y1 < this.height; y1++) {
+						if(height < TwelveBitLimit && greedyTiles.TryGetValue(new (x, y1), out uint compareData)
+							&& (byte)(compareData & 15) == tileType && ((compareData & WidthMask) >> 16) == width) {
+							greedyTiles.Remove(new (x, y1));
+							height++;
+						}
+						else
+							break;
+					}
+					data |= height << 4;
+					greedyTiles[key] = data;
+				}
+			}
+		}
+
+		foreach (KeyValuePair<Vector2i, uint> greedyTile in greedyTiles) {
+			byte tileType = (byte)(greedyTile.Value & 15);
+			uint height = (greedyTile.Value & HeightMask) >> 4;
+			uint width = (greedyTile.Value & WidthMask) >> 16;
+			int x = greedyTile.Key.x;
+			int y = greedyTile.Key.y;
+			float x0 = x;// + 0.1f;
+			float y0 = -y;// - 0.1f;
+			float x1 = x + width;// - 0.1f;
+			float y1 = -y - height;// + 0.1f;
+
+			Color? color = tileType switch {
+				0 => Themes.RoomAir,
+				2 => Themes.RoomShortcutEntrance,
+				8 => Themes.RoomLayer2Solid,
+				_ => null
+			};
+			if(color != null) { // if air, background or shortcutentrance, draw quad in the right color
+				this.roomMesh.AddQuad(
+					new Vertex(x0, y0, color.Value),
+					new Vertex(x1, y0, color.Value),
+					new Vertex(x1, y1, color.Value),
+					new Vertex(x0, y1, color.Value)
+				);
+			}
+			else { // otherwise, it's a slope
+				float x2 = x + 0.5f;
+				float y2 = -y - 0.5f;
+				color = (tileType & 8) > 0 ? Themes.RoomLayer2Solid : Themes.RoomAir;
+				switch (tileType & 3) {
+					case 0:
+						this.roomMesh.AddTriangle(
+							new Vertex(x1, y1, color.Value),
+							new Vertex(x0, y1, color.Value),
+							new Vertex(x1, y0, color.Value)
+						);
+					break;
+					case 1:
+						this.roomMesh.AddTriangle(
+							new Vertex(x1, y0, color.Value),
+							new Vertex(x0, y0, color.Value),
+							new Vertex(x1, y1, color.Value)
+						);
+					break;
+					case 2:
+						this.roomMesh.AddTriangle(
+							new Vertex(x0, y1, color.Value),
+							new Vertex(x1, y1, color.Value),
+							new Vertex(x0, y0, color.Value)
+						);
+					break;
+					case 3:
+						this.roomMesh.AddTriangle(
+							new Vertex(x0, y0, color.Value),
+							new Vertex(x1, y0, color.Value),
+							new Vertex(x0, y1, color.Value)
+						);
+					break;
+				}
+			}
+		}
+		for (int x = 0; x < this.width; x++) {
+			for (int y = 0; y < this.height; y++) {
+				int idx = x * this.height + y;
+				if(idx >= overlappingTiles.Count) break;
+				if(overlappingTiles[idx] != 0) {
+					byte type = overlappingTiles[idx];
+
+					float x0 = x;
+					float y0 = -y;
+					float x1 = x + 1;
+					float y1 = -y - 1;
+					float x2 = (x0 + x1) * 0.5f;
+					float y2 = (y0 + y1) * 0.5f;
+
+					if ((type & 1) > 0) {
+						this.roomMesh.AddQuad(x2, y2, 0.1875f, Themes.RoomShortcutDot);
+					}
+					if ((type & 2) > 0) {
+						this.roomMesh.AddQuad(x2, y2, new Vector2(1f, 0.25f), Themes.RoomPole);
+					}
+					if ((type & 4) > 0) {
+						this.roomMesh.AddQuad(x2, y2, new Vector2(0.25f, 1f), Themes.RoomPole);
+					}
+					if ((type & 8) > 0) {
+						this.roomMesh.AddQuad(
+							new Vertex(x0, y0, Themes.RoomPlatform),
+							new Vertex(x1, y0, Themes.RoomPlatform),
+							new Vertex(x1, y2, Themes.RoomPlatform),
+							new Vertex(x0, y2, Themes.RoomPlatform)
+						);
+					}
+				}
+			}
+		}
+
+		foreach (Vector2i entrance in (Settings.ConnectionPoint.value == Settings.STConnectionPoint.Entrance) ? this.allShortcutEntrances : this.roomExits) {
+			int direction = 0;
+			int x = entrance.x;
+			int y = entrance.y;
+			float x0 = x + 0.25f;
+			float y0 = -y - 0.25f;
+			float x1 = x + 0.75f;
+			float y1 = -y - 0.75f;
+			float x2 = (x0 + x1) * 0.5f;
+			float y2 = (y0 + y1) * 0.5f;
+			if ((this.GetTile(x + 1, y) & FLAG_SHORTCUT) > 0) {
+				direction = 1;
+			}
+			if ((this.GetTile(x, y - 1) & FLAG_SHORTCUT) > 0) {
+				direction = direction != 0 ? 128 : 2;
+			}
+			if ((this.GetTile(x - 1, y) & FLAG_SHORTCUT) > 0) {
+				direction = direction != 0 ? 128 : 3;
+			}
+			if ((this.GetTile(x, y + 1) & FLAG_SHORTCUT) > 0) {
+				direction = direction != 0 ? 128 : 4;
+			}
+			Color color = Themes.RoomShortcutArrow;
+			if (direction != 0) {
+				if (direction == 1) {
+					this.roomMesh.AddTriangle(
+						new Vertex(x0, y0, color),
+						new Vertex(x0, y1, color),
+						new Vertex(x1, y2, color)
+					);
+				}
+				else if (direction == 2) {
+					this.roomMesh.AddTriangle(
+						new Vertex(x0, y1, color),
+						new Vertex(x1, y1, color),
+						new Vertex(x2, y0, color)
+					);
+				}
+				else if (direction == 3) {
+					this.roomMesh.AddTriangle(
+						new Vertex(x1, y0, color),
+						new Vertex(x1, y1, color),
+						new Vertex(x0, y2, color)
+					);
+				}
+				else if (direction == 4) {
+					this.roomMesh.AddTriangle(
+						new Vertex(x0, y0, color),
+						new Vertex(x1, y0, color),
+						new Vertex(x2, y1, color)
+					);
+				}
+			}
+			else
+				this.roomMesh.AddQuad(
+					new Vertex(x0, y0, color),
+					new Vertex(x1, y0, color),
+					new Vertex(x1, y1, color),
+					new Vertex(x0, y1, color)
+				);
+		}
+
+		foreach (Vector2i entrance in this.denShortcutEntrances) {
+			this.roomMesh.AddQuad(
+				new Vertex(entrance.x + 0.25f, -entrance.y - 0.25f, Themes.RoomShortcutDen),
+				new Vertex(entrance.x + 0.75f, -entrance.y - 0.25f, Themes.RoomShortcutDen),
+				new Vertex(entrance.x + 0.75f, -entrance.y - 0.75f, Themes.RoomShortcutDen),
+				new Vertex(entrance.x + 0.25f, -entrance.y - 0.75f, Themes.RoomShortcutDen)
+			);
+		}
+
+		foreach (Vector2i entrance in this.allShortcutEntrances) {
+			if (!this.denShortcutEntrances.Contains(entrance) & !this.allShortcutEntrances.Contains(entrance)) {
+				int direction = 0;
+				int x = entrance.x;
+				int y = entrance.y;
+				float x0 = x + 0.25f;
+				float y0 = -y - 0.25f;
+				float x1 = x + 0.75f;
+				float y1 = -y - 0.75f;
+				float x2 = (x0 + x1) * 0.5f;
+				float y2 = (y0 + y1) * 0.5f;
+				if ((this.GetTile(x + 1, y) & FLAG_SHORTCUT) > 0) {
+					direction = 1;
+				}
+				if ((this.GetTile(x, y - 1) & FLAG_SHORTCUT) > 0) {
+					direction = direction != 0 ? 128 : 2;
+				}
+				if ((this.GetTile(x - 1, y) & FLAG_SHORTCUT) > 0) {
+					direction = direction != 0 ? 128 : 3;
+				}
+				if ((this.GetTile(x, y + 1) & FLAG_SHORTCUT) > 0) {
+					direction = direction != 0 ? 128 : 4;
+				}
+				Color color = Themes.RoomShortcutArrow;
+				if (direction != 0) {
+					if (direction == 1) {
+						this.roomMesh.AddTriangle(
+							new Vertex(x0, y0, color),
+							new Vertex(x0, y1, color),
+							new Vertex(x1, y2, color)
+						);
+					}
+					else if (direction == 2) {
+						this.roomMesh.AddTriangle(
+							new Vertex(x0, y1, color),
+							new Vertex(x1, y1, color),
+							new Vertex(x2, y0, color)
+						);
+					}
+					else if (direction == 3) {
+						this.roomMesh.AddTriangle(
+							new Vertex(x1, y0, color),
+							new Vertex(x1, y1, color),
+							new Vertex(x0, y2, color)
+						);
+					}
+					else if (direction == 4) {
+						this.roomMesh.AddTriangle(
+							new Vertex(x0, y0, color),
+							new Vertex(x1, y0, color),
+							new Vertex(x2, y1, color)
+						);
+					}
+				}
+				else {
+					this.roomMesh.AddTriangle(
+						new Vertex(x0, y0, color),
+						new Vertex(x0, y1, color),
+						new Vertex(x2, y2, color)
+					);
+					this.roomMesh.AddTriangle(
+						new Vertex(x2, y0, color),
+						new Vertex(x2, y1, color),
+						new Vertex(x1, y2, color)
+					);
+				}
+			}
+		}
+
+		this.roomRenderable = new MeshRenderable(this.roomMesh, Preload.RoomShader, [
+				new (0, 2, VertexAttribPointerType.Float, false, (uint) sizeof(Vertex), (void*) 0),
+				new (1, 4, VertexAttribPointerType.Float, false, (uint) sizeof(Vertex), (void*) (sizeof(float) * 2))
+			], [ "projection", "model", "tintColor", "tintStrength" ]);
+	}
+
+	public virtual void DrawTerrain(Vector2 pos) { //<<<
+		if (!this.visuals.hasTerrain || this.visuals.terrain.Count < 2) {
+			return;
+		}
+
+		Immediate.Color(0f, 1f, 0f);
+		bool drawingSegment = false;
+		Vector2 prevPoint = this.visuals.terrain[0];
+		float height = this.height * 20f;
+
+		foreach (Vector2 point in this.visuals.terrain) {
+			bool currentValid = point.y >= 0f && point.y <= height;
+
+			if (currentValid) {
+				if (!drawingSegment) {
+					Immediate.Begin(Immediate.PrimitiveType.LINE_STRIP);
+					drawingSegment = true;
+
+					if (prevPoint.y < 0f || prevPoint.y > height) {
+						float targetY = prevPoint.y < 0f ? 0f : height;
+						float t = Mathf.InverseLerp(targetY, prevPoint.y, point.y);
+						float intersectX = Mathf.Lerp(prevPoint.x, point.x, t);
+						Immediate.Vertex(pos.x + intersectX / 20f, pos.y + targetY / 20f);
+					}
+				}
+				Immediate.Vertex(pos.x + point.x / 20f, pos.y + point.y / 20f);
+			}
+			else {
+				if (drawingSegment) {
+					float targetY = point.y < 0f ? 0f : height;
+					float t = Mathf.InverseLerp(targetY, prevPoint.y, point.y);
+					float intersectX = Mathf.Lerp(prevPoint.x, point.x, t);
+					Immediate.Vertex(pos.x + intersectX / 20f, pos.y + targetY / 20f);
+
+					Immediate.End();
+					drawingSegment = false;
+				}
+			}
+			prevPoint = point;
+		}
+
+		if (drawingSegment) {
+			Immediate.End();
+		}
+	}
+	#endregion
 }

@@ -20,7 +20,7 @@ public static class DropletWindow {
 	public static bool showResize;
 	public static Vector2i resizeSize;
 	public static Vector2i resizeOffset;
-	public static Room Room { get; private set; } = null!;
+	public static VirtualRoom Room { get; private set; } = null!;
 
 	private enum EditorTab {
 		Details,
@@ -1230,7 +1230,7 @@ public static class DropletWindow {
 		Room.visuals.Refresh();
 	}
 
-	public static void LoadRoom(Room room) {
+	public static void LoadRoom(VirtualRoom room) {
 		dropletHistory.Clear();
 		Room = room;
 
