@@ -1904,7 +1904,9 @@ public static class DropletWindow {
 							WorldWindow.cameraOffset = Room.Position + cameraOffset;
 							WorldWindow.cameraScale = targetCameraScale;
 						}
-						Room.MoveUpdate();
+						if (Room is Room room){
+							room.MoveUpdate();
+						}
 						DropletWindow.Reset();
 					}));
 				}),

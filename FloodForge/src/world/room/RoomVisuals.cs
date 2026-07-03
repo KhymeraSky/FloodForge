@@ -1,7 +1,7 @@
 namespace FloodForge.World;
 
 public class RoomVisuals {
-	private readonly Room room;
+	private readonly VirtualRoom room;
 
 	public bool terrainNeedsRefresh = true;
 	public bool hasTerrain = false;
@@ -10,7 +10,7 @@ public class RoomVisuals {
 	public bool waterNeedsRefresh = true;
 	public List<WaterSpot> water = [];
 
-	public RoomVisuals(Room room) {
+	public RoomVisuals(VirtualRoom room) {
 		this.room = room;
 	}
 

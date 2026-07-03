@@ -71,8 +71,19 @@ public class VirtualRoom {
 		}
 	}
 
-	public VirtualRoom(string name) {
+	public VirtualRoom(string path, string name, bool pathOutsideRoomsFolder = false) {
+		this.pathOutsideRoomsFolder = pathOutsideRoomsFolder;
+		this.path = path;
 		this.name = name;
+
+		this.CanonPosition = Vector2.Zero;
+		this.DevPosition = Vector2.Zero;
+		this.width = 1;
+		this.height = 1;
+		this.valid = false;
+
+		this.data = new RoomData();
+		this.visuals = new RoomVisuals(this);
 	}
 
 	void CheckShortcutEntrancePoints() {
@@ -188,7 +199,7 @@ public class VirtualRoom {
 		}
 		public bool isDeadEnd = false;
 		public Vector2i EndDirection => (this.isDeadEnd || this.Path.Length <= 1) ? Vector2i.Zero : (this.Path[^1] - this.Path[^2]);
-		public RoomPath(Room room, Vector2i startPosition) {
+		public RoomPath(VirtualRoom room, Vector2i startPosition) {
 			Vector2i forwardDirection = Vector2i.Zero;
 			Vector2i currentPosition = startPosition;
 			bool hasDirection = true;
@@ -441,6 +452,12 @@ public class VirtualRoom {
 		}
 
 		return this.geometry[x * this.height + y];
+	}
+
+	public bool TileIsShortcut(int x, int y) {
+		uint tile = this.GetTile(x, y);
+
+		return (tile & (FLAG_SHORTCUT | FLAG_ROOM_EXIT | FLAG_SCAVENGER_DEN)) > 0;
 	}
 
 	public bool Inside(int x, int y) { //<<<

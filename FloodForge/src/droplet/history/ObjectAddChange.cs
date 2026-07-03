@@ -5,8 +5,8 @@ namespace FloodForge.History;
 public class ObjectAddChange : Change {
 	readonly bool adding;
 	readonly DevObject objectToAdd;
-	readonly Room room;
-	public ObjectAddChange(Room room, DevObject devObject, bool adding) {
+	readonly VirtualRoom room;
+	public ObjectAddChange(VirtualRoom room, DevObject devObject, bool adding) {
 		this.objectToAdd = devObject;
 		this.adding = adding;
 		this.room = room;
