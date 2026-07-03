@@ -13,4 +13,6 @@ public interface IWorldDraggable {
 			
 		}
 	}
+
+	public abstract bool Inside(Vector2 pos);
 }

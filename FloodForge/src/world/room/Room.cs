@@ -25,6 +25,8 @@ public class Room : VirtualRoom, IWorldDraggable {
 	public string path;
 	public string name;
 
+	public List<ReplaceRoom> replaceRooms = [];
+
 	public string[] preProcessorConditions = [];
 	public Timeline timeline = new();
 	public ConditionalPopup? conditionalPopup;
