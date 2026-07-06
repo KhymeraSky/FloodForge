@@ -1,4 +1,6 @@
 using FloodForge.Rendering;
+using FloodForge.Popups;
+using Stride.Core.Extensions;
 
 namespace FloodForge.World;
 
@@ -38,52 +40,322 @@ public class VirtualRoom {
 	public int nonDenExitCount = 0; //<<<
 	public List<Den> dens = []; //<<<
 	
-	protected int specialExitCount = 0; //<<<
-
-	public Vector2 CanonPosition;
-	public Vector2 DevPosition;
-	public Vector2 Position {
-		get {
-			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
-		}
-		set {
-			if (WorldWindow.PositionType == WorldWindow.RoomPosition.Canon) {
-				this.CanonPosition = value;
-			}
-			else {
-				this.DevPosition = value;
-			}
-		}
-	}
-
-	public Vector2 InactivePosition {
-		get {
-			return WorldWindow.PositionType == WorldWindow.RoomPosition.Canon ? this.DevPosition : this.CanonPosition;
-		}
-
-		set {
-			if (WorldWindow.PositionType == WorldWindow.RoomPosition.Canon) {
-				this.DevPosition = value;
-			}
-			else {
-				this.CanonPosition = value;
-			}
-		}
-	}
+	public int specialExitCount = 0; //<<<
 
 	public VirtualRoom(string path, string name, bool pathOutsideRoomsFolder = false) {
 		this.pathOutsideRoomsFolder = pathOutsideRoomsFolder;
 		this.path = path;
 		this.name = name;
 
-		this.CanonPosition = Vector2.Zero;
-		this.DevPosition = Vector2.Zero;
 		this.width = 1;
 		this.height = 1;
 		this.valid = false;
 
 		this.data = new RoomData();
 		this.visuals = new RoomVisuals(this);
+	}
+
+	public void LoadAndGenerateGeometry() {
+		
+		try {
+			this.LoadGeometry();
+			this.LoadSettings();
+			this.visuals.Refresh();
+			this.GenerateMesh();
+			this.GenerateWaterMesh();
+			this.CheckImages();
+		}
+		catch (Exception e) {
+			Logger.Error($"Failed to load {this.name}!\n{e}");
+			try {
+				this.SetToInvalidRoom();
+				PopupManager.Add(new InfoPopup($"Failed to load {this.name}!"));
+			}
+			catch { }
+		}
+	}
+
+	public void SetToInvalidRoom() {
+		this.valid = false;
+		this.width = 72;
+		this.height = 43;
+		this.geometry = new uint[this.width * this.height];
+	}
+
+	private static void SetCameraAngle(string from, ref Vector2 angle) {
+		try {
+			int commaIndex = from.IndexOf(',');
+			if (commaIndex == -1)
+				throw new FormatException();
+
+			double theta = double.Parse(from[..commaIndex]) * (Math.PI / 180.0);
+			double radius = double.Parse(from[(commaIndex + 1)..]);
+
+			angle.x = (float) (Math.Sin(theta) * radius);
+			angle.y = (float) (Math.Cos(theta) * radius);
+		}
+		catch (Exception) {
+			Logger.Warn("Failed parsing camera angle: " + from);
+		}
+	}
+
+	protected virtual void LoadGeometry() {
+		if (!File.Exists(this.path)) {
+			Logger.Warn($"Failed to load '{this.name}'. File '{this.path}' doesn't exist");
+			this.SetToInvalidRoom();
+			return;
+		}
+
+		string[] lines = File.ReadAllLines(this.path);
+
+		string[] levelData = lines[1].Split('|');
+		if (levelData.Length <= 0) {
+			Logger.Warn($"Failed to load '{this.name}'. File contains no leveldata.");
+			this.SetToInvalidRoom();
+			return;
+		}
+		this.width = int.Parse(levelData[0][..levelData[0].IndexOf('*')]);
+		this.height = int.Parse(levelData[0][(levelData[0].IndexOf('*') + 1)..]);
+		this.geometry = new uint[this.width * this.height];
+		if (levelData.Length == 1) {
+			this.data.waterHeight = -1;
+			this.data.waterInFront = false;
+		}
+		else {
+			this.data.waterHeight = int.Parse(levelData[1]);
+			this.data.waterInFront = int.Parse(levelData[2]) == 1;
+		}
+
+		string[] camerasData = lines[3].Split('|', StringSplitOptions.RemoveEmptyEntries);
+		foreach (string cameraData in camerasData) {
+			string[] parts = cameraData.Split(',');
+			if (parts.Length < 2) {
+				Logger.Warn($"Room has invalid camera position count ({cameraData})");
+				continue;
+			}
+
+			int x = 0, y = 0;
+			try {
+				x = int.Parse(parts[0]);
+				y = int.Parse(parts[1]);
+			}
+			catch {
+				Logger.Warn($"Room has invalid camera position ({cameraData})");
+			}
+			this.data.cameras.Add(new RoomData.Camera() {
+				position = new Vector2(x, y)
+			});
+		}
+
+		this.data.enclosedRoom = lines[4].Contains("Solid");
+
+		if (lines.Length >= 13 && lines[12].StartsWith("camera angles:")) {
+			string[] angleData = lines[12][(lines[12].IndexOf(':') + 1)..].Split('|');
+			for (int i = 0; i < this.data.cameras.Count; i++) {
+				if (i >= angleData.Length)
+					break;
+
+				string[] angles = angleData[i].Split(';');
+				if (angles.Length != 4) {
+					Logger.Warn($"Failed to parse camera {i}; Not enough camera angles");
+					continue;
+				}
+
+				SetCameraAngle(angles[0], ref this.data.cameras[i].angles[0]);
+				SetCameraAngle(angles[1], ref this.data.cameras[i].angles[1]);
+				SetCameraAngle(angles[2], ref this.data.cameras[i].angles[2]);
+				SetCameraAngle(angles[3], ref this.data.cameras[i].angles[3]);
+			}
+		}
+
+		string[] objectData = lines[5].Split('|', StringSplitOptions.RemoveEmptyEntries);
+
+		string[] geometryData = lines[11].Split('|', StringSplitOptions.RemoveEmptyEntries);
+		int idx = 0;
+		foreach (string tile in geometryData) {
+			byte[] data = [.. tile.Split(',').Select(byte.Parse)];
+			this.geometry[idx] = data[0];
+			if (data[0] == 4)
+				this.geometry[idx] |= FLAG_SHORTCUT;
+
+			for (int i = 1; i < data.Length; i++) {
+				switch (data[i]) {
+					case 1:
+						this.geometry[idx] |= FLAG_VERTICAL_POLE;
+						break;
+					case 2:
+						this.geometry[idx] |= FLAG_HORIZONTAL_POLE;
+						break;
+					case 3:
+						this.geometry[idx] |= FLAG_SHORTCUT;
+						break;
+					case 6:
+						this.geometry[idx] |= FLAG_BACKGROUND_SOLID;
+						break;
+					case 7:
+						this.geometry[idx] |= FLAG_BATFLY_HIVE;
+						break;
+					case 8:
+						this.geometry[idx] |= FLAG_WATERFALL;
+						break;
+					case 9:
+						this.geometry[idx] |= FLAG_WACK_A_MOLE_HOLE;
+						break;
+					case 10:
+						this.geometry[idx] |= FLAG_GARBAGE_WORM_HOLE;
+						break;
+					case 11:
+						this.geometry[idx] |= FLAG_WORMGRASS;
+						break;
+
+					case 4:
+						this.geometry[idx] = this.geometry[idx] | FLAG_ROOM_EXIT | FLAG_SHORTCUT;
+						this.allRoomExitPoints.Add((RoomExitType.Room, new Vector2i(idx / this.height, idx % this.height)));
+						break;
+
+					case 5:
+						this.geometry[idx] = this.geometry[idx] | FLAG_DEN | FLAG_SHORTCUT;
+						this.allRoomExitPoints.Add((RoomExitType.Den, new Vector2i(idx / this.height, idx % this.height)));
+						break;
+
+					case 12:
+						this.geometry[idx] = this.geometry[idx] | FLAG_SCAVENGER_DEN | FLAG_SHORTCUT;
+						this.allRoomExitPoints.Add((RoomExitType.Scavenger, new Vector2i(idx / this.height, idx % this.height)));
+						break;
+				}
+			}
+			idx++;
+		}
+
+		this.valid = true;
+		this.CheckShortcutEntrancePoints();
+
+		idx = 0;
+		for (int x = 0; x < this.width; x++) {
+			for (int y = 0; y < this.height; y++) {
+				if ((this.geometry[idx] & 15) == 2) {
+					int bits = 0;
+					bits += (this.GetTile(x - 1, y) % 16 == 1u) ? 1 : 0;
+					bits += (this.GetTile(x + 1, y) % 16 == 1u) ? 2 : 0;
+					bits += (this.GetTile(x, y - 1) % 16 == 1u) ? 4 : 0;
+					bits += (this.GetTile(x, y + 1) % 16 == 1u) ? 8 : 0;
+					int type = -1;
+
+					if (bits == 1 + 4)
+						type = 0;
+					else if (bits == 1 + 8)
+						type = 1;
+					else if (bits == 2 + 4)
+						type = 2;
+					else if (bits == 2 + 8)
+						type = 3;
+
+					if (type == -1) {
+						if (Settings.DEBUGLogInvalidSlopes) {
+							Logger.Note($"Invalid slope type {this.name}({x}, {y})");
+						}
+					}
+					else {
+						this.geometry[idx] += (uint) (1024 * type);
+					}
+				}
+
+				idx++;
+			}
+		}
+
+		foreach (string obj in objectData) {
+			string[] item = obj.Split(',');
+			if (item.Length != 3) {
+				Logger.Warn("Failed to parse object: " + obj);
+				continue;
+			}
+
+			if (!int.TryParse(item[1], out int x)) {
+				Logger.Warn("Failed to parse object: " + obj);
+			}
+			if (!int.TryParse(item[2], out int y)) {
+				Logger.Warn("Failed to parse object: " + obj);
+			}
+
+			this.geometry[y - 1 + (x - 1) * this.height] += item[0] == "0" ? FLAG_ROCK : FLAG_SPEAR;
+		}
+
+		this.EnsureConnections();
+
+		foreach (Vector2i den in this.denShortcutEntrances) {
+			this.dens.Add(new Den());
+		}
+	}
+
+	protected virtual void LoadSettings() {
+		if (this.path.IsNullOrEmpty())
+			return;
+
+		this.data.objects.Clear();
+
+		string folder = Path.GetDirectoryName(this.path)!;
+		string? settingsPath = PathUtil.FindFile(folder, this.name + "_settings.txt");
+		if (settingsPath == null)
+			return;
+
+		foreach (string line in File.ReadLines(settingsPath)) {
+			if (line.StartsWith("PlacedObjects: ")) {
+				string data = line["PlacedObjects: ".Length..];
+				string[] poData = data.Split([", "], StringSplitOptions.RemoveEmptyEntries);
+
+				foreach (string po in poData) {
+					try {
+						int start = po.IndexOf('<');
+						int next = po.IndexOf('>', start);
+						int end = po.IndexOf('>', next + 1);
+
+						string xStr = po.Substring(start + 1, next - start - 1);
+						string yStr = po.Substring(next + 2, end - next - 2);
+						string last = po[(end + 2)..];
+
+						Vector2 pos = new Vector2(float.Parse(xStr), float.Parse(yStr));
+						string[] splits = last.Split('~', StringSplitOptions.None);
+
+						int separatorIdx = po.IndexOf('>');
+						string key = separatorIdx != -1 ? po[..separatorIdx] : po;
+
+						if (DevObjects.objectFactories.TryGetValue(key, out Func<DevObject>? createObject)) {
+							DevObject obj = createObject();
+							if (obj is ISaveableObject saveable) {
+								saveable.Load(pos, splits);
+							}
+							this.data.objects.Add(obj);
+						}
+						else {
+							Texture texture = Mods.GetObjectTexture(key);
+							if (texture == Mods.Unknown) continue;
+
+							GenericItemObject obj = new GenericItemObject(key, texture);
+							obj.nodes[0].position = pos;
+							this.data.objects.Add(obj);
+						}
+					}
+					catch {
+						Logger.Warn("Failed to parse Placed Object: " + po);
+					}
+				}
+			}
+		}
+	}
+
+	protected void CheckImages() {
+		if (!Settings.WarnMissingImages)
+			return;
+
+		string path = PathUtil.Parent(this.path);
+		for (int i = 0; i < this.data.cameras.Count; i++) {
+			string imageFile = $"{this.name}_{i + 1}.png";
+
+			if (PathUtil.FindFile(path, imageFile) == null) {
+				Logger.Warn($"{this.name} is missing image {imageFile}");
+			}
+		}
 	}
 
 	void CheckShortcutEntrancePoints() {
@@ -467,6 +739,65 @@ public class VirtualRoom {
 	public bool Inside(Vector2i pos) { //<<<
 		return pos.x >= 0 && pos.x < this.width && pos.y >= 0 && pos.y < this.height;
 	}
+
+	#region Connection information methods
+	public Vector2 GetConnectionConnectPoint(uint i) {
+		if (!WorldWindow.changeConnectBehaviour) {
+			RoomConnection connection = this.roomExitPaths[this.roomExits[(int) i]];
+			if (connection.endType == VirtualRoom.RoomPathEndType.shortcutEntrance) {
+				return this.RoomPositionToWorldPosition(this.roomExitPaths[this.roomExits[(int) i]].path.EndPosition);
+			}
+		}
+		return this.RoomPositionToWorldPosition(this.roomExits[(int) i]);
+	}
+
+	public Vector2i GetConnectionConnectDirection(uint i) {
+		if (!WorldWindow.changeConnectBehaviour) {
+			RoomConnection connection = this.roomExitPaths[this.roomExits[(int) i]];
+			if (connection.endType == RoomPathEndType.shortcutEntrance) {
+				return this.roomExitPaths[this.roomExits[(int) i]].path.EndDirection * new Vector2i(-1, 1);
+			}
+		}
+		return this.roomExitPaths[this.roomExits[(int) i]].path.StartDirection;
+	}
+
+	public Vector2 GetShortcutEntranceWorldPoint(uint i) {
+		return this.RoomPositionToWorldPosition(this.roomExitPaths[this.roomExits[(int) i]].path.EndPosition);
+	}
+	public Vector2i GetShortcutEntranceRoomPoint(uint i) {
+		return this.roomExitPaths[this.roomExits[(int) i]].path.EndPosition;
+	}
+
+	public Vector2i GetShortcutEntranceDirection(uint i) {
+		return this.roomExitPaths[this.roomExits[(int) i]].path.EndDirection;
+	}
+
+	public uint GetRoomExitIDFromShortcut(uint i) {
+		return (uint) this.roomExits.IndexOf(this.shortcutEntrancePaths[this.allShortcutEntrancePoints[(int) i]].Item1.path.EndPosition);
+	}
+
+	public uint GetShortcutEntranceDirectionInt(uint i) {
+		if (i >= this.allShortcutEntrancePoints.Count) {
+			throw new Exception($"Invalid shortcut index {i} for {this.name}");
+		}
+		Vector2i connection = this.GetShortcutEntranceDirection(i);
+
+		if (connection.x <= 0 && connection.y == 0)
+			return Direction.Right;
+		if (connection.x >= 0 && connection.y == 0)
+			return Direction.Left;
+		if (connection.y >= 0)
+			return Direction.Up;
+		if (connection.y <= 0)
+			return Direction.Down;
+
+		return Direction.Unknown;
+	}
+
+	public Vector2 RoomPositionToWorldPosition(Vector2i roomPosition) {
+		return roomPosition * new Vector2i(1, -1) + new Vector2(0.5f, -0.5f) + this.Position;
+	}
+	#endregion
 
 	#region Rendering
 	protected Mesh waterMesh = new Mesh();

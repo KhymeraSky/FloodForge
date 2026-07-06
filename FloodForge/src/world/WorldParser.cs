@@ -101,7 +101,8 @@ public static class WorldParser {
 				Logger.Info("File '", Path.Combine(roomPath, roomName), ".txt' could not be found");
 			}
 
-			room = new Room(filePath ?? "", roomName);
+			VirtualRoom virtualRoom = new VirtualRoom(filePath ?? "", roomName);
+			room = new Room(virtualRoom);
 			WorldWindow.region.rooms.Add(room);
 		}
 
@@ -135,7 +136,6 @@ public static class WorldParser {
 		return true;
 	}
 
-	// REVIEW - parse world_XX.txt first, then with that information parse additional maps to avoid parsing replacerooms as normal rooms
 	public static bool ParseMap(string path) {
 		Dictionary<string, (int hidden, bool warpable, bool merge)> extraRoomData = [];
 		List<string> allMaps = [path];
@@ -270,7 +270,8 @@ public static class WorldParser {
 					Logger.Warn($"Room file {path}/{roomName}.txt could not be found");
 				}
 
-				room = new Room(filePath, roomName);
+				VirtualRoom virtualRoom = new VirtualRoom(filePath, roomName);
+				room = new Room(virtualRoom);
 			}
 
 			WorldWindow.region.rooms.Add(room);
@@ -278,11 +279,10 @@ public static class WorldParser {
 
 		uint connectionId = 0;
 		foreach (string connection in connections) { // go through every room-connection
-			if (connection.IsNullOrEmpty())
-			{
+			if (connection.IsNullOrEmpty()) {
 				continue;
 			}
-			if (connection.ToLowerInvariant() == "disconnected") {
+			if (connection.Equals("disconnected", (StringComparison)3)) {
 				connectionId++;
 				continue;
 			}
@@ -297,7 +297,7 @@ public static class WorldParser {
 				if (connectionData.roomA.name.Equals(connection, StringComparison.InvariantCultureIgnoreCase) && connectionData.roomBName.Equals(roomName, StringComparison.InvariantCultureIgnoreCase)) {
 					connectionsToAdd[i] = connectionData with { roomB = room, roomBExitID = connectionId };
 					alreadyExists = true;
-					//break;
+					//break; // is this supposed to be commented???
 				}
 			}
 
@@ -535,7 +535,7 @@ public static class WorldParser {
 		return [.. items];
 	}
 
-	// REVIEW - Does not parse correctly
+	// REVIEW - Does not parse correctly // don't know if this is still true
 	private static bool ParseWorldConditionalLink(string link, ref List<ConditionalConnection> conditionalConnectionsToAdd) {
 		string[] parts = SplitTopLevel(link, ':', ['(', '{'], [')', '}'], StringSplitOptions.TrimEntries);
 		if (parts.Length < 3 || parts.Length > 4) {
@@ -574,6 +574,10 @@ public static class WorldParser {
 				return false;
 			}
 
+			// REVIEW - this fails to correctly parse a case such as:
+			// 		{condition}Watcher : HIDEROOM : XX_A01
+            // 		Rivulet : HIDEROOM : XX_A01
+			// overwriting the preprocessorcondition for both conditionals to be the same, practically merging two distinct cases
 			room2.preProcessorConditions = preProcessorConditions;
 
 			if (mod == "exclusiveroom" || (mod == "hideroom" && xminus)) {
@@ -653,6 +657,8 @@ public static class WorldParser {
 				timelines.ForEach(x => connection.timeline.timelines.Add(x));
 			}
 			
+			// REVIEW - preProcessorConditions can apply for individual timelines, a case not handled here
+			// for example, connection may always show for Riv, but be hidden for Watcher if X is true
 			connection.preProcessorConditions = preProcessorConditions;
 			return true;
 		}
@@ -867,7 +873,7 @@ public static class WorldParser {
 			}
 			
 			if (!connectionData.roomA.ValidConnection(connectionData.roomAExitID) || !connectionData.roomB.ValidConnection(connectionData.roomBExitID.Value)) {
-				Logger.Warn($"Failed to load connection from {connectionData.roomA.name} to {connectionData.roomB?.name ?? connectionData.roomBName} - Not valid connections");
+				Logger.Warn($"Failed to load connection from {connectionData.roomA.name}({connectionData.roomAExitID}) to {connectionData.roomB?.name ?? connectionData.roomBName}({connectionData.roomBExitID}) - Invalid connection indices");
 				continue;
 			}
 
@@ -881,16 +887,12 @@ public static class WorldParser {
 		Logger.Info("Loading conditional links");
 
 		List<ConditionalConnection> conditionalConnectionsToAdd = [];
-		//Logger.Info("Checking links");
 		bool success = true;
 		foreach (string link in conditionalLinks) {
-			//Logger.Info("Link: " + link);
-			//Logger.Info($"Parsing link {link}");
 			if (!ParseWorldConditionalLink(link, ref conditionalConnectionsToAdd)) {
 				success = false;
 				Logger.Warn($"Parse failed on link {link}");
 			}
-			//Logger.Info($"--Link Parsed--");
 		}
 
 		foreach (ConditionalConnection connectionData in conditionalConnectionsToAdd) {
@@ -934,6 +936,7 @@ public static class WorldParser {
 		return displaynamePath == null ? "" : File.ReadAllText(displaynamePath).Trim();
 	}
 
+	// REVIEW - parse world_XX.txt first, then with that information parse additional maps to avoid parsing replacerooms as normal rooms
 	public static bool ImportWorldFile(string worldPath) {
 		WorldWindow.importIncomplete = true;
 		if (!File.Exists(worldPath)) {
@@ -998,10 +1001,31 @@ public static class WorldParser {
 			Logger.Info("Loading properties");
 			if (!ParseProperties(propertiesPath)) return false;
 		}
+		/// ok what is the idea here lmao
+		/// world_XX:
+		/// 	step 1: find the rooms that "exist" in the world (ROOMS), make Room, add to Rooms
+		/// 	step 2: find the rooms that are referenced in the world (CONDITIONAL LINKS), look for existing (Virtual)Rooms or create new VirtualRoom
+		/// map_XX:
+		/// 	step 1: find the rooms that are referenced by the maps and set their VirtualRoom's position
+		/// 	step 2: create new Rooms for every maproom that is not already present as a virtualroom
+		/// that should be it, right?
+		/// 
+		/// what do they currently do?
 
 		string? mapPath = PathUtil.FindFile(WorldWindow.region.exportPath, "map_" + WorldWindow.region.acronym + ".txt");
 		if (mapPath != null) {
 			Logger.Info("Loading map");
+			// looks for alternate maps
+			// reads the map_XX.txt files
+			// gets //FloodForge; comments and adds to extraRoomData array
+			// runs ParseMapRoom for every room in the map
+			//     > ParseMapRoom(line):
+			//     get name & path, skip if name already exists
+			//     {if offscreenden, creates offscreenden
+			//     else, looks for relevant filepath, creates Room from filepath}
+			//     parses data from map file, sets room's positions & subregions
+			//     adds subregions to WorldWindow.region.subregions if doesn't exist
+			// puts extraRoomData into relevant rooms
 			if (!ParseMap(mapPath)) return false;
 		}
 		else {
@@ -1010,6 +1034,44 @@ public static class WorldParser {
 
 		Logger.Info("Loading world");
 
+		// initialisees connectionsToAdd & conditionalLinks lists
+		// on END ROOMS, adds offscreenDen if null
+		// runs ParseWorldRoom for every line in ROOMS
+		//     > ParseWorldRoom(line, ref connectionsToAdd):
+		//     get roomName, connection names & tags
+		//     check if a room exists with roomName
+		//     if not, do similar to {ParseMapRoom}, create the room and add to region.rooms
+		//     look through every room-connection
+		//       for each, check every connectionToAdd if its matching connection has been found
+		//         if a matching connectionToAdd exists, fill out the connectionToAdd
+		//       if no match was found, add a new connectionToAdd
+		//     set room tags
+		// adds every line in CONDITIONAL LINKS to conditionalLinks
+		// runs ParseWorldCreature for every line in CREATURES
+		//     > ParseWorldCreature(line):
+		//     pretty much just parses the world creature, probably
+		// goes through every connectionToAdd
+		//   for each, check if roomB was found & if indices are valid
+		//   if so, adds connection to region & connects to the rooms
+		// runs ParseWorldConditionalLink for every link in conditionalLinks
+		//     > ParseWorldConditionalLink(link, ref conditionalConnectionsToAdd):
+		//     gets preProcessorConditions
+		//     gets timelines
+		//     if HIDEROOM or EXCLUSIVEROOM, check if room exists, then set room timeline
+		//     if REPLACEROOM, look for the room to replace,
+		//       then create a replaceroom with the replacing name
+		//     if conditional connection,
+		//       checks if currentConnection is disconnected
+		//       gets the existing connection if it exists
+		//       if conditional disconnects, alter existing connection timelines
+		//       if conditional connects, find the exit it will connect to
+		//       else, find the exit the existing connection connects to
+		//       if there is an existing connection, modify its timelines and add to conditionalConnectionsToAdd
+		//       if there isn't (as such if it's a change- or connect-condition),
+		//         looks through conditionalConnectionToAdd for a connection that looks for this room
+		//         if there is, completes the conditionalConnection
+		//         else, adds a new connection looking for the right room
+		// creates a new connection for each conditional in conditionalConnectionsToAdd
 		if (!ParseWorld(worldPath)) return false;
 
 		Logger.Info("Loading extra room data");

@@ -1,7 +1,7 @@
 namespace FloodForge.World;
 
 public class OffscreenRoom : Room {
-	public OffscreenRoom(string path, string name) : base(path, name) {
+	public OffscreenRoom(string path, string name) : base(new VirtualRoom(path, name)) {
 	}
 
 	public Den GetDen() {

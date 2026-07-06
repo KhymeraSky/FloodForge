@@ -1623,7 +1623,7 @@ public static class WorldWindow {
 		File.Copy(fromFilePath, toFilePath);
 		bool initial = Settings.WarnMissingImages;
 		Settings.WarnMissingImages.value = false;
-		Room room = new Room(fromFilePath, toRoom) {
+		Room room = new Room(new VirtualRoom(fromFilePath, toRoom)) {
 			CanonPosition = WorldWindow.cameraOffset,
 			DevPosition = WorldWindow.cameraOffset
 		};
@@ -1665,7 +1665,7 @@ public static class WorldWindow {
 
 	private static Room CreateAndAddRoom(string path, string name, string tag = "", bool importFromOutside = false) {
 		RoomAndConnectionChange change = new RoomAndConnectionChange(true);
-		Room room = new Room(path, name, importFromOutside);
+		Room room = new Room(new VirtualRoom(path, name, importFromOutside));
 		if (tag.Length > 0)
 			room.data.tags = [tag];
 		room.CanonPosition = room.DevPosition = WorldWindow.cameraOffset;
