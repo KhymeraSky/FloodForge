@@ -23,6 +23,9 @@ public class Room : MapDraggable {
 
 	public bool pathOutsideRoomsFolder = false;
 	public string path;
+	public List<string> imagePaths = [];
+	public List<Texture> images = [];
+	private bool loadedImages = false;
 	public string name;
 
 	public bool isVirtualRoom = false;
@@ -740,17 +743,37 @@ public class Room : MapDraggable {
 	}
 
 	protected void CheckImages() {
+		string path = PathUtil.Parent(this.path);
+		this.imagePaths = [];
+		this.images = [];
+		for (int i = 0; i < this.data.cameras.Count; i++) {
+			string imageFile = $"{this.name}_{i + 1}.png";
+			this.imagePaths.Add(PathUtil.FindOrAssumeFile(path, imageFile));
+			this.images.Add(UI.ui);
+		}
+		
 		if (!Settings.WarnMissingImages)
 			return;
 
-		string path = PathUtil.Parent(this.path);
 		for (int i = 0; i < this.data.cameras.Count; i++) {
-			string imageFile = $"{this.name}_{i + 1}.png";
-
-			if (PathUtil.FindFile(path, imageFile) == null) {
-				Logger.Warn($"{this.name} is missing image {imageFile}");
+			if (!Path.Exists(this.imagePaths[i])) {
+				Logger.Warn($"{this.name} is missing image {Path.GetFileName(this.imagePaths[i])}");
 			}
 		}
+	}
+
+	protected void LoadImages() {
+		this.CheckImages();
+		for (int i = 0; i < this.data.cameras.Count; i++) {
+			if (!Path.Exists(this.imagePaths[i])) {
+				if (Settings.WarnMissingImages)
+					Logger.Warn($"{this.name} is missing image {Path.GetFileName(this.imagePaths[i])}");
+				continue;
+			}
+
+			this.images[i] = Texture.Load(this.imagePaths[i], TextureWrapMode.ClampToEdge, TextureMinFilter.Nearest, TextureMagFilter.Nearest);
+		}
+		this.loadedImages = true;
 	}
 
 	public void RegenerateGeometry() {
@@ -1601,6 +1624,12 @@ public class Room : MapDraggable {
 		if (this.timeline.timelineType != TimelineType.All) {
 			this.DrawTimelineIcons(renderedPosition);
 		}
+
+		if (WorldWindow.DrawRoomImages) {
+			if (!this.loadedImages)
+				this.LoadImages();
+			this.DrawRoomImages(renderedPosition);
+		}
 	}
 
 	protected void DrawInvalidRoom(Vector2 renderedPosition) {
@@ -1885,6 +1914,38 @@ public class Room : MapDraggable {
 		if (!drawnDen && (!denEmpty || denEmpty && WorldWindow.cameraScale < 400f || roomHovered)) {
 			Immediate.Color(Themes.RoomShortcutDen);
 			UI.FillCircle(x + 0.5f, y - 0.5f, selectorScale * (hovered ? 1.5f : 1f) * 0.25f, 8);
+		}
+	}
+
+	public void DrawRoomImages(Vector2 renderedPosition) {
+		uint shaderToUse = Preload.RoomImageShader.shader;
+		for (int i = 0; i < this.data.cameras.Count; i++) {
+			Vector2 absolutePosition = (this.data.cameras[i].position * Vector2.NegY / 20f) + renderedPosition;
+
+			Vector2 cameraSizeTiles = new Vector2(70, 40);
+			Texture textureToUse = this.images[i];
+
+			Vector2 matrixPos = WorldWindow.cameraOffset;
+			Vector2 matrixScale = WorldWindow.cameraScale * Main.screenBounds;
+
+			Program.gl.Enable(EnableCap.Blend);
+			Immediate.Color(Color.White);
+
+			Immediate.UseTexture(textureToUse);
+			Immediate.UseProgram(shaderToUse);
+			Immediate.Begin(Immediate.PrimitiveType.QUADS);
+			Program.gl.UniformMatrix4(Program.gl.GetUniformLocation(shaderToUse, "projection"), false, [.. Matrix4X4.CreateOrthographicOffCenter(-matrixScale.x + matrixPos.x, matrixScale.x + matrixPos.x, -matrixScale.y + matrixPos.y, matrixScale.y + matrixPos.y, 0f, 1f)]);
+			Program.gl.UniformMatrix4(Program.gl.GetUniformLocation(shaderToUse, "model"), false, [.. Matrix4X4.CreateTranslation(renderedPosition.x, renderedPosition.y, 0f)]);
+
+			Immediate.TexCoord(0f, 0f); Immediate.Vertex(absolutePosition.x, absolutePosition.y);
+			Immediate.TexCoord(1f, 0f); Immediate.Vertex(absolutePosition.x + cameraSizeTiles.x, absolutePosition.y);
+			Immediate.TexCoord(1f, 1f); Immediate.Vertex(absolutePosition.x + cameraSizeTiles.x, absolutePosition.y - cameraSizeTiles.y);
+			Immediate.TexCoord(0f, 1f); Immediate.Vertex(absolutePosition.x, absolutePosition.y - cameraSizeTiles.y);
+
+			Immediate.End();
+			Immediate.UseTexture(0);
+			Immediate.UseProgram(0);
+			Program.gl.Disable(EnableCap.Blend);
 		}
 	}
 
