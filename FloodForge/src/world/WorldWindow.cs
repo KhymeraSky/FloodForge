@@ -26,6 +26,7 @@ public static class WorldWindow {
 	public static bool VisibleCreatures { get; private set; } = true;
 	public static bool VisibleTimelineIcons { get; private set; } = true;
 	public static bool VisibleReplaceRooms { get; private set; } = true;
+	public static bool DrawRoomImages { get; private set; } = false;
 	public static RoomPosition PositionType { get; private set; } = RoomPosition.Canon;
 	public static RoomColors ColorType { get; private set; } = RoomColors.None;
 	public static readonly bool[] VisibleLayers = [true, true, true];
@@ -2163,6 +2164,11 @@ public static class WorldWindow {
 					new Button("ReplaceRooms: Shown", button => {
 						VisibleReplaceRooms = !VisibleReplaceRooms;
 						button.Text = VisibleReplaceRooms ? "ReplaceRooms: Shown" : "ReplaceRooms: Hidden";
+					}, button => { return WorldWindow.ValidRegionLoaded; }) { preventClose = true },
+
+					new Button("DrawRoomImages: Hidden", button => {
+						DrawRoomImages = !DrawRoomImages;
+						button.Text = DrawRoomImages ? "DrawRoomImages: Shown" : "DrawRoomImages: Hidden";
 					}, button => { return WorldWindow.ValidRegionLoaded; }) { preventClose = true },
 
 					new Button("Canon", button => {
