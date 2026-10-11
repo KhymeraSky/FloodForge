@@ -66,7 +66,7 @@ public static class NameChanger {
 		//Logger.Info("newRoomsPath = " + newRoomsPath);
 
 		if (deleteExistingFiles) {
-			Logger.Info("Deleting existing files.");
+			Logger.Info("Deleting existing files."); // TODO - BACKUP EXISTING FILES; add a directory-backup method to the Backups system
 			if (Directory.Exists(newExportPath))
 				Directory.Delete(newExportPath, true);
 			if (Directory.Exists(newRoomsPath))

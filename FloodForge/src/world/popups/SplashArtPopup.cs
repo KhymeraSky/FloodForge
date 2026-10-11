@@ -224,11 +224,11 @@ public class SplashArtPopup : Popup {
 		Immediate.Color(0.8f, 0.8f, 0.8f);
 		UI.font.Write("Recent worlds:", -0.88f, -0.28f, 0.03f, Font.Align.MiddleLeft);
 
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 8; i++) { // REVIEW - make this a scrollable list?
 			if (i >= RecentFiles.recents.Count)
 				break;
 
-			string recent = RecentFiles.recentNames[i];
+			string recent = RecentFiles.recentNames[i]; // REVIEW - add a way to distinguish identical region names located in different folders (a mod vs /worlds)
 			string acronym = "";
 			if (recent.IsNullOrEmpty()) {
 				recent = Path.GetFileNameWithoutExtension(RecentFiles.recents[i]);

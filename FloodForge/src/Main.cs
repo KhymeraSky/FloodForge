@@ -199,13 +199,13 @@ public static class Main {
 				PopupManager.Windows.Last().Reject();
 			}
 			else {
-				if (mode == Mode.Droplet) {
+				if (mode == Mode.Droplet) { // REVIEW - detect unsaved changes before showing popup? (same with Floodforge)
 					PopupManager.Add(new ConfirmPopup("Exit Droplet?\nUnsaved changes will be lost").Okay(() => {
 						mode = Mode.World;
 						DropletWindow.Reset();
 					}));
 				}
-				else {
+				else { // REVIEW - add exit confirmation when clicking the window closed?
 					PopupManager.Add(new ConfirmPopup("Exit FloodForge?").Okay(() => {
 						Program.window.Close();
 					}));

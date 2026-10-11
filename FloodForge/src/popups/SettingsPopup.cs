@@ -276,6 +276,7 @@ public class SettingsPopup : Popup {
 	}
 
 	// Minimum seems exclusive - slider only goes to -1 with minimum set to -2
+	// UPDATE - this may not be the case anymore
 	public class IntSliderSettingContainer(string name, int initialValue, int minimum, int maximum, Action<int> callback) : SettingContainer(name) {
 		protected UI.SliderIntEditable valueSlider = new UI.SliderIntEditable(minimum, maximum);
 		protected int value = initialValue;
@@ -300,7 +301,7 @@ public class SettingsPopup : Popup {
 			int previousValue = this.value;
 			UI.SliderResponse slider = UI.Slider(Rect.FromSize(rect.x0, rect.y0, rect.x1 - rect.x0 - 0.04f, rect.y1 - rect.y0), this.valueSlider, ref this.value, new UI.SliderMods() { disabled = false });
 			Immediate.Color(Themes.Text);
-			bool swap = slider.sliderPos.x > (rect.x1 - rect.x0) / 2;
+			bool swap = slider.sliderPos.x > (rect.x1 - rect.x0) / 2; // REVIEW - swap seems based on absolute position rather than relative
 			float x = slider.sliderPos.x + (swap ? -0.01f : 0.01f);
 			UI.font.Write($"{this.value}", x, slider.sliderPos.y, 0.03f, swap ? Font.Align.MiddleRight : Font.Align.MiddleLeft);
 			if ((slider.submitted & !slider.dragging) || (slider.dragging && this.updateWhileDragging && (this.value != previousValue || this.updateWhileUnchanged))) {

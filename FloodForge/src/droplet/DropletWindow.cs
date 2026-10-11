@@ -2021,7 +2021,7 @@ public static class DropletWindow {
 		}
 		List<(string, string, byte[])> renderedRooms = [];
 		for (int i = 0; i < Room.data.cameras.Count; i++) {
-			string imageName = $"{Room.name}_{i + 1}";
+			string imageName = $"{Room.name}_{i + 1}"; // REVIEW - merge this behaviour with revised UpdateRegionFiles? so that images are held and only updated upon export?
 			string outputPath = Settings.UpdateRoomImagesOnRender ? Path.Combine(WorldWindow.region.roomsPath, $"{imageName}.png") : Path.Combine("renderOutput", WorldWindow.region.acronym, $"{imageName}.png");
 			Logger.Info(outputPath.Split("Rain World")[^1].Split("FloodForge")[^1]);
 			if (WorldWindow.renderStatusPopup != null) WorldWindow.renderStatusPopup?.UpdateText(updateBaseText + " " + (i + 1) + "/" + Room.data.cameras.Count);

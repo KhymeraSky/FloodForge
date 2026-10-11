@@ -41,7 +41,7 @@ public static class WorldWindow {
 
 	public static Region region = null!;
 	public static bool HasExportPath => !WorldWindow.region.exportPath.IsNullOrEmpty();
-	public static bool ValidRegionLoaded => WorldWindow.region != null && !WorldWindow.region.acronym.IsNullOrEmpty() && (HasExportPath || !Settings.UpdateRegionFiles) && !importIncomplete;
+	public static bool ValidRegionLoaded => WorldWindow.region != null && !WorldWindow.region.acronym.IsNullOrEmpty() && (HasExportPath || !Settings.UpdateRegionFiles) && !importIncomplete; // REVIEW - HasExportPath obsolete due to room export changes?
 	public static bool importIncomplete = false;
 	public static List<string> invalidCreatures = [];
 	public static Vector2 cameraOffset;
@@ -2122,6 +2122,7 @@ public static class WorldWindow {
 						return WorldWindow.ValidRegionLoaded;
 					}),
 
+					// TODO - add option to refresh from export path instead of original import path
 					new Button("Refresh Region", button => {
 						string? path = PathUtil.FindFile(WorldWindow.region.exportPath, $"world_{WorldWindow.region.acronym}.txt");
 						if (path == null) {
