@@ -1690,18 +1690,24 @@ public static class DropletWindow {
 		}
 		geo.Append("\n");
 
-		geo.Append("camera angles:");
+		string cameraAnglesLine = "camera angles:";
+		bool nonZeroAnglesDetected = false;
 		for (int i = 0; i < Room.data.cameras.Count; i++) {
-			if (i > 0) geo.Append("|");
+			if (i > 0) cameraAnglesLine += "|";
 			RoomData.Camera c = Room.data.cameras[i];
 
 			static string FormatAngle(Vector2 ang) {
 				return $"{MathF.Atan2(ang.x, ang.y) * (180f / Mathf.PI):F4},{ang.Length:F4}";
 			}
 
-			geo.Append($"{FormatAngle(c.angles[0])};{FormatAngle(c.angles[1])};{FormatAngle(c.angles[2])};{FormatAngle(c.angles[3])}");
+			if (!nonZeroAnglesDetected)
+				foreach (Vector2 angle in c.angles)
+					nonZeroAnglesDetected |= angle != Vector2.Zero;
+			
+			cameraAnglesLine += $"{FormatAngle(c.angles[0])};{FormatAngle(c.angles[1])};{FormatAngle(c.angles[2])};{FormatAngle(c.angles[3])}";
 		}
-		geo.Append("\n");
+		if (nonZeroAnglesDetected)
+			geo.Append($"{cameraAnglesLine}\n");
 
 		File.WriteAllText(geoPath, geo.ToString());
 
