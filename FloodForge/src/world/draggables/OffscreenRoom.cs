@@ -19,7 +19,7 @@ public class OffscreenRoom : Room {
 	protected override void GenerateMesh() {
 	}
 
-	protected override void LoadGeometry() {
+	protected override void LoadGeometryFromFile() {
 		this.width = 72;
 		this.height = 43;
 		this.valid = true;

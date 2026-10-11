@@ -116,7 +116,7 @@ public class Room : MapDraggable {
 		this.visuals = new RoomVisuals(this);
 
 		try {
-			this.LoadGeometry();
+			this.LoadGeometryFromFile();
 			this.LoadSettings();
 			this.visuals.Refresh();
 			this.GenerateMesh();
@@ -203,7 +203,7 @@ public class Room : MapDraggable {
 		}
 	}
 
-	protected virtual void LoadGeometry() {
+	protected virtual void LoadGeometryFromFile() {
 		if (!File.Exists(this.path)) {
 			Logger.Warn($"Failed to load '{this.name}'. File '{this.path}' doesn't exist");
 			this.SetToInvalidRoom();
