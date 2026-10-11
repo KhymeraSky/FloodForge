@@ -615,6 +615,11 @@ public static class WorldWindow {
 					}),
 					new SettingsPopup.ButtonContainer("Change Acronym", () => {
 						PopupManager.Add(new AcronymPopup((acronym) => {
+							if (acronym.Equals(WorldWindow.region.acronym, StringComparison.InvariantCultureIgnoreCase)) {
+								Logger.Info($"Could not change acronym; {acronym} == {WorldWindow.region.acronym}");
+								PopupManager.Add($"Unable to change acronym:\nacronym '{acronym}' is the same as\nexisting acronym '{WorldWindow.region.acronym}'");
+								return;
+							}
 							string checkPath = WorldWindow.region.roomsPath[..(WorldWindow.region.roomsPath.IndexOfReverse('\\') + 1)] + acronym + $"\\world_{acronym}.txt";
 							bool fileExists = File.Exists(checkPath);
 							PopupManager.Add(new ConfirmPopup(fileExists ? $"world_{acronym}.txt already exists\nin this folder.\nOverwrite?" : $"Change Acronym to {acronym}?").SetButtons(fileExists ? "Overwrite" : "Yes", "Cancel").Okay(() => {
