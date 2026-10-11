@@ -23,7 +23,19 @@ public class CreateRoomPopup : Popup {
 		}
 
 		int i = 1;
-		while (PathUtil.FindFile(WorldWindow.region.roomsPath, $"{WorldWindow.region.acronym}_{prefix}{i:D2}.txt") != null) {
+		while (true) {
+			bool foundRoom = false;
+			foreach (Room room in WorldWindow.region.rooms) {
+				if (room.name.Equals($"{WorldWindow.region.acronym}_{prefix}{i:D2}", StringComparison.InvariantCultureIgnoreCase)) {
+					foundRoom = true;
+					break;
+				}
+			}
+			if (!foundRoom)
+				break;
+			i++;
+		}
+		while (PathUtil.FindFile(WorldWindow.region.roomsPath, $"{WorldWindow.region.acronym}_{prefix}{i:D2}.txt") != null) { // REVIEW - skip this step?
 			i++;
 		}
 
