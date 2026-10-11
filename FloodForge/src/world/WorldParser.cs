@@ -1330,7 +1330,7 @@ public static class WorldParser {
 			if(WorldWindow.region.regionsPaths.Count != 0)
 				Logger.Info(string.Join(", ", WorldWindow.region.regionsPaths));
 			else
-				Logger.Info("'No regions.txt paths found");
+				Logger.Info("No regions.txt paths found");
 		}
 
 		WorldWindow.region.acronym = WorldWindow.region.FindAcronym(WorldWindow.region.acronym);
