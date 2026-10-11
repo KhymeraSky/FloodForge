@@ -97,24 +97,23 @@ public static class Settings {
 				Themes.LoadFromSetting(value);
 				continue;
 			}
-
-			if (triedToUpdate && key.Equals("cfgVersion", StringComparison.InvariantCultureIgnoreCase)) {
-				if (int.TryParse(value, out int version)) {
-					loadedConfigVersion = version;
-					Logger.Note($"cfgVersion: {loadedConfigVersion}");
-				}
-				else {
-					Logger.Warn($"failed to parse cfgVersion value \"{value}\" to int");
+			
+			if (key.Equals("cfgVersion", StringComparison.InvariantCultureIgnoreCase)) {
+				if (triedToUpdate) {
+					if (int.TryParse(value, out int version)) {
+						loadedConfigVersion = version;
+						Logger.Note($"cfgVersion: {loadedConfigVersion}");
+					}
+					else
+						Logger.Warn($"failed to parse cfgVersion value \"{value}\" to int");
 				}
 				continue;
 			}
 
-			if (settings.TryGetValue(key, out Setting? setting)) {
+			if (settings.TryGetValue(key, out Setting? setting))
 				setting.Set(value);
-			}
-			else {
+			else
 				Logger.Warn($"No setting '{key}'");
-			}
 		}
 	}
 
