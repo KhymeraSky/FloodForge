@@ -13,13 +13,17 @@ public static class RecentFiles {
 		foreach (string path in File.ReadAllLines(recentsPath)) {
 			if (path.IsNullOrEmpty()) continue;
 			if (!File.Exists(path)) continue;
-
-			recents.Add(path);
+			string fullPath = Path.GetFullPath(path); // A temporary measure to remove previously added duplicate entries; entirely removable
+			if (recents.Contains(fullPath))
+				continue;
+			
+			recents.Add(fullPath);
 			recentNames.Add(WorldParser.GetRegionDisplayname(path));
 		}
 	}
 
 	public static void AddPath(string path) {
+		path = Path.GetFullPath(path);
 		int i = recents.FindIndex(x => x.Equals(path, StringComparison.InvariantCultureIgnoreCase));
 		string? name = null;
 		if (i != -1) {
