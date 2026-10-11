@@ -19,6 +19,8 @@ public static class PathUtil {
 	public static string? FindFile(string parent, string fileName) {
 		if (parent == null || parent == "")
 			return null;
+		if (!Directory.Exists(parent))
+			return null;
 		string[] files = Directory.GetFiles(parent, fileName, new EnumerationOptions() { MatchCasing = MatchCasing.CaseInsensitive, RecurseSubdirectories = false });
 		if (files.Length == 0) return null;
 		return files[0];
