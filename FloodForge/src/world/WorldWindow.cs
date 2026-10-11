@@ -41,7 +41,7 @@ public static class WorldWindow {
 
 	public static Region region = null!;
 	public static bool HasExportPath => !WorldWindow.region.exportPath.IsNullOrEmpty();
-	public static bool ValidRegionLoaded => !(WorldWindow.region == null || WorldWindow.region.acronym.IsNullOrEmpty() || !HasExportPath || importIncomplete);
+	public static bool ValidRegionLoaded => WorldWindow.region != null && !WorldWindow.region.acronym.IsNullOrEmpty() && (HasExportPath || !Settings.UpdateRegionFiles) && !importIncomplete;
 	public static bool importIncomplete = false;
 	public static List<string> invalidCreatures = [];
 	public static Vector2 cameraOffset;
@@ -1026,7 +1026,7 @@ public static class WorldWindow {
 			if (region.acronym.IsNullOrEmpty()) {
 				PopupManager.Add(new InfoPopup("You must create or import your region\nbefore creating or editing a room."));
 			}
-			else if (!HasExportPath) {
+			else if (!HasExportPath && Settings.UpdateRegionFiles) {
 				PopupManager.Add(new InfoPopup("You must export your region\nbefore creating or editing a room."));
 			}
 			else {
@@ -1978,7 +1978,6 @@ public static class WorldWindow {
 		private static event Action<Timeline>? UpdateVisibleTimeline;
 		private static void ExportButton() {
 			WorldExporter.ExportFinished = false;
-			string lastExportDirectory = WorldWindow.region.exportPath;
 
 			if (!Settings.UpdateRegionFiles) {
 				if (!Directory.Exists("worlds")) {
@@ -2015,11 +2014,6 @@ public static class WorldWindow {
 					.Filter(FilesystemPopup.SelectionType.Folder)
 					.Hint("YOUR_MOD/world/").ButtonText("Export")
 				);
-			}
-
-			if (!lastExportDirectory.IsNullOrEmpty()) {
-				Logger.Info($"Set exportPath from\n{WorldWindow.region.exportPath}\nback to\n{lastExportDirectory}");
-				WorldWindow.region.exportPath = lastExportDirectory;
 			}
 		}
 

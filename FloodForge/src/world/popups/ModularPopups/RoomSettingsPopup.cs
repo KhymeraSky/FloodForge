@@ -47,7 +47,7 @@ public class RoomSettingsPopup : ModularPopup {
 		this.waterLevelSlider = new IntSliderSettingContainer("Water Height", this.relevantRoom.data.waterHeight, -1, this.relevantRoom.height, this.UpdateWaterHeight).UpdateWhileDragging(true);
 		this.AddToQueue(this.waterLevelSlider);
 		this.waterInFrontToggle = new BoolSettingContainer("Water In Front", this.relevantRoom.data.waterInFront, b => {
-			WorldWindow.worldHistory.Apply(new VariableChange<bool>(this.relevantRoom.data.waterInFront, b, bRedo => this.relevantRoom.data.waterInFront = bRedo));
+			WorldWindow.worldHistory.Apply(new VariableChange<bool>(this.relevantRoom.data.waterInFront, b, bRedo => { this.relevantRoom.data.waterInFront = bRedo; this.relevantRoom.fileModified = true; }));
 		});
 		this.AddToQueue(this.waterInFrontToggle);
 		this.editCreatures = new ButtonContainer("Edit Creatures", this.EditCreatures);
@@ -64,14 +64,17 @@ public class RoomSettingsPopup : ModularPopup {
 	}
 
 	private void UpdateEnclosedRoom(bool enclosed) {
-		WorldWindow.worldHistory.Apply(new VariableChange<bool>(this.relevantRoom.data.enclosedRoom, enclosed, enclosedRedo => 
-			this.relevantRoom.data.enclosedRoom = enclosedRedo
+		WorldWindow.worldHistory.Apply(new VariableChange<bool>(this.relevantRoom.data.enclosedRoom, enclosed, enclosedRedo => {
+				this.relevantRoom.data.enclosedRoom = enclosedRedo;
+				this.relevantRoom.fileModified = true;
+			}
 		));
 	}
 
 	private void UpdateWaterHeight(int newHeight) {
 		WorldWindow.worldHistory.Apply(new VariableChange<int>(this.relevantRoom.data.waterHeight, newHeight, hRedo => {
 			this.relevantRoom.data.waterHeight = hRedo;
+			this.relevantRoom.fileModified = true;
 			this.relevantRoom.RegenerateWater();
 		}));
 	}

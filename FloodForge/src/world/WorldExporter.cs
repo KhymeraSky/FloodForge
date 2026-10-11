@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FloodForge.Droplet;
 using StbImageWriteSharp;
 using Stride.Core.Extensions;
 
@@ -29,6 +30,8 @@ public static class WorldExporter {
 		ExportPropertiesFile(PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, "properties.txt"));
 
 		ExportDisplayName(PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, "displayname.txt"));
+
+		ExportRooms(WorldWindow.region.roomsPath);
 
 		if (isNewMap)
 			RecentFiles.AddPath(PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, $"world_{WorldWindow.region.acronym}.txt"));
@@ -1703,5 +1706,53 @@ public static class WorldExporter {
 
 			File.WriteAllLines(outputPath, [WorldWindow.region.displayName]);
 		}
+	}
+
+	public static void ExportRooms(string roomsPath) {
+		List<Room> roomsToExport = [.. WorldWindow.region.rooms];
+		WorldWindow.replaceReferenceRooms.ForEach(roomsToExport.Add);
+
+		Logger.Info($"Exporting rooms to {roomsPath} ; updateRegionFiles: {Settings.UpdateRegionFiles}");
+		foreach (Room room in roomsToExport) {
+			if (room is OffscreenRoom)
+				continue;
+			if (room.data.tags.Contains("GATE")) {
+				Logger.Info($"    skipping gate {room.name}"); // add exporting to the gates folder?
+				continue;
+			}
+			if (room.fileModified) {
+				Logger.Info($"    loading room {room.name}");
+				DropletWindow.LoadRoom(room, Vector2.Zero);
+				Logger.Info($"    exporting room {room.name}");
+				DropletWindow.ExportGeometry();
+			}
+			else {
+				string geoFileSourcePath = Path.GetFullPath(room.path);
+				string geoFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.roomsPath, room.name + ".txt"));
+				Logger.Info($"    copying file {geoFileSourcePath} to {geoFileDestPath}");
+				if (!geoFileSourcePath.Equals(geoFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(geoFileSourcePath)) {
+					File.Copy(geoFileSourcePath, geoFileDestPath, true);
+				}
+				string settingsFileName = room.name + $"_settings.txt";
+				string settingsFileSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), settingsFileName));
+				string settingsFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.roomsPath, settingsFileName));
+				Logger.Info($"    copying file {settingsFileSourcePath} to {settingsFileDestPath}");
+				if (!settingsFileSourcePath.Equals(settingsFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(settingsFileSourcePath)) {
+					File.Copy(settingsFileSourcePath, settingsFileDestPath, true);
+				}
+			}
+			
+			Logger.Info($"    exporting images for room {room.name};");
+			for (int i = 1; i <= room.data.cameras.Count; i++) {
+				string imageName = room.name + $"_{i}.png";
+				string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), imageName));
+				string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.roomsPath, imageName));
+				Logger.Info($"    copying file {imageSourcePath} to {imageDestPath}");
+				if (!imageSourcePath.EndsWith(imageDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(imageSourcePath)) {
+					File.Copy(imageSourcePath, imageDestPath, true);
+				}
+			}
+		}
+		Logger.Info($"done");
 	}
 }

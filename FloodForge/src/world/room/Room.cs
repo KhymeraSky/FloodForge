@@ -21,6 +21,7 @@ public class Room : MapDraggable {
 	public const uint FLAG_ROCK = 262144;
 	public const uint FLAG_SPEAR = 524288;
 
+	public bool fileModified = false;
 	public bool pathOutsideRoomsFolder = false;
 	public string path;
 	public string name;
@@ -131,6 +132,47 @@ public class Room : MapDraggable {
 			}
 			catch { }
 		}
+	}
+
+	public Room(string roomName, int width, int height, bool fillLayer1, bool fillLayer2, bool createCameras) {
+		this.path = "";
+		this.name = roomName;
+
+		this.width = width;
+		this.height = height;
+
+		this.geometry = new uint[width * height];
+		for (int i = 0; i < this.geometry.Length; i++) {
+			this.geometry[i] = fillLayer1 ? 1 : (fillLayer2 ? FLAG_BACKGROUND_SOLID : 0);
+		}
+
+		this.data = new();
+
+		if (createCameras) { // REVIEW - offset cameras so their median is aligned to the middle of the room
+			int screenWidth = (int) Math.Round((width + 4.0) / 52.0);
+			int screenHeight = (int) Math.Round((height + 5.0) / 40.0);
+
+			for (int y = 0; y < screenHeight; y++) {
+				for (int x = 0; x < screenWidth; x++) {
+					this.data.cameras.Add(new RoomData.Camera() { position = new(-212 + x * 1024, -34 + 768 * y) });
+				}
+			}
+
+			if (screenHeight <= 0 && screenWidth <= 0)
+				this.data.cameras.Add(new RoomData.Camera() { position = new(-212, -34) });
+		}
+		else
+			this.data.cameras.Add(new RoomData.Camera() { position = new(-220, -50) });
+
+		this.visuals = new(this) {
+			terrainNeedsRefresh = true,
+			waterNeedsRefresh = true
+		};
+		this.visuals.Refresh();
+		this.valid = true;
+		this.GenerateMesh();
+		this.GenerateWaterMesh();
+		this.CheckImages();
 	}
 
 	public void SetToInvalidRoom() {

@@ -204,10 +204,9 @@ public class CreateRoomPopup : Popup {
 
 		if (UI.TextButton("Create", new Rect(this.bounds.x0 + 0.01f, this.bounds.y0 + 0.01f, this.bounds.x0 + 0.26f, this.bounds.y0 + 0.06f), new UI.TextButtonMods { disabled = !canCreate })) {
 			string name = $"{WorldWindow.region.acronym}_{this.RoomName.value}";
-			Droplet.LevelUtils.CreateLevelFiles(WorldWindow.region.roomsPath, name, int.Parse(this.Width.value), int.Parse(this.Height.value), this.fillLayer1, this.fillLayer2, this.placeCameras);
 			this.Close();
 
-			Room room = new Room(Path.Join(WorldWindow.region.roomsPath, $"{name}.txt"), name) {
+			Room room = new Room(name, int.Parse(this.Width.value), int.Parse(this.Height.value), this.fillLayer1, this.fillLayer2, this.placeCameras) {
 				CanonPosition = WorldWindow.roomPlacementVisualiser.Position,
 				DevPosition = WorldWindow.roomPlacementVisualiser.Position
 			};

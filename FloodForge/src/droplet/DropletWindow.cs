@@ -1612,11 +1612,6 @@ public static class DropletWindow {
 		dropletHistory.Clear();
 		Room = room;
 
-		if (!File.Exists(Room.path)) {
-			Logger.Error("Failed to open droplet room file: " + Room.path);
-			return;
-		}
-
 		Backup();
 		Room.visuals.terrainNeedsRefresh = true;
 		Room.visuals.waterNeedsRefresh = true;
@@ -1632,8 +1627,17 @@ public static class DropletWindow {
 		}
 	}
 
-	private static void ExportGeometry() {
-		string geoPath = PathUtil.FindFile(WorldWindow.region.roomsPath, Room.name + ".txt")!;
+	private static void SaveGeometry() {
+		Backup();
+		Room.fileModified = true;
+		Room.visuals.terrainNeedsRefresh = true;
+		Room.visuals.waterNeedsRefresh = true;
+		Room.visuals.Refresh();
+	}
+
+	public static void ExportGeometry() { // REVIEW - move this into Room class? Alternatively, move geometry file loading & exporting into a Utils class?
+		string geoPath = PathUtil.FindOrAssumeFile(WorldWindow.region.roomsPath, Room.name + ".txt")!;
+		Logger.Info($"exporting {Room.name} room geometry to path: {geoPath}");
 		if (geoPath.IsNullOrEmpty() || Room.name.StartsWith("GATE")) {
 			Logger.Info($"{(geoPath.IsNullOrEmpty() ? "geoPath null; " : "")}{(Room.name.StartsWith("GATE") ? "gate; " : "")}Trying to use path: {Room.path.Split("Rain World")[^1]}");
 			geoPath = Room.path;
@@ -1998,8 +2002,8 @@ public static class DropletWindow {
 	public static bool Render(out string errorMessage, out (string, string, byte[])[] images) {
 		bool success = true;
 		errorMessage = "";
-		try {
-			ExportGeometry();
+		try { // REVIEW - unnecessary try;catch?
+			SaveGeometry();
 		}
 		catch (Exception e) {
 			Logger.Error(e);
@@ -2201,10 +2205,10 @@ public static class DropletWindow {
 		public DropletMenuItems() {
 			this.items = [
 				new Dropdown("File", [
-					new Button("Export Geometry", b => {
+					new Button("Save Geometry", b => {
 						try {
-							ExportGeometry();
-							PopupManager.Add(new InfoPopup("Exported successfully"));
+							SaveGeometry();
+							PopupManager.Add(new InfoPopup("Saved successfully"));
 						}
 						catch (Exception e){
 							Logger.Error(e);
