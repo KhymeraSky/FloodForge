@@ -172,7 +172,7 @@ public static class Main {
 			Profiler.MarkPoint(-1);
 		}
 
-		PopupManager.Draw();
+		PopupManager.Draw(); // REVIEW - find a way to draw dropdowns & the menu over the top of popups (see issues with SelectionButtonPopup)
 		Immediate.Flush();
 
 		PopupManager.Cleanup();

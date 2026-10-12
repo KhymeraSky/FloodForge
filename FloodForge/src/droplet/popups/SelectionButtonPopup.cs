@@ -35,47 +35,56 @@ public class SelectionButtonPopup : Popup {
 		Program.gl.Enable(EnableCap.ScissorTest);
 		Rect roomViewBounds = new Rect(-Main.screenBounds.x, -Main.screenBounds.y, Main.screenBounds.x - DropletWindow.sidebarWidth, Main.screenBounds.y - DropletWindow.topbarHeight);
 		UI.ScissorRect(roomViewBounds);
+		bool mouseInWindow = roomViewBounds.Inside(Mouse.X, Mouse.Y);
 		this.hoverText = "";
 
 		this.clearButton = new UVRect(this.bounds.x0 + 0.01f, this.bounds.y0 + 0.01f, this.bounds.x0 + 0.06f, this.bounds.y1 - 0.01f).AtlasUV("Cross");
-		UI.ButtonResponse clearResponse = UI.TextureButton(this.clearButton);
-		if (clearResponse.clicked) {
-			this.Close();
-		}
-		if (clearResponse.hovered) {
-			this.hoverText = "Clear Selection";
+		UI.ButtonResponse clearResponse = UI.TextureButton(this.clearButton, new(){ disabled = !mouseInWindow });
+		if (mouseInWindow) {
+			if (clearResponse.clicked) {
+				this.Close();
+			}
+			if (clearResponse.hovered) {
+				this.hoverText = "Clear Selection";
+			}
 		}
 		
 		if (DropletWindow.selectionState == 2) {
 			this.copyButton = new UVRect(this.bounds.x0 + 0.07f, this.bounds.y0 + 0.01f, this.bounds.x0 + 0.12f, this.bounds.y1 - 0.01f).AtlasUV("Page");
-			UI.ButtonResponse copyResponse = UI.TextureButton(this.copyButton);
-			if (copyResponse.clicked || Input.JustPressed(Keys.Copy)) {
-				DropletWindow.selectionState = 3;
-				DropletWindow.selectionModificationMode = 0;
-			}
-			if (copyResponse.hovered) {
-				this.hoverText = "Copy Selection";
+			UI.ButtonResponse copyResponse = UI.TextureButton(this.copyButton, new(){ disabled = !mouseInWindow });
+			if (mouseInWindow) {
+				if (copyResponse.clicked || Input.JustPressed(Keys.Copy)) {
+					DropletWindow.selectionState = 3;
+					DropletWindow.selectionModificationMode = 0;
+				}
+				if (copyResponse.hovered) {
+					this.hoverText = "Copy Selection";
+				}
 			}
 
 			this.cutButton = new UVRect(this.bounds.x0 + 0.13f, this.bounds.y0 + 0.01f, this.bounds.x0 + 0.18f, this.bounds.y1 - 0.01f).AtlasUV("ArrowUp");
-			UI.ButtonResponse cutResponse = UI.TextureButton(this.cutButton);
-			if (cutResponse.clicked || Input.JustPressed(Keys.Cut)) {
-				DropletWindow.selectionState = 3;
-				DropletWindow.selectionModificationMode = 1;
-			}
-			if (cutResponse.hovered) {
-				this.hoverText = "Cut Selection";
+			UI.ButtonResponse cutResponse = UI.TextureButton(this.cutButton, new(){ disabled = !mouseInWindow });
+			if (mouseInWindow) {
+				if (cutResponse.clicked || Input.JustPressed(Keys.Cut)) {
+					DropletWindow.selectionState = 3;
+					DropletWindow.selectionModificationMode = 1;
+				}
+				if (cutResponse.hovered) {
+					this.hoverText = "Cut Selection";
+				}
 			}
 		}
 		else if (DropletWindow.selectionState == 4) {
 			this.pasteButton = new UVRect(this.bounds.x0 + 0.07f, this.bounds.y0 + 0.01f, this.bounds.x0 + 0.12f, this.bounds.y1 - 0.01f).AtlasUV("ArrowDown");
-			UI.ButtonResponse pasteResponse = UI.TextureButton(this.pasteButton);
-			if (pasteResponse.clicked || Input.JustPressed(Keys.Paste)) {
-				DropletWindow.selectionState = 5;
-				this.Close();
-			}
-			if (pasteResponse.hovered) {
-				this.hoverText = "Paste Selection";
+			UI.ButtonResponse pasteResponse = UI.TextureButton(this.pasteButton, new(){ disabled = !mouseInWindow });
+			if (mouseInWindow) {
+				if (pasteResponse.clicked || Input.JustPressed(Keys.Paste)) {
+					DropletWindow.selectionState = 5;
+					this.Close();
+				}
+				if (pasteResponse.hovered) {
+					this.hoverText = "Paste Selection";
+				}
 			}
 		}
 		Program.gl.Disable(EnableCap.ScissorTest);
