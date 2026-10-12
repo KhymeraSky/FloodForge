@@ -580,12 +580,7 @@ public class FilesystemPopup : Popup {
 		int height = Program.window.FramebufferSize.Y;
 
 		Program.gl.Enable(EnableCap.ScissorTest);
-		Program.gl.Scissor(
-			(int) (((this.bounds.x0 + padding) / Main.screenBounds.x + 1f) * 0.5f * width),
-			(int) ((scrollAreaY0 / Main.screenBounds.y + 1f) * 0.5f * height),
-			(uint) ((this.bounds.x1 - this.bounds.x0 - padding * 2f) / Main.screenBounds.x * 0.5f * width),
-			(uint) ((scrollAreaY1 - scrollAreaY0) / Main.screenBounds.y * 0.5f * height)
-		);
+		UI.ScissorRect(this.bounds.x0 + padding, scrollAreaY0, this.bounds.x1, scrollAreaY1);
 
 		bool IsInScrollView(float itemY) => itemY <= scrollAreaY1 + 0.01f && itemY - 0.06f >= scrollAreaY0 - 0.01f;
 		bool refreshing = false;

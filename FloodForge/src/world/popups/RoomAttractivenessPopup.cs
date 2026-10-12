@@ -48,9 +48,7 @@ public class RoomAttractivenessPopup : Popup {
 		string hover = "";
 
 		Program.gl.Enable(EnableCap.ScissorTest);
-		float clipBottom = (this.bounds.y0 + 0.01f + buttonPadding + Main.screenBounds.y) * 0.5f * Program.window.FramebufferSize.Y;
-		float clipTop = (this.bounds.y1 - 0.1f - buttonPadding + Main.screenBounds.y) * 0.5f * Program.window.FramebufferSize.Y;
-		Program.gl.Scissor(0, (int) clipBottom, (uint) Program.window.FramebufferSize.X, (uint) (clipTop - clipBottom));
+		UI.ScissorRect(-Main.screenBounds.x, this.bounds.y0 + 0.01f + buttonPadding, Main.screenBounds.x, this.bounds.y1 - 0.1f - buttonPadding);
 		UI.Clip(new Rect(float.NegativeInfinity, this.bounds.y0 + 0.01f + buttonPadding, float.PositiveInfinity, this.bounds.y1 - 0.1f));
 		int countA = Mods.creatures.Count - 2;
 		Room? room = this.rooms.FirstOrDefault();

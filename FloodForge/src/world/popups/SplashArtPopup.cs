@@ -262,12 +262,7 @@ public class SplashArtPopup : Popup {
 		UI.font.Write("Recent worlds:", -0.88f, -0.28f, 0.03f, Font.Align.MiddleLeft);
 
 		Program.gl.Enable(EnableCap.ScissorTest);
-		Program.gl.Scissor( // REVIEW - helper method?
-			(int) ((this.recentsBounds.x0 / Main.screenBounds.x + 1f) * 0.5f * Program.window.FramebufferSize.X),
-			(int) ((this.recentsBounds.y0 / Main.screenBounds.y + 1f) * 0.5f * Program.window.FramebufferSize.Y),
-			(uint) ((this.recentsBounds.x1 - this.recentsBounds.x0) / Main.screenBounds.x * 0.5f * Program.window.FramebufferSize.X),
-			(uint) ((this.recentsBounds.y1 - this.recentsBounds.y0) / Main.screenBounds.y * 0.5f * Program.window.FramebufferSize.Y)
-		);
+		UI.ScissorRect(this.recentsBounds);
 
 		for (int i = 0; i < RecentFiles.recents.Count; i++) {
 			float y = this.recentsBounds.y1 -0.015f - i * 0.04f - this.scroll;

@@ -625,7 +625,21 @@ public static class UI {
 		rect.UV(0.5f - uvx, 0.5f + uvy, 0.5f + uvx, 0.5f - uvy);
 	}
 
+	public static void ScissorRect(Rect rect) {
+		ScissorRect(rect.x0, rect.y0, rect.x1, rect.y1);
+	}
+
+	public static void ScissorRect(float x0, float y0, float x1, float y1) {
+		Program.gl.Scissor(
+			(int) ((x0 / Main.screenBounds.x + 1f) * 0.5f * Program.window.FramebufferSize.X),
+			(int) ((y0 / Main.screenBounds.y + 1f) * 0.5f * Program.window.FramebufferSize.Y),
+			(uint) ((x1 - x0) / Main.screenBounds.x * 0.5f * Program.window.FramebufferSize.X),
+			(uint) ((y1 - y0) / Main.screenBounds.y * 0.5f * Program.window.FramebufferSize.Y)
+		);
+	}
+
 	// LATER: Add variant that also clips GL
+	// REVIEW - remove these methods, since they seem mostly unused?
 	public static void Clip(Rect rect) {
 		clipRect = rect;
 	}

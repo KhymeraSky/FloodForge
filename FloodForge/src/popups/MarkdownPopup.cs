@@ -217,12 +217,7 @@ public class MarkdownPopup : Popup {
 		int width = Program.window.FramebufferSize.X;
 		int height = Program.window.FramebufferSize.Y;
 		Program.gl.Enable(EnableCap.ScissorTest);
-		Program.gl.Scissor(
-			(int) (((this.bounds.x0 + padding) / Main.screenBounds.x + 1f) * 0.5f * width),
-			(int) (((this.bounds.y0 + padding) / Main.screenBounds.y + 1f) * 0.5f * height),
-			(uint) ((this.bounds.x1 - this.bounds.x0 - padding * 2f) / Main.screenBounds.x * 0.5f * width),
-			(uint) ((this.bounds.y1 - this.bounds.y0 - padding * 2f - 0.05f) / Main.screenBounds.y * 0.5f * height)
-		);
+		UI.ScissorRect(this.bounds.x0 + padding, this.bounds.y0 + padding, this.bounds.x1 - padding, this.bounds.y1 - padding - 0.05f);
 
 		this.scroll += (this.targetScroll - this.scroll) * (1f - MathF.Pow(1f - Settings.PopupScrollSpeed, Program.Delta * 60f));
 

@@ -356,10 +356,8 @@ public class DenPopup : Popup {
 			this.UpdateEditables(this.selectedLineage);
 		}
 
-		float clipBottom = (this.bounds.y0 + 0.01f + buttonPadding + Main.screenBounds.y) * 0.5f * Program.window.FramebufferSize.Y;
-		float clipTop = (this.bounds.y1 - 0.185f - buttonPadding + Main.screenBounds.y) * 0.5f * Program.window.FramebufferSize.Y;
-		// LATER Make/use UI.ClipGl
-		Program.gl.Scissor(0, (int) clipBottom, (uint) Program.window.FramebufferSize.X, (uint) (clipTop - clipBottom));
+		UI.ScissorRect(-Main.screenBounds.x, this.bounds.y0 + 0.01f + buttonPadding, Main.screenBounds.x, this.bounds.y1 - 0.185f - buttonPadding);
+		// TODO - remove all uses of UI.Clip (since it seems unnecessary)
 		UI.Clip(new Rect(float.NegativeInfinity, this.bounds.y0 + 0.01f + buttonPadding, float.PositiveInfinity, this.bounds.y1 - 0.185f));
 
 		if (this.den.creatures.Count == 0 || this.selectedCreature == -1) return;
@@ -489,9 +487,7 @@ public class DenPopup : Popup {
 
 		float mainX = this.bounds.x0 + 0.22f;
 		Program.gl.Enable(EnableCap.ScissorTest);
-		float clipBottom = (this.bounds.y0 + 0.01f + buttonPadding + Main.screenBounds.y) * 0.5f * Program.window.FramebufferSize.Y;
-		float clipTop = (this.bounds.y1 - 0.1f - buttonPadding + Main.screenBounds.y) * 0.5f * Program.window.FramebufferSize.Y;
-		Program.gl.Scissor(0, (int) clipBottom, (uint) Program.window.FramebufferSize.X, (uint) (clipTop - clipBottom));
+		UI.ScissorRect(-Main.screenBounds.x, this.bounds.y0 + 0.01f + buttonPadding, Main.screenBounds.x, this.bounds.y1 - 0.1f - buttonPadding);
 		UI.Clip(new Rect(float.NegativeInfinity, this.bounds.y0 + 0.01f + buttonPadding, float.PositiveInfinity, this.bounds.y1 - 0.1f));
 
 		this.DrawCreatures(mainX, unknown, creature);
