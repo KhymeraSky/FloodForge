@@ -1743,14 +1743,12 @@ public static class WorldExporter {
 			else {
 				string geoFileSourcePath = Path.GetFullPath(room.path);
 				string geoFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.roomsPath, room.name + ".txt"));
-				Logger.Info($"    copying file {geoFileSourcePath} to {geoFileDestPath}");
 				if (!geoFileSourcePath.Equals(geoFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(geoFileSourcePath)) {
 					File.Copy(geoFileSourcePath, geoFileDestPath, true);
 				}
 				string settingsFileName = room.name + $"_settings.txt";
 				string settingsFileSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), settingsFileName));
 				string settingsFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.roomsPath, settingsFileName));
-				Logger.Info($"    copying file {settingsFileSourcePath} to {settingsFileDestPath}");
 				if (!settingsFileSourcePath.Equals(settingsFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(settingsFileSourcePath)) {
 					File.Copy(settingsFileSourcePath, settingsFileDestPath, true);
 				}
@@ -1761,7 +1759,6 @@ public static class WorldExporter {
 				string imageName = room.name + $"_{i}.png";
 				string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), imageName));
 				string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.roomsPath, imageName));
-				Logger.Info($"    copying file {imageSourcePath} to {imageDestPath}");
 				if (!imageSourcePath.EndsWith(imageDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(imageSourcePath)) {
 					File.Copy(imageSourcePath, imageDestPath, true);
 				}
