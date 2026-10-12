@@ -3,10 +3,12 @@ using FloodForge.World;
 namespace FloodForge.History;
 
 public class TimelineTypeChange : MultipleRoomChange {
-	protected Connection? connection;
+	protected List<TimelineType> roomUndoValues = [];
+	protected List<Connection> connections = [];
+	protected List<TimelineType> connectionUndoValues = [];
 	protected DenLineage? lineage;
-	protected List<TimelineType> undoValues = [];
-	protected TimelineType undoValue;
+	protected TimelineType lineageUndoValue;
+
 	protected TimelineType redoValue;
 
 	public TimelineTypeChange(TimelineType redoValue) {
@@ -16,38 +18,44 @@ public class TimelineTypeChange : MultipleRoomChange {
 	public override void AddRoom(Room room) {
 		base.AddRoom(room);
 
-		this.undoValues.Add(room.timeline.timelineType);
+		this.roomUndoValues.Add(room.timeline.timelineType);
 	}
 
 	public void AddConnection(Connection connection) {
-		this.connection = connection;
-		this.undoValue = this.connection.timeline.timelineType;
+		this.connections.Add(connection);
+
+		this.connectionUndoValues.Add(connection.timeline.timelineType);
 	}
 
 	public void AddLineage(DenLineage lineage) {
 		this.lineage = lineage;
-		this.undoValue = this.lineage.timeline.timelineType;
+
+		this.lineageUndoValue = this.lineage.timeline.timelineType;
 	}
 
 	public override void Undo() {
-		this.connection?.timeline.timelineType = this.undoValue;
-		this.connection?.conditionalPopup?.InvokeOnTimelineChange(this.connection.timeline);
-		this.lineage?.timeline.timelineType = this.undoValue;
-		this.lineage?.conditionalPopup?.InvokeOnTimelineChange(this.lineage.timeline);
 		for (int i = 0; i < this.rooms.Count; i++) {
-			this.rooms[i].timeline.timelineType = this.undoValues[i];
+			this.rooms[i].timeline.timelineType = this.roomUndoValues[i];
 			this.rooms[i].conditionalPopup?.InvokeOnTimelineChange(this.rooms[i].timeline);
 		}
+		for (int i = 0; i < this.connections.Count; i++) {
+			this.connections[i].timeline.timelineType = this.connectionUndoValues[i];
+			this.connections[i].conditionalPopup?.InvokeOnTimelineChange(this.connections[i].timeline);
+		}
+		this.lineage?.timeline.timelineType = this.lineageUndoValue;
+		this.lineage?.conditionalPopup?.InvokeOnTimelineChange(this.lineage.timeline);
 	}
 
 	public override void Redo() {
-		this.connection?.timeline.timelineType = this.redoValue;
-		this.connection?.conditionalPopup?.InvokeOnTimelineChange(this.connection.timeline);
-		this.lineage?.timeline.timelineType = this.redoValue;
-		this.lineage?.conditionalPopup?.InvokeOnTimelineChange(this.lineage.timeline);
 		foreach (Room room in this.rooms) {
 			room.timeline.timelineType = this.redoValue;
 			room.conditionalPopup?.InvokeOnTimelineChange(room.timeline);
 		}
+		foreach (Connection connection in this.connections) {
+			connection.timeline.timelineType = this.redoValue;
+			connection.conditionalPopup?.InvokeOnTimelineChange(connection.timeline);
+		}
+		this.lineage?.timeline.timelineType = this.redoValue;
+		this.lineage?.conditionalPopup?.InvokeOnTimelineChange(this.lineage.timeline);
 	}
 }
