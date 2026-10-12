@@ -18,6 +18,10 @@ public class SplashArtPopup : Popup {
 	protected string? updateChecksum;
 	protected bool showTutorialAfterClose;
 
+	protected Rect recentsBounds;
+	protected float scroll;
+	protected float targetScroll;
+
 	protected enum UpdateStatus {
 		Searching,
 		Failed,
@@ -27,6 +31,8 @@ public class SplashArtPopup : Popup {
 
 	public SplashArtPopup(bool showTutorialAfterClose) {
 		this.bounds = new Rect(-1f, -1f, 1f, 1f);
+		this.recentsBounds = new Rect(-0.89f, -0.64f, -0.1f, -0.315f);
+
 		this.splashArt = Texture.Load(Main.AprilFools ? "assets/splash-corrupted.png" : "assets/splash.png");
 		this.uiIcons = Texture.Load("assets/uiIcons.png");
 
@@ -56,6 +62,35 @@ public class SplashArtPopup : Popup {
 		}));
 
 		this.showTutorialAfterClose = showTutorialAfterClose;
+
+		Main.Scroll += this.Scroll;
+	}
+
+	protected void ClampScroll() {
+		int size = RecentFiles.recents.Count - 8;
+
+		if (this.targetScroll < -size * 0.04f + 0.01f) {
+			this.targetScroll = -size * 0.04f + 0.01f;
+			if (this.scroll <= -size * 0.04f + 0.02f) {
+				this.scroll = -size * 0.04f - 0.02f;
+			}
+		}
+
+		if (this.targetScroll > 0f) {
+			this.targetScroll = 0f;
+			if (this.scroll >= -0.06f) {
+				this.scroll = 0.03f;
+			}
+		}
+	}
+
+	protected void Scroll(float x, float y) {
+		Logger.Info("SCROLL!");
+		if (!this.recentsBounds.Inside(Mouse.Pos)) return;
+		Logger.Info("got through :)");
+
+		this.targetScroll += y * 0.06f;
+		this.ClampScroll();
 	}
 
 	private class FailedException : Exception {}
@@ -202,6 +237,8 @@ public class SplashArtPopup : Popup {
 	}
 
 	public override void Draw() {
+		this.scroll += (this.targetScroll - this.scroll) * (1f - MathF.Pow(1f - Settings.PopupScrollSpeed, Program.Delta * 60f));
+
 		Immediate.Color(0f, 0f, 0f);
 		UI.ButtonFillRect(-0.9f, -0.65f, 0.9f, 0.65f);
 
@@ -224,9 +261,20 @@ public class SplashArtPopup : Popup {
 		Immediate.Color(0.8f, 0.8f, 0.8f);
 		UI.font.Write("Recent worlds:", -0.88f, -0.28f, 0.03f, Font.Align.MiddleLeft);
 
-		for (int i = 0; i < 8; i++) { // REVIEW - make this a scrollable list?
-			if (i >= RecentFiles.recents.Count)
+		Program.gl.Enable(EnableCap.ScissorTest);
+		Program.gl.Scissor( // REVIEW - helper method?
+			(int) ((this.recentsBounds.x0 / Main.screenBounds.x + 1f) * 0.5f * Program.window.FramebufferSize.X),
+			(int) ((this.recentsBounds.y0 / Main.screenBounds.y + 1f) * 0.5f * Program.window.FramebufferSize.Y),
+			(uint) ((this.recentsBounds.x1 - this.recentsBounds.x0) / Main.screenBounds.x * 0.5f * Program.window.FramebufferSize.X),
+			(uint) ((this.recentsBounds.y1 - this.recentsBounds.y0) / Main.screenBounds.y * 0.5f * Program.window.FramebufferSize.Y)
+		);
+
+		for (int i = 0; i < RecentFiles.recents.Count; i++) {
+			float y = this.recentsBounds.y1 -0.015f - i * 0.04f - this.scroll;
+			if (y + 0.015f < this.recentsBounds.y0)
 				break;
+			if (y - 0.02f > this.recentsBounds.y1)
+				continue;
 
 			string recent = RecentFiles.recentNames[i]; // REVIEW - add a way to distinguish identical region names located in different folders (a mod vs /worlds)
 			string acronym = "";
@@ -237,12 +285,11 @@ public class SplashArtPopup : Popup {
 				acronym = Path.GetFileNameWithoutExtension(RecentFiles.recents[i])["world_".Length..];
 			}
 
-			float y = -0.33f - i * 0.04f;
-			Rect rect = new Rect(-0.89f, y - 0.02f, -0.4f, y + 0.015f);
+			Rect regionButtonRect = new Rect(this.recentsBounds.x0, y - 0.02f, this.recentsBounds.x1, y + 0.015f);
 
-			if (rect.Inside(Mouse.X, Mouse.Y)) {
+			if (regionButtonRect.Inside(Mouse.X, Mouse.Y) && this.recentsBounds.Inside(Mouse.X, Mouse.Y)) {
 				Immediate.Color(0.25f, 0.25f, 0.25f);
-				UI.FillRect(rect);
+				UI.FillRect(regionButtonRect);
 
 				if (Mouse.JustLeft) {
 					this.Close();
@@ -254,6 +301,7 @@ public class SplashArtPopup : Popup {
 			Immediate.Color(1f, 1f, 1f);
 			UI.font.Write(recent + (acronym != "" ? $" ({acronym})" : ""), -0.88f, y, 0.03f, Font.Align.MiddleLeft);
 		}
+		Program.gl.Disable(EnableCap.ScissorTest);
 
 		Immediate.Color(1f, 1f, 1f);
 		UI.ButtonStrokeRect(-0.9f, -0.65f, 0.9f, 0.65f);
@@ -300,6 +348,13 @@ public class SplashArtPopup : Popup {
 				PopupManager.Add(new MarkdownPopup("docs/FloodForge-docs/docs/world_editor.md"));
 			}
 		}
+	}
+
+	public override void Close() {
+		Main.Scroll -= this.Scroll;
+		Program.gl.Disable(EnableCap.ScissorTest);
+
+		base.Close();
 	}
 
 	protected class IconButton {
