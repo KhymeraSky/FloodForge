@@ -29,12 +29,12 @@ public class EditCreaturesPopup : ModularPopup {
 					("", new TextureButtonContainer("Minus", UI.uiAtlas.UV("Minus"), () => {
 							if (den != null)
 								WorldWindow.worldHistory.Apply(new VariableChange<int>(den.count, Math.Max(0, den.count - 1), c => { den.count = c; garbageWormCounter.settingName = $"{den.count}"; }));
-						}).SetContextCheck(_ => den != null && den.count != 0)),
+						}).SetContextCheck(_ => den != null && den.count != 0, true)),
 					("", garbageWormCounter),
 					("", new TextureButtonContainer("Plus", UI.uiAtlas.UV("Plus"), () => {
 							if (den != null)
 								WorldWindow.worldHistory.Apply(new VariableChange<int>(den.count, den.count + 1, c => { den.count = c; garbageWormCounter.settingName = $"{den.count}"; }));
-						}).SetContextCheck(_ => den != null))
+						}).SetContextCheck(_ => den != null, true))
 				], [ 0.05f, 0f, 0.05f ], false))
 			], forceEqualWidth: true));
 			if (den == null) {
