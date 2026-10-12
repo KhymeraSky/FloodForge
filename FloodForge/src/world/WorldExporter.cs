@@ -102,7 +102,6 @@ public static class WorldExporter {
 
 	public static void GatherTimelines() {
 		Logger.Info("Getting timelines");
-		HashSet<string> timelinesInRegion = [];
 		foreach (Room room in WorldWindow.region.rooms) {
 			if (room.timeline.timelineType != TimelineType.All) {
 				foreach (string timelineEntry in room.timeline.timelines) {
