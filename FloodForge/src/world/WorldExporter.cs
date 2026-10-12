@@ -18,6 +18,9 @@ public static class WorldExporter {
 		bool isNewMap = !WorldWindow.HasExportPath;
 		WorldWindow.invalidCreatures = [];
 
+		Backup.Folder(WorldWindow.region.exportPath);
+		Backup.Folder(WorldWindow.region.roomsPath);
+
 		GatherTimelines();
 
 		ExportMapFile();
@@ -138,17 +141,13 @@ public static class WorldExporter {
 		string fileName = $"map_{WorldWindow.region.acronym}.txt";
 		string path = PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, fileName);
 
-		Backup.File(path);
-
 		try {
 			using StreamWriter writer = new StreamWriter(path, false);
 			
 			// delete existing timeline-specifying files in case the new export doesn't use those
 			foreach (string timelineMapPath in Directory.GetFiles(WorldWindow.region.exportPath)) {
-				if (!timelineMapPath.EndsWith(fileName) && timelineMapPath.StartsWith(Path.Combine(WorldWindow.region.exportPath, $"map_{WorldWindow.region.acronym}-")) && path.EndsWith(".txt")) {
-					Backup.File(timelineMapPath);
+				if (!timelineMapPath.EndsWith(fileName) && timelineMapPath.StartsWith(Path.Combine(WorldWindow.region.exportPath, $"map_{WorldWindow.region.acronym}-")) && path.EndsWith(".txt"))
 					File.Delete(timelineMapPath);
-				}
 			}
 			
 			Dictionary<string, StreamWriter> timelineMapWriters = [];
@@ -808,7 +807,6 @@ public static class WorldExporter {
 		try {
 			string fileName = $"world_{WorldWindow.region.acronym}.txt";
 			string path = PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, fileName);
-			Backup.File(path);
 			File.WriteAllLines(path, finalWorldFile);
 		}
 		catch (Exception exception) {
@@ -1372,7 +1370,6 @@ public static class WorldExporter {
 		Logger.Info("Exporting image file");
 
 		string mapPath = PathUtil.FindOrAssumeFile(WorldWindow.region.exportPath, $"map_image_{WorldWindow.region.acronym}.txt");
-		Backup.File(mapPath);
 
 		StreamWriter? mapFile = null;
 
@@ -1385,16 +1382,13 @@ public static class WorldExporter {
 
 		// delete existing timeline-specifying files in case the new export doesn't use those
 		foreach (string path in Directory.GetFiles(WorldWindow.region.exportPath)) {
-			if (path != mapPath && path.StartsWith(Path.Combine(WorldWindow.region.exportPath, $"map_image_{WorldWindow.region.acronym}-")) && path.EndsWith(".txt")) {
-				Backup.File(path);
+			if (path != mapPath && path.StartsWith(Path.Combine(WorldWindow.region.exportPath, $"map_image_{WorldWindow.region.acronym}-")) && path.EndsWith(".txt"))
 				File.Delete(path);
-			}
 		}
 
 		Dictionary<string, StreamWriter?> timelineMapFiles = [];
 		foreach (string timeline in timelinesInRegion) {
 			string timelineMapPath = PathUtil.FindOrAssumeDirectory(WorldWindow.region.exportPath, $"map_image_{WorldWindow.region.acronym}-{timeline}.txt");
-			Backup.File(timelineMapPath);
 
 			try {
 				StreamWriter? timelineMapFile = new StreamWriter(timelineMapPath, false);
@@ -1576,7 +1570,6 @@ public static class WorldExporter {
 			writer?.Dispose();
 		}
 
-		Backup.File(outputPath);
 		try {
 			{
 				using Stream stream = File.OpenWrite(outputPath);
@@ -1685,8 +1678,6 @@ public static class WorldExporter {
 	public static void ExportPropertiesFile(string outputPath) {
 		Logger.Info("Exporting properties file");
 
-		Backup.File(outputPath);
-
 		using StreamWriter writer = new StreamWriter(outputPath, false);
 		writer.Write(WorldWindow.region.extraProperties);
 
@@ -1715,11 +1706,8 @@ public static class WorldExporter {
 	public static void ExportDisplayName(string outputPath) {
 		Logger.Info("Exporting displayname file");
 		
-		if (WorldWindow.region.displayName != "") {
-			Backup.File(outputPath);
-
+		if (WorldWindow.region.displayName != "")
 			File.WriteAllLines(outputPath, [WorldWindow.region.displayName]);
-		}
 	}
 
 	public static void ExportRooms(string roomsPath) {
