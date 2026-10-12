@@ -1010,7 +1010,7 @@ public static class WorldWindow {
 		if (Input.JustPressed(Keys.ChangeConditionals)) {
 			Connection? connection = HoveringConnection;
 			if (connection != null) {
-				connection.conditionalPopup = PopupManager.Add(new ConditionalPopup(connection));
+				connection.conditionalPopup = PopupManager.Add(new ConditionalPopup([connection]));
 			}
 			else if (HoveringOrSelectedRooms(out HashSet<Room> rooms)) {
 				HashSet<Room> unlockedRooms = [];

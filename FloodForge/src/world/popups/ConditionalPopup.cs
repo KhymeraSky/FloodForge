@@ -5,21 +5,21 @@ using Stride.Core.Extensions;
 namespace FloodForge.World;
 
 public class ConditionalPopup : TimelinePopup {
-	protected Connection? connection;
 	protected HashSet<Room>? rooms;
+	protected HashSet<Connection>? connections;
 	protected DenLineage? lineage;
 
 	protected TimelineType ConditionalTimelineType {
 		get {
-			return this.connection?.timeline.timelineType ?? this?.lineage?.timeline.timelineType ?? this.rooms!.First().timeline.timelineType;
+			return this.connections?.First().timeline.timelineType ?? this?.lineage?.timeline.timelineType ?? this.rooms!.First().timeline.timelineType;
 		}
 
 		set {
 			TimelineTypeChange change = new TimelineTypeChange(value);
 
-			if (this.connection != null) change.AddConnection(this.connection);
-			if (this.lineage != null) change.AddLineage(this.lineage);
 			this.rooms?.ForEach(change.AddRoom);
+			this.connections?.ForEach(change.AddConnection);
+			if (this.lineage != null) change.AddLineage(this.lineage);
 
 			WorldWindow.worldHistory.Apply(change);
 		}
@@ -32,9 +32,9 @@ public class ConditionalPopup : TimelinePopup {
 
 	public void SelectionChangeCallback(bool selected, string timeline) {
 		TimelineChange change = new TimelineChange(!selected, timeline);
-		if (this.connection != null) change.AddConnection(this.connection);
-		if (this.lineage != null) change.AddLineage(this.lineage);
 		this.rooms?.ForEach(change.AddRoom);
+		this.connections?.ForEach(change.AddConnection);
+		if (this.lineage != null) change.AddLineage(this.lineage);
 		WorldWindow.worldHistory.Apply(change);
 	}
 	
@@ -44,17 +44,17 @@ public class ConditionalPopup : TimelinePopup {
 
 	public event Action<Timeline>? UpdateOnTimelineChange;
 
-	private ConditionalPopup(Connection? connection = null, IEnumerable<Room>? rooms = null, DenLineage? lineage = null) : base(new (), (_)=>{}, (_,_)=>{}) {
-		this.timeline.timelines = connection?.timeline.timelines ?? lineage?.timeline.timelines ?? rooms?.First()?.timeline.timelines ?? [];
+	private ConditionalPopup(IEnumerable<Connection>? connections = null, IEnumerable<Room>? rooms = null, DenLineage? lineage = null) : base(new(), (_)=>{}, (_,_)=>{}) {
+		this.timeline.timelines = connections?.First().timeline.timelines ?? lineage?.timeline.timelines ?? rooms?.First()?.timeline.timelines ?? [];
 		this.onTimelineTypeChangeCallback = this.TimelineChangeCallback;
 		this.onSelectionChangeCallback = this.SelectionChangeCallback;
 		this.bounds = new Rect(-0.4f, -0.4f, 0.4f, 0.4f);
 		this.UpdateOnTimelineChange += this.UpdateTimeline;
-		this.UpdateTimeline(new (connection?.timeline.timelineType ?? lineage?.timeline.timelineType ?? rooms!.First().timeline.timelineType, this.timeline.timelines));
+		this.UpdateTimeline(new (connections?.First().timeline.timelineType ?? lineage?.timeline.timelineType ?? rooms!.First().timeline.timelineType, this.timeline.timelines));
 	}
 
-	public ConditionalPopup(Connection connection) : this(connection, null, null) {
-		this.connection = connection;
+	public ConditionalPopup(IEnumerable<Connection> connections) : this(connections, null, null) {
+		this.connections = [ ..connections ];
 	}
 
 	public ConditionalPopup(IEnumerable<Room> rooms) : this(null, rooms, null) {
