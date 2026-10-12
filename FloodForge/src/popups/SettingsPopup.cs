@@ -427,6 +427,8 @@ public class SettingsPopup : Popup {
 		readonly Action onClickCallback;
 		private UVAtlas.UVCoordinates uvCoordinates;
 		private Func<TextureButtonContainer, bool> contextCheck = _ => true;
+		bool darkenOnFalse;
+		bool disableOnFalse;
 
 		public override float SettingWidth {
 			get {
@@ -439,8 +441,10 @@ public class SettingsPopup : Popup {
 			this.uvCoordinates = uvCoordinates;
 		}
 
-		public TextureButtonContainer SetContextCheck(Func<TextureButtonContainer, bool> contextCheck) {
+		public TextureButtonContainer SetContextCheck(Func<TextureButtonContainer, bool> contextCheck, bool darkenOnFalse = false, bool disableOnFalse = true) {
 			this.contextCheck = contextCheck;
+			this.darkenOnFalse = darkenOnFalse;
+			this.disableOnFalse = disableOnFalse;
 			return this;
 		}
 
@@ -449,8 +453,10 @@ public class SettingsPopup : Popup {
 		}
 
 		public override void Draw(Rect bounds) {
-			bool enabled = this.contextCheck(this);
-			if (UI.TextureButton(new UVRect(bounds.x0, bounds.y0, bounds.x1, bounds.y1).UV(this.uvCoordinates)) && enabled) {
+			bool callbackCheck = (this.contextCheck == null) || this.contextCheck(this);
+			bool darkened = !callbackCheck && this.darkenOnFalse;
+			bool disabled = !callbackCheck && this.disableOnFalse;
+			if (UI.TextureButton(new UVRect(bounds.x0, bounds.y0, bounds.x1, bounds.y1).UV(this.uvCoordinates), new UI.TextureButtonMods(textureColor: darkened ? Themes.TextDisabled : Themes.Text)) && !disabled) {
 				this.onClickCallback();
 			}
 		}
