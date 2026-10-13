@@ -25,7 +25,6 @@ public static class Settings {
 	public static Setting<bool> HideTutorial = Setting.Of("HideTutorial", false);
 	public static Setting<bool> HideTutorialOnLoadWorld = Setting.Of("HideTutorialOnLoadWorld", false);
 	public static Setting<bool> UpdateRegionFiles = Setting.Of("UpdateRegionFiles", true);
-	public static Setting<bool> UpdateRoomImagesOnRender = Setting.Of("UpdateRoomImagesOnRender", false);
 	public static Setting<Color> NoSubregionColor = Setting.Of("NoSubregionColor", Color.White);
 	public static Setting<float> RoomTintStrength = Setting.Of("RoomTintStrength", 0.5f);
 	public static Setting<bool> DropdownOnHover = Setting.Of("DropdownOnHover", false);

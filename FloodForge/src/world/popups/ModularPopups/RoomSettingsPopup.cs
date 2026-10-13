@@ -86,18 +86,7 @@ public class RoomSettingsPopup : ModularPopup {
 	private void RenderRoom() {
 		PopupManager.Add(new ConfirmPopup($"Render Room {this.relevantRoom}?\nThis will overwrite existing images.")).SetOkay("Render").Okay(() => {
 			DropletWindow.LoadRoom(this.relevantRoom, Vector2.Zero);
-			if (DropletWindow.Render(out string errorMessage, out (string name, string path, byte[] image)[] images)) {
-				foreach ((string name, string path, byte[] image) in images) {
-					FloodForge.Backup.File(path);
-					Directory.CreateDirectory(PathUtil.Parent(path));
-
-					using Stream stream = File.OpenWrite(path);
-					ImageWriter writer = new();
-					writer.WritePng(image, CameraTextureWidth, CameraTextureHeight, ColorComponents.RedGreenBlue, stream);
-				}
-				PopupManager.Add(new InfoPopup($"Render complete.\nBackups made."));
-			}
-			else {
+			if (!DropletWindow.Render(out string errorMessage)) {
 				PopupManager.Add(new InfoPopup($"Error while rendering {this.relevantRoom.name}\n{errorMessage}\nview log.txt for more info"));
 			}
 		});

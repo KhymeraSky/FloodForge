@@ -3,8 +3,6 @@ using System.Text;
 using FloodForge.History;
 using FloodForge.Popups;
 using FloodForge.World;
-using Silk.NET.Input;
-using StbImageWriteSharp;
 using Stride.Core.Extensions;
 using static FloodForge.Main;
 
@@ -2001,7 +1999,7 @@ public static class DropletWindow {
 		return image;
 	}
 
-	public static bool Render(out string errorMessage, out (string, string, byte[])[] images) {
+	public static bool Render(out string errorMessage) {
 		bool success = true;
 		errorMessage = "";
 		SaveGeometry();
@@ -2014,14 +2012,11 @@ public static class DropletWindow {
 			errorMessage += "No cameras in room!\n";
 			success = false;
 		}
-		List<(string, string, byte[])> renderedRooms = [];
+		List<(string imageID, byte[] image)> renderedImages = [];
 		for (int i = 0; i < Room.data.cameras.Count; i++) {
-			string imageName = $"{Room.name}_{i + 1}"; // REVIEW - merge this behaviour with revised UpdateRegionFiles? so that images are held and only updated upon export?
-			string outputPath = Settings.UpdateRoomImagesOnRender ? Path.Combine(WorldWindow.region.importRoomsPath, $"{imageName}.png") : Path.Combine("renderOutput", WorldWindow.region.acronym, $"{imageName}.png");
-			Logger.Info(outputPath.Split("Rain World")[^1].Split("FloodForge")[^1]);
 			if (WorldWindow.renderStatusPopup != null) WorldWindow.renderStatusPopup?.UpdateText(updateBaseText + " " + (i + 1) + "/" + Room.data.cameras.Count);
 			try {
-				renderedRooms.Add(new (imageName, outputPath, RenderCamera(Room.data.cameras[i])));
+				renderedImages.Add(new ($"_{i + 1}", RenderCamera(Room.data.cameras[i])));
 			}
 			catch (Exception e) {
 				success = false;
@@ -2029,7 +2024,7 @@ public static class DropletWindow {
 				break;
 			}
 		}
-		images = [..renderedRooms];
+		Room.renderedImages = [.. renderedImages];
 		return success;
 	}
 
@@ -2216,28 +2211,8 @@ public static class DropletWindow {
 						bool success = true;
 						string message = "";
 						try {
-							if (Render(out message, out (string name, string outputPath, byte[] image)[] images)){
-								Directory.CreateDirectory(Settings.UpdateRoomImagesOnRender ? WorldWindow.region.exportRoomsPath : Path.Combine("renderOutput", WorldWindow.region.acronym));
-								for(int i = 0; i < images.Length; i++){
-									FloodForge.Backup.File(images[i].outputPath);
-
-									try {
-										using Stream stream = File.OpenWrite(images[i].outputPath);
-										ImageWriter writer = new ImageWriter();
-										writer.WritePng(images[i].image, CameraTextureWidth, CameraTextureHeight, ColorComponents.RedGreenBlue, stream);
-										Logger.Info("Screen exported");
-										success = true;
-									}
-									catch (Exception ex) {
-										Logger.Error("Exporting screen failed: " + ex.Message);
-										message = ex.Message;
-										success = false;
-									}
-								}
-							}
-							else{
+							if (!Render(out message))
 								success = false;
-							}
 						}
 						catch (Exception e) {
 							message += e.Message + "\n";

@@ -1947,7 +1947,6 @@ public static class WorldWindow {
 			int totalCount = rooms.Count;
 			List<(string, string)> messages = [];
 			string errorMessage = "";
-			List<(string name, string path, byte[] image)[]> renderedRooms = [];
 			if (await TryCancelRender("Render cancelled.\nNo changes made."))
 				return;
 
@@ -1959,9 +1958,8 @@ public static class WorldWindow {
 				renderStatusPopup.UpdateText("Rendering rooms\n" + (finished + 1) + "/" + totalCount + "\nrendering");
 				errorMessage = "";
 				(string name, string path, byte[] image)[] images = []; // possibly: make this tuple contain the exportpath so it doesn't need to be recalculated every time?
-				if (await Task.Run(() => DropletWindow.Render(out errorMessage, out images))) {
+				if (await Task.Run(() => DropletWindow.Render(out errorMessage))) {
 					successCount++;
-					renderedRooms.Add(images);
 				}
 				else {
 					Logger.Warn($"Error while rendering {room.name} - message: {errorMessage}");
@@ -1972,69 +1970,10 @@ public static class WorldWindow {
 			if (await TryCancelRender($"Render cancelled at\n{finished}/{totalCount} rendered.\nNo changes made."))
 				return;
 
-			for (int i = 0; i < renderedRooms.Count; i++) {
-				if (await TryCancelRender($"Render cancelled at\n{i}/{renderedRooms.Count} backups made.\nNo files overwritten."))
-					return;
-				renderStatusPopup.UpdateText($"Creating backups\n{i + 1}/{renderedRooms.Count}");
-				foreach ((string name, string path, byte[] image) in renderedRooms[i]) {
-					FloodForge.Backup.File(path);
-				}
-			}
-			renderStatusPopup.UpdateText($"Creating backups\ndone");
-			if (await TryCancelRender($"Render cancelled.\nBackups made.\nNo files overwritten."))
-				return;
-			renderStatusPopup.UpdateText($"Updating Images\n0/{renderedRooms.Count}");
-			List<(string path, byte[] image)> overwrittenImages = [];
-
-			string renderOutputFolderPath = Path.Combine("renderOutput", WorldWindow.region.acronym);
-			if (Settings.UpdateRoomImagesOnRender)
-				renderOutputFolderPath = WorldWindow.region.exportRoomsPath;
-			else
-				Directory.CreateDirectory(renderOutputFolderPath);
-
-			for (int i = 0; i < renderedRooms.Count; i++) {
-				int imagesCopied = 0;
-				for (int j = 0; j < renderedRooms[i].Length; j++) {
-					try {
-						if (await TryCancelRender()) {
-							InfoPopup cancelPopup = PopupManager.Add(new InfoPopup(""));
-							for (int k = 0; k < overwrittenImages.Count; k++) {
-								cancelPopup.UpdateText($"Reverting files\n{k}/{overwrittenImages.Count - 1}");
-								if (overwrittenImages[k].image.Length != 0)
-									File.WriteAllBytes(overwrittenImages[k].path, overwrittenImages[k].image);
-								else {
-									FloodForge.Backup.File(overwrittenImages[k].path);
-									File.Delete(overwrittenImages[k].path);
-								}
-							}
-							cancelPopup.UpdateText("Render cancelled.\nBackups made.\nOverwritten files reverted.");
-							return;
-						}
-						(string name, string path, byte[] image) = renderedRooms[i][j];
-						renderStatusPopup.UpdateText($"Updating Images\n{i + 1}/{renderedRooms.Count}\n{imagesCopied}/{renderedRooms[i].Length}");
-						byte[] oldImg = [];
-						if (File.Exists(path))
-							oldImg = File.ReadAllBytes(path);
-						overwrittenImages.Add((path, oldImg));
-
-						using Stream stream = File.OpenWrite(path); // REVIEW - Make this a History Change, so it's CTRL+Z-able
-						ImageWriter writer = new ImageWriter();
-						writer.WritePng(image, CameraTextureWidth, CameraTextureHeight, ColorComponents.RedGreenBlue, stream);
-						Logger.Info($"Screen {name} exported");
-						imagesCopied++;
-					}
-					catch (Exception ex) {
-						messages.Add((renderedRooms[i][j].name, ex.Message));
-						Logger.Error("Exporting screen failed: " + ex);
-					}
-				}
-				if (imagesCopied < renderedRooms[i].Length - 1)
-					successCount--;
-			}
 			renderStatusPopup.Close();
 			Logger.Info($"Finished mass-render.\nSelection: {totalCount}\nSucceeded: {successCount}/{finished}");
 			if (successCount == finished) {
-				PopupManager.Add(new ConfirmPopup($"Finished mass-render.\n {successCount}/{finished} succeeded.").SetButtons("Copy path", "Continue").Okay(() => { ClipboardService.SetText(renderOutputFolderPath); }));
+				PopupManager.Add(new InfoPopup($"Finished mass-render.\n {successCount}/{finished} succeeded."));
 			}
 			else {
 				string reportString = $"Finished mass-render.\n {successCount}/{finished} succeeded.";
@@ -2232,14 +2171,7 @@ public static class WorldWindow {
 								allRooms.Add(replaceRoom.replacingRoom);
 							}
 						}
-						confirmRenderPopup = new ConfirmPopup($"Render {(selectedRooms.Count != 0 ? selectedRooms.Count + " rooms" + (selectedReplaceRoomRefs.Count != 0 ? " and " : "") : "")}{(selectedReplaceRoomRefs.Count != 0 ? selectedReplaceRoomRefs.Count + " replaceRoom references" : "")}?"
-							 + (Settings.UpdateRoomImagesOnRender ? 
-								(region.importRoomsPath.Contains(Path.Combine("StreamingAssets", "world")) ? "\nVanilla rooms may be overwritten!" :
-								region.importRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "moreslugcats")) ? "\nDownpour rooms may be overwritten!" :
-								region.importRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "watcher")) ? "\nWatcher rooms may be overwritten!" :
-								"\n<s:1>This will overwrite all existing images!") :
-								"\nThis will export images to the renderOutput folder"
-							)).Okay(() => renderRoomsTask = MassRenderRooms(allRooms));
+						confirmRenderPopup = new ConfirmPopup($"Render {(selectedRooms.Count != 0 ? selectedRooms.Count + " rooms" + (selectedReplaceRoomRefs.Count != 0 ? " and " : "") : "")}{(selectedReplaceRoomRefs.Count != 0 ? selectedReplaceRoomRefs.Count + " replaceRoom references" : "")}?\nThe images will be saved upon export.").Okay(() => renderRoomsTask = MassRenderRooms(allRooms));
 						PopupManager.Add(confirmRenderPopup);
 					}, button => {
 						bool result = (SelectedRooms.Count != 0 || SelectedReplaceRooms.Count != 0) && ValidRegionLoaded;

@@ -1746,13 +1746,31 @@ public static class WorldExporter {
 				}
 			}
 			
-			Logger.Info($"    exporting images for room {room.name};");
-			for (int i = 1; i <= room.data.cameras.Count; i++) {
-				string imageName = room.name + $"_{i}.png";
-				string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), imageName));
-				string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, imageName));
-				if (!imageSourcePath.EndsWith(imageDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(imageSourcePath)) {
-					File.Copy(imageSourcePath, imageDestPath, true);
+			if (room.renderedImages.Count != 0) {
+				Logger.Info($"    saving rendered images for room {room.name}");
+				foreach ((string imageID, byte[] image) in room.renderedImages) {
+					try {
+						string imageOutputPath = Path.Combine(WorldWindow.region.exportRoomsPath, $"{room.name}{imageID}.png");
+						Logger.Info($"        saving {imageOutputPath}");
+						using Stream stream = File.OpenWrite(imageOutputPath);
+						ImageWriter writer = new ImageWriter();
+						writer.WritePng(image, Main.CameraTextureWidth, Main.CameraTextureHeight, ColorComponents.RedGreenBlue, stream);
+					}
+					catch (Exception ex) {
+						Logger.Error("Exporting screen failed: " + ex.Message);
+					}
+				}
+				room.renderedImages = [];
+			}
+			else {
+				Logger.Info($"    copying images for room {room.name};");
+				for (int i = 1; i <= room.data.cameras.Count; i++) {
+					string imageName = room.name + $"_{i}.png";
+					string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), imageName));
+					string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, imageName));
+					if (!imageSourcePath.EndsWith(imageDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(imageSourcePath)) {
+						File.Copy(imageSourcePath, imageDestPath, true);
+					}
 				}
 			}
 		}

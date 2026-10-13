@@ -22,6 +22,7 @@ public class Room : MapDraggable {
 	public const uint FLAG_SPEAR = 524288;
 
 	public bool fileModified = false;
+	public List<(string imageID, byte[] image)> renderedImages = [];
 	public bool pathOutsideRoomsFolder = false;
 	public string path;
 	public string name;
@@ -1674,6 +1675,8 @@ public class Room : MapDraggable {
 		Color outlineColor = hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder;
 		if (this.fileModified)
 			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f); // REVIEW - make this more readable when the border is air
+		if (this.renderedImages.Count != 0)
+			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f);
 		Immediate.Color(outlineColor);
 		UI.StrokeRect(renderedPosition.x, renderedPosition.y, renderedPosition.x + this.width, renderedPosition.y - this.height);
 

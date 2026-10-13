@@ -30,7 +30,6 @@ public class FloodforgeConfigPopup : Popup {
 	private readonly SettingEditableReferrer<bool, BoolToggleEditable> HideTutorial = new (Settings.HideTutorial, new (Settings.HideTutorial));
 	private readonly SettingEditableReferrer<bool, BoolToggleEditable> HideTutorialOnLoadWorld = new (Settings.HideTutorialOnLoadWorld, new (Settings.HideTutorialOnLoadWorld));
 	private readonly SettingEditableReferrer<bool, BoolToggleEditable> UpdateRegionFiles = new (Settings.UpdateRegionFiles, new (Settings.UpdateRegionFiles));
-	private readonly SettingEditableReferrer<bool, BoolToggleEditable> UpdateRoomImagesOnRender = new (Settings.UpdateRoomImagesOnRender, new (Settings.UpdateRoomImagesOnRender));
 	// ToAdd: NoSubregionColor
 	private readonly SettingEditableReferrer<float, SliderFloatEditable> RoomTintStrength = new (Settings.RoomTintStrength, new (0, 1));
 	private readonly SettingEditableReferrer<bool, BoolToggleEditable> DropdownOnHover = new (Settings.DropdownOnHover, new (Settings.DropdownOnHover));
@@ -129,10 +128,6 @@ public class FloodforgeConfigPopup : Popup {
 		GotoNextSetting();
 		font.Write(this.UpdateRegionFiles.settingName, this.bounds.x0 + 0.01f, settingRect.y1, 0.03f, Font.Align.TopLeft);
 		UI.CheckBox(squareRect, ref this.UpdateRegionFiles.ValueRef);
-		
-		GotoNextSetting();
-		font.Write(this.UpdateRoomImagesOnRender.settingName, this.bounds.x0 + 0.01f, settingRect.y1, 0.03f, Font.Align.TopLeft);
-		UI.CheckBox(squareRect, ref this.UpdateRoomImagesOnRender.ValueRef);
 
 		GotoNextSetting();
 		font.Write(this.RoomTintStrength.settingName, this.bounds.x0 + 0.01f, settingRect.y1, 0.03f, Font.Align.TopLeft);
