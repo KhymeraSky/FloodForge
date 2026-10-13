@@ -8,7 +8,7 @@ namespace FloodForge.History;
 public class TimelineChange : MultipleRoomChange {
 	protected bool add;
 	protected string timeline;
-	protected Connection? connection;
+	protected List<Connection> connections = [];
 	protected DenLineage? lineage;
 	protected ReplaceRoom? replaceRoom;
 
@@ -18,7 +18,7 @@ public class TimelineChange : MultipleRoomChange {
 	}
 
 	public void AddConnection(Connection connection) {
-		this.connection = connection;
+		this.connections.Add(connection);
 	}
 
 	public void AddLineage(DenLineage lineage) {
@@ -30,42 +30,34 @@ public class TimelineChange : MultipleRoomChange {
 	}
 
 	private void Insert() {
-		if (this.connection != null) {
-			this.connection.timeline.timelines.Add(this.timeline);
-			this.connection.conditionalPopup?.InvokeOnTimelineChange(this.connection.timeline);
+		foreach (Room room in this.rooms) {
+			room.timeline.timelines.Add(this.timeline);
+			room.conditionalPopup?.InvokeOnTimelineChange(room.timeline);
 		}
-		else if (this.lineage != null) {
+		foreach (Connection connection in this.connections) {
+			connection.timeline.timelines.Add(this.timeline);
+			connection.conditionalPopup?.InvokeOnTimelineChange(connection.timeline);
+		}
+		this.replaceRoom?.timeline.timelines.Add(this.timeline);
+		if (this.lineage != null) {
 			this.lineage.timeline.timelines.Add(this.timeline);
 			this.lineage.conditionalPopup?.InvokeOnTimelineChange(this.lineage.timeline);
-		}
-		else if (this.replaceRoom != null) {
-			this.replaceRoom.timeline.timelines.Add(this.timeline);
-		}
-		else {
-			foreach (Room room in this.rooms) {
-				room.timeline.timelines.Add(this.timeline);
-				room.conditionalPopup?.InvokeOnTimelineChange(room.timeline);
-			}
 		}
 	}
 
 	private void Erase() {
-		if (this.connection != null) {
-			this.connection.timeline.timelines.Remove(this.timeline);
-			this.connection.conditionalPopup?.InvokeOnTimelineChange(this.connection.timeline);
+		foreach (Room room in this.rooms) {
+			room.timeline.timelines.Remove(this.timeline);
+			room.conditionalPopup?.InvokeOnTimelineChange(room.timeline);
 		}
-		else if (this.lineage != null) {
+		foreach (Connection connection in this.connections) {
+			connection.timeline.timelines.Remove(this.timeline);
+			connection.conditionalPopup?.InvokeOnTimelineChange(connection.timeline);
+		}
+		this.replaceRoom?.timeline.timelines.Remove(this.timeline);
+		if (this.lineage != null) {
 			this.lineage.timeline.timelines.Remove(this.timeline);
 			this.lineage.conditionalPopup?.InvokeOnTimelineChange(this.lineage.timeline);
-		}
-		else if (this.replaceRoom != null) {
-			this.replaceRoom.timeline.timelines.Remove(this.timeline);
-		}
-		else {
-			foreach (Room room in this.rooms) {
-				room.timeline.timelines.Remove(this.timeline);
-				room.conditionalPopup?.InvokeOnTimelineChange(room.timeline);
-			}
 		}
 	}
 
