@@ -880,53 +880,52 @@ public static class WorldWindow {
 		worldHistory.Apply(change1);
 	}
 
-	private static void ActionDelete() { // TODO - rebuild delete behaviour to include connection deletion
-		Connection? connection = HoveringConnection;
-		if (connection != null && connection.roomA.data.lockState != RoomLockState.locked && connection.roomB.data.lockState != RoomLockState.locked) {
-			DeleteConnection(connection);
-			return;
-		}
-
+	private static void ActionDelete() {
 		WorldDraggable? draggable = HoveringDraggable;
-		if (draggable != null) {
-			if (draggable is ReplaceRoom replaceRoom) {
-				ReplaceRoomChange replaceRoomChange = new ReplaceRoomChange(false);
-				replaceRoomChange.AddReplaceRoom(replaceRoom);
-				worldHistory.Apply(replaceRoomChange);
-			}
-			else if (draggable is Room room) {
-				if (room is OffscreenRoom)
-					return;
+		if (draggable != null && (draggable is OffscreenRoom))
+			draggable = null;
+		Connection? connection = HoveringConnection;
+		if (connection != null && (connection.roomA.data.lockState == RoomLockState.locked || connection.roomB.data.lockState == RoomLockState.locked))
+			connection = null;
 
+		if (draggable != null || (draggable == null && connection != null) || (draggable is Room && connection != null)) {
+			if (connection == null && draggable != null) {
+				if (draggable is ReplaceRoom replaceRoom) {
+					ReplaceRoomChange replaceRoomChange = new ReplaceRoomChange(false);
+					replaceRoomChange.AddReplaceRoom(replaceRoom);
+					worldHistory.Apply(replaceRoomChange);
+				}
+				else if (draggable is ReferenceImage image) {
+					PopupManager.Add(new ConfirmPopup("Delete reference?").SetOkay("Delete").SetCancel("Keep").Okay(() => {
+						referenceImages.Remove(image); // make this undo-able
+					}));
+				}
+			}
+			if (connection != null || draggable is Room){
 				RoomAndConnectionChange change = new RoomAndConnectionChange(false);
 				ReplaceRoomChange replaceRoomChange = new ReplaceRoomChange(false);
-				if(room != null)
-					selectedDraggables.Add(room);
+				if (draggable != null)
+					selectedDraggables.Add(draggable);
+				if (connection != null)
+					selectedConnections.Add(connection);
 
-				if (selectedDraggables.Count != 0) {
-					foreach (WorldDraggable room1 in selectedDraggables) {
-						if (room1 is OffscreenRoom || room1 is not Room room2)
-							continue;
-						if (room2.LockedByConnections())
-							continue;
-						change.AddRoom(room2);
-						region.connections.Where(c => c.roomA == room2 && !selectedDraggables.Contains(c.roomB) || (c.roomB == room2 && !selectedDraggables.Contains(c.roomA)))
-							.ForEach(change.AddConnection);
-						foreach (ReplaceRoom replaceRoom1 in room2.replaceRooms) {
-							replaceRoomChange.AddReplaceRoom(replaceRoom1);
-						}
-					}
-					selectedDraggables.Clear();
+				foreach (WorldDraggable selectedDraggable in selectedDraggables) {
+					if (selectedDraggable is OffscreenRoom || selectedDraggable is not Room selectedRoom)
+						continue;
+					if (selectedRoom.LockedByConnections())
+						continue;
+					change.AddRoom(selectedRoom);
+
+					selectedRoom.replaceRooms.ForEach(replaceRoomChange.AddReplaceRoom);
 				}
+				selectedDraggables.Clear();
+
+				foreach (Connection selectedConnection in selectedConnections)
+					change.AddConnection(selectedConnection);
+				selectedConnections.Clear();
 
 				if (!change.IsEmpty())
 					worldHistory.Apply(new MassChange([change, replaceRoomChange]));
-				return;
-			}
-			else if (draggable is ReferenceImage image) {
-				PopupManager.Add(new ConfirmPopup("Delete reference?").SetOkay("Delete").SetCancel("Keep").Okay(() => {
-					referenceImages.Remove(image); // make this undo-able
-				}));
 			}
 		}
 	}
