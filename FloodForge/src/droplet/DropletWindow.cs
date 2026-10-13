@@ -1629,7 +1629,6 @@ public static class DropletWindow {
 
 	private static void SaveGeometry() {
 		Backup();
-		Room.fileModified = true;
 		Room.visuals.terrainNeedsRefresh = true;
 		Room.visuals.waterNeedsRefresh = true;
 		Room.visuals.Refresh();
@@ -2003,14 +2002,7 @@ public static class DropletWindow {
 	public static bool Render(out string errorMessage, out (string, string, byte[])[] images) {
 		bool success = true;
 		errorMessage = "";
-		try { // REVIEW - unnecessary try;catch?
-			SaveGeometry();
-		}
-		catch (Exception e) {
-			Logger.Error(e);
-			errorMessage += e.Message + "\n";
-			success = false;
-		}
+		SaveGeometry();
 		string updateBaseText = "";
 		if (WorldWindow.renderStatusPopup != null) {
 			updateBaseText = WorldWindow.renderStatusPopup.GetText();
@@ -2209,6 +2201,7 @@ public static class DropletWindow {
 					new Button("Save Geometry", b => {
 						try {
 							SaveGeometry();
+							Room.fileModified = true;
 							PopupManager.Add(new InfoPopup("Saved successfully"));
 						}
 						catch (Exception e){

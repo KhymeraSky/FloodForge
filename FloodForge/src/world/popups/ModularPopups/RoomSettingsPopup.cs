@@ -89,6 +89,7 @@ public class RoomSettingsPopup : ModularPopup {
 			if (DropletWindow.Render(out string errorMessage, out (string name, string path, byte[] image)[] images)) {
 				foreach ((string name, string path, byte[] image) in images) {
 					FloodForge.Backup.File(path);
+					Directory.CreateDirectory(PathUtil.Parent(path));
 
 					using Stream stream = File.OpenWrite(path);
 					ImageWriter writer = new();
