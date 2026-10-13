@@ -39,18 +39,13 @@ public struct Rect {
 		return x >= this.x0 && y >= this.y0 && x <= this.x1 && y <= this.y1;
 	}
 
-	public readonly bool IntersectsLine(Vector2 from, Vector2 to) {
+	public readonly bool IntersectsLine(Vector2 from, Vector2 to, float margin = 0f) {
 		if (this.Inside(from) || this.Inside(to))
 			return true;
-		
-		/*
-		Immediate.Color(new Color(1, 1, 0));
-		UI.Line(from, to, thickness: 0.25f * WorldWindow.cameraScale);
-		Immediate.Color(new Color(1, 0, 0));
-		UI.StrokeCircle(from, 0.5f, 8);
-		Immediate.Color(new Color(0, 1, 0));
-		UI.StrokeCircle(to, 0.5f, 8);
-		*/
+		if (margin != 0)
+			if (MathUtil.LineDistance(new(this.x0, this.y0), from, to) < margin || MathUtil.LineDistance(new(this.x1, this.y0), from, to) < margin
+				|| MathUtil.LineDistance(new(this.x0, this.y1), from, to) < margin || MathUtil.LineDistance(new(this.x1, this.y1), from, to) < margin)
+				return true;
 
 		float xDelta = Math.Abs(from.x - to.x);
 		float yDelta = Math.Abs(from.y - to.y);
@@ -59,7 +54,7 @@ public struct Rect {
 			float xRelative = (this.x0 > from.x && this.x0 < to.x ? this.x0 : this.x1 ) - startPoint.x; // relative X position of the concerning box edge line
 			float xYDelta = xRelative * (yDelta / xDelta); // relative Y position when continuing across the line to the same X position
 			float theoreticalIntersectY = startPoint.y + xYDelta; // absolute Y position at box edge line X
-			if (this.y0 < theoreticalIntersectY && this.y1 > theoreticalIntersectY) // if the point on the line is within the box, there's an intersection
+			if (this.y0 - margin < theoreticalIntersectY && this.y1 + margin > theoreticalIntersectY) // if the point on the line is within the box, there's an intersection
 				return true;
 		}
 		if (!(from.y == to.y) && ((this.y1 < from.y && this.y1 > to.y) || (this.y0 > from.y && this.y0 < to.y))) {
@@ -67,7 +62,7 @@ public struct Rect {
 			float yRelative = (this.y0 > from.y && this.y0 < to.y ? this.y0 : this.y1 ) - startPoint.y; // relative Y position of the concerning box edge line
 			float yXDelta = yRelative * (xDelta / yDelta); // relative X position when continuing across the line to the same Y position
 			float theoreticalIntersectX = startPoint.x + yXDelta; // absolute X position at box edge line Y
-			if (this.x0 < theoreticalIntersectX && this.x1 > theoreticalIntersectX) // if the point on the line is within the box, there's an intersection
+			if (this.x0 - margin < theoreticalIntersectX && this.x1 + margin > theoreticalIntersectX) // if the point on the line is within the box, there's an intersection
 				return true;
 		}
 
