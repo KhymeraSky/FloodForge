@@ -65,6 +65,10 @@ public abstract class ConnectionVisual {
 		get; private set;
 	}
 
+	public virtual float SizeMultiplier {
+		get { return 1f; }
+	}
+
 	protected virtual (Color, Color) GetColorInformation(bool fadeMiddle, bool AVisible, bool BVisible, bool hovered) {
 		Color colorA = Themes.RoomConnection;
 		Color colorB = Themes.RoomConnection;
@@ -266,7 +270,7 @@ public abstract class ConnectionVisual {
 			Vector2 matrixScale = WorldWindow.cameraScale * Main.screenBounds;
 
 			if (this.connectionRenderable != null)
-				DrawConnectionMesh(this.connectionRenderable, matrixPos, matrixScale, Vector2.Zero, connectionColorA, connectionColorB, WorldWindow.SelectorScale / 66, fadeMiddle);
+				DrawConnectionMesh(this.connectionRenderable, matrixPos, matrixScale, Vector2.Zero, connectionColorA, connectionColorB, WorldWindow.SelectorScale * 0.01515f * this.SizeMultiplier, fadeMiddle);
 
 			Program.gl.Disable(EnableCap.Blend);
 		}
