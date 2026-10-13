@@ -203,6 +203,9 @@ public class SplashArtPopup : Popup {
 			this.CheckForUpdates();
 			return false;
 		});
+		foreach (IconButton button in this.buttons)
+			if (button.label == b.label)
+				return;
 		this.buttons.Add(b);
 	}
 
