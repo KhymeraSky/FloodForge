@@ -158,6 +158,22 @@ public static class WorldWindow {
 		return false;
 	}
 
+	public static bool HoveringOrSelectedConnections(out HashSet<Connection> connections) {
+		connections = [];
+		if (selectedConnections.Count >= 1) {
+			connections = [.. selectedConnections];
+			return true;
+		}
+		else {
+			Connection? connection = HoveringConnection;
+			if (connection != null) {
+				connections = [connection];
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static void Initialize() {
 		Mods.Initialize();
 		RecentFiles.Initialize();
@@ -1053,16 +1069,31 @@ public static class WorldWindow {
 		}
 
 		if (Input.JustPressed(Keys.ChangeConditionals)) {
-			Connection? connection = HoveringConnection;
-			if (connection != null) {
-				connection.conditionalPopup = PopupManager.Add(new ConditionalPopup([connection]));
-			}
-			else if (HoveringOrSelectedRooms(out HashSet<Room> rooms)) {
+			bool hasSelectedRooms = HoveringOrSelectedRooms(out HashSet<Room> rooms);
+			bool hasSelectedConnections = HoveringOrSelectedConnections(out HashSet<Connection> connections);
+			if (hasSelectedRooms || hasSelectedConnections) {
+				connections ??= [];
 				HashSet<Room> unlockedRooms = [];
 				rooms.ForEach(r => { if (r.data.lockState == RoomLockState.none) unlockedRooms.Add(r); } );
-				if (unlockedRooms.Count != 0) {
-					ConditionalPopup? conditionalPopup = PopupManager.Add(new ConditionalPopup(unlockedRooms).SetButtons<ConditionalPopup>("DEFAULT", "EXCLUSIVE", "HIDE"));
+
+				if (unlockedRooms.Count != 0 || connections.Count != 0) {
+					ConditionalPopup? conditionalPopup = null;
+
+					if (hasSelectedRooms && !hasSelectedConnections) {
+						conditionalPopup = PopupManager.Add(new ConditionalPopup(unlockedRooms)).SetButtons<ConditionalPopup>("DEFAULT", "EXCLUSIVE", "HIDE");
+						conditionalPopup.Title($"Conditional - {(unlockedRooms.Count > 1 ? $"{unlockedRooms.Count} Multiple Rooms" : "Room")}");
+					}
+					else if (hasSelectedConnections && !hasSelectedRooms) {
+						conditionalPopup = PopupManager.Add(new ConditionalPopup(connections));
+						conditionalPopup.Title($"Conditional - {(connections.Count > 1 ? $"{connections.Count} Connections" : "Connection")}");
+					}
+					else {
+						conditionalPopup = PopupManager.Add(new ConditionalPopup(connections, unlockedRooms));
+						conditionalPopup.Title($"Conditional - {$"{connections.Count} Connection{(connections.Count > 1 ? "s" : "")} and {unlockedRooms.Count} Room{(unlockedRooms.Count > 1 ? "s" : "")}"}");
+					}
+
 					unlockedRooms.ForEach((room) => { room.conditionalPopup = conditionalPopup; });
+					connections.ForEach((connection) => { connection.conditionalPopup = conditionalPopup; });
 				}
 			}
 		}

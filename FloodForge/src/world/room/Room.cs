@@ -1671,7 +1671,7 @@ public class Room : MapDraggable {
 
 		Vector2 o = WorldWindow.worldMouse - renderedPosition;
 		bool hovered = o.x >= 0f && o.y <= 0f && o.x <= this.width && o.y >= -this.height;
-		Immediate.Color(hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder);
+		Immediate.Color(hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder); // REVIEW - different color when unsaved?
 		UI.StrokeRect(renderedPosition.x, renderedPosition.y, renderedPosition.x + this.width, renderedPosition.y - this.height);
 
 		if (this.timeline.timelineType != TimelineType.All)
