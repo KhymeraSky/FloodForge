@@ -1636,6 +1636,8 @@ public static class DropletWindow {
 
 	public static void ExportGeometry() { // REVIEW - move this into Room class? Alternatively, move geometry file loading & exporting into a Utils class?
 		string geoPath = PathUtil.FindOrAssumeFile(WorldWindow.region.exportRoomsPath, Room.name + ".txt")!;
+		if (Room.path.IsNullOrEmpty())
+			Room.path = geoPath;
 		Logger.Info($"exporting {Room.name} room geometry to path: {geoPath}");
 		if (geoPath.IsNullOrEmpty() || Room.name.StartsWith("GATE")) {
 			Logger.Info($"{(geoPath.IsNullOrEmpty() ? "geoPath null; " : "")}{(Room.name.StartsWith("GATE") ? "gate; " : "")}Trying to use path: {Room.path.Split("Rain World")[^1]}");
