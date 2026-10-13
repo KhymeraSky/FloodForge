@@ -1715,6 +1715,7 @@ public static class DropletWindow {
 
 		File.WriteAllText(geoPath, geo.ToString());
 
+		Room.fileModified = false;
 		Backup();
 		Room.visuals.terrainNeedsRefresh = true;
 		Room.visuals.waterNeedsRefresh = true;
