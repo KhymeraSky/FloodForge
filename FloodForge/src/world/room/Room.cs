@@ -1669,9 +1669,12 @@ public class Room : MapDraggable {
 				this.DrawDens(renderedPosition);
 		}
 
-		Vector2 o = WorldWindow.worldMouse - renderedPosition;
-		bool hovered = o.x >= 0f && o.y <= 0f && o.x <= this.width && o.y >= -this.height;
-		Immediate.Color(hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder); // REVIEW - different color when unsaved?
+		Vector2 localMouse = WorldWindow.worldMouse - renderedPosition;
+		bool hovered = localMouse.x >= 0f && localMouse.y <= 0f && localMouse.x <= this.width && localMouse.y >= -this.height;
+		Color outlineColor = hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder;
+		if (this.fileModified)
+			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f);
+		Immediate.Color(outlineColor);
 		UI.StrokeRect(renderedPosition.x, renderedPosition.y, renderedPosition.x + this.width, renderedPosition.y - this.height);
 
 		if (this.timeline.timelineType != TimelineType.All)
