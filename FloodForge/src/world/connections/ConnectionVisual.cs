@@ -61,7 +61,7 @@ public abstract class ConnectionVisual {
 		}
 	}
 
-	public virtual bool drawStriped {
+	public virtual bool DrawStriped {
 		get; private set;
 	}
 
@@ -78,7 +78,7 @@ public abstract class ConnectionVisual {
 	}
 
 	public ConnectionVisual(bool drawStriped) {
-		this.drawStriped = drawStriped;
+		this.DrawStriped = drawStriped;
 	}
 
 	public bool Intersects(Vector2 from, Vector2 to, float margin = 0f) {
@@ -186,7 +186,7 @@ public abstract class ConnectionVisual {
 
 			if (drawQuad)
 				this.connectionMesh.AddQuad(CreateConnectionLineQuad(pointA.x, pointA.y, pointB.x, pointB.y, lastCurveProgress, curveProgress));
-			drawQuad = !this.drawStriped || !drawQuad;
+			drawQuad = !this.DrawStriped || !drawQuad;
 		}
 
 		this.connectionRenderable = new MeshRenderable(this.connectionMesh, Preload.ConnectionShader, [

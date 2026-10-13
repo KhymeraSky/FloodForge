@@ -8,7 +8,7 @@ public class Connection : ConnectionVisual{
 	public uint roomBExitID;
 
 	public bool invalid;
-	public override bool drawStriped { get => this.invalid; }
+	public override bool DrawStriped { get => this.invalid; }
 
 	public override Vector2 PointA => this.invalid ? this.roomA.Position : this.roomA.GetConnectionConnectPoint(this.roomAExitID);
 	public override Vector2i DirectionA => this.invalid ? new Vector2i(0, 0) : this.roomA.GetConnectionConnectDirection(this.roomAExitID);
