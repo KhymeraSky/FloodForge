@@ -13,11 +13,20 @@ public class RoomAndConnectionChange : Change {
 	}
 
 	public void AddRoom(Room room) {
-		foreach (Connection connection in room.connections) {
-			if(this.rooms.Contains(connection.roomA) || this.rooms.Contains(connection.roomB) || connection.roomA == room && connection.roomA == room)
-				this.internalConnections.Add(connection);
-		}
 		this.rooms.Add(room);
+		foreach (Connection connection in room.connections)
+			if (!this.externalConnections.Contains(connection))
+				this.externalConnections.Add(connection);
+		for (int i = 0; i < this.externalConnections.Count;) {
+			Connection connection = this.externalConnections[i];
+			if (this.rooms.Contains(connection.roomA) && this.rooms.Contains(connection.roomB)) {
+				if (!this.internalConnections.Contains(connection))
+					this.internalConnections.Add(connection);
+				this.externalConnections.RemoveAt(i);
+				continue;
+			}
+			i++;
+		}
 	}
 
 	// REVIEW - add EmptyableChange interface so History can check for emptiness itself?
@@ -29,7 +38,10 @@ public class RoomAndConnectionChange : Change {
 		return [..this.rooms];
 	}
 
-	public void AddConnection(Connection connection) => this.externalConnections.Add(connection);
+	public void AddConnection(Connection connection) {
+		if (!this.internalConnections.Contains(connection) && !this.externalConnections.Contains(connection))
+			this.externalConnections.Add(connection);
+	}
 
 	public Connection[] GetInternalConnections() {
 		return [.. this.internalConnections];
