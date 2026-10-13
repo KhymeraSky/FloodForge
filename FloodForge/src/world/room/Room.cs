@@ -1673,7 +1673,7 @@ public class Room : MapDraggable {
 		bool hovered = localMouse.x >= 0f && localMouse.y <= 0f && localMouse.x <= this.width && localMouse.y >= -this.height;
 		Color outlineColor = hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder;
 		if (this.fileModified)
-			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f);
+			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f); // REVIEW - make this more readable when the border is air
 		Immediate.Color(outlineColor);
 		UI.StrokeRect(renderedPosition.x, renderedPosition.y, renderedPosition.x + this.width, renderedPosition.y - this.height);
 
