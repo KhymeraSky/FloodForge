@@ -28,7 +28,7 @@ public static class NameChanger {
 		}
 		room.name = newName;
 		List<(string, string)> filesToCopy = [];
-		foreach (string path in Directory.GetFiles(WorldWindow.region.roomsPath)) {
+		foreach (string path in Directory.GetFiles(WorldWindow.region.importRoomsPath)) {
 			int finalbackslashIndex = path.IndexOfReverse('\\');
 			string fileExtension = Path.GetExtension(path);
 			string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(path);
@@ -60,7 +60,7 @@ public static class NameChanger {
 		string oldAcronym = WorldWindow.region.acronym;
 		Logger.Info($"Initiation acronymChange - {oldAcronym} -> {newAcronym} ; {(deleteSourceFiles ? "replace" : "copy")}");
 		//Logger.Info("getting new paths");
-		string newExportPath = WorldWindow.region.roomsPath[..(WorldWindow.region.roomsPath.IndexOfReverse('\\') + 1)] + newAcronym;
+		string newExportPath = WorldWindow.region.exportRoomsPath[..(WorldWindow.region.exportRoomsPath.IndexOfReverse('\\') + 1)] + newAcronym;
 		string newRoomsPath = newExportPath + "-rooms";
 		//Logger.Info("newExportPath = " + newExportPath);
 		//Logger.Info("newRoomsPath = " + newRoomsPath);
@@ -108,7 +108,7 @@ public static class NameChanger {
 				int roomFinalBackslash = room.path.IndexOfReverse('\\');
 				if (room.path[(roomFinalBackslash + 1)..].Equals(oldName + ".txt", StringComparison.InvariantCultureIgnoreCase)) {
 					string roomPath = room.path[..roomFinalBackslash];
-					if (roomPath.Equals(WorldWindow.region.roomsPath, StringComparison.InvariantCultureIgnoreCase))
+					if (roomPath.Equals(WorldWindow.region.exportRoomsPath, StringComparison.InvariantCultureIgnoreCase))
 						roomPath = newRoomsPath;
 					room.path = roomPath + '\\' + newName;
 					//Logger.Info($"new Path: {room.path}");
@@ -119,7 +119,7 @@ public static class NameChanger {
 			}
 		}
 
-		string[] roomsOriginalFiles = Directory.Exists(WorldWindow.region.roomsPath) ? Directory.GetFileSystemEntries(WorldWindow.region.roomsPath) : [];
+		string[] roomsOriginalFiles = Directory.Exists(WorldWindow.region.exportRoomsPath) ? Directory.GetFileSystemEntries(WorldWindow.region.exportRoomsPath) : [];
 
 		bool encounteredAtypicalFiles = false;
 
@@ -138,7 +138,7 @@ public static class NameChanger {
 			else {
 				encounteredAtypicalFiles = true;
 				if (Directory.Exists(path)) {
-					roomsSubDirectoriesToTransfer.Add((path, path.Replace(WorldWindow.region.roomsPath, newRoomsPath, StringComparison.InvariantCultureIgnoreCase)));
+					roomsSubDirectoriesToTransfer.Add((path, path.Replace(WorldWindow.region.exportRoomsPath, newRoomsPath, StringComparison.InvariantCultureIgnoreCase)));
 					//Logger.Info($" <- directory added");
 				}
 				else {
@@ -149,43 +149,43 @@ public static class NameChanger {
 		}
 
 		Logger.Info($"Analysing {oldAcronym}");
-		string[] worldOriginalFiles = Directory.Exists(WorldWindow.region.exportPath) ? Directory.GetFileSystemEntries(WorldWindow.region.exportPath) : [];
+		string[] worldOriginalFiles = Directory.Exists(WorldWindow.region.exportFolderPath) ? Directory.GetFileSystemEntries(WorldWindow.region.exportFolderPath) : [];
 		List<(string from, string to, int type)> worldFilesToTransfer = [];
 		List<(string from, string to)> worldSubDirectoriesToTransfer = [];
 		foreach (string file in worldOriginalFiles) {
 			//Logger.Info($"Checking file {file}");
-			if (file.Equals(WorldWindow.region.exportPath + '\\' + "properties.txt", StringComparison.InvariantCultureIgnoreCase)) {
+			if (file.Equals(WorldWindow.region.exportFolderPath + '\\' + "properties.txt", StringComparison.InvariantCultureIgnoreCase)) {
 				worldFilesToTransfer.Add((file, newExportPath + '\\' + "properties.txt", 0));
 				//Logger.Info($" <- add 0");
 			}
-			else if (file == (WorldWindow.region.exportPath + '\\' + "map_" + oldAcronym + ".txt")) {
+			else if (file == (WorldWindow.region.exportFolderPath + '\\' + "map_" + oldAcronym + ".txt")) {
 				worldFilesToTransfer.Add((file, newExportPath + '\\' + "map_" + newAcronym + ".txt", 1));
 				//Logger.Info($" <- add 1");
 			}
-			else if (file == (WorldWindow.region.exportPath + '\\' + "map_image_" + oldAcronym + ".txt")) {
+			else if (file == (WorldWindow.region.exportFolderPath + '\\' + "map_image_" + oldAcronym + ".txt")) {
 				worldFilesToTransfer.Add((file, newExportPath + '\\' + "map_image_" + newAcronym + ".txt", 2));
 				//Logger.Info($" <- add 2");
 			}
-			else if (file == (WorldWindow.region.exportPath + '\\' + "map_" + oldAcronym + ".png")) {
+			else if (file == (WorldWindow.region.exportFolderPath + '\\' + "map_" + oldAcronym + ".png")) {
 				worldFilesToTransfer.Add((file, newExportPath + '\\' + "map_" + newAcronym + ".png", 3));
 				//Logger.Info($" <- add 3");
 			}
-			else if (file == (WorldWindow.region.exportPath + '\\' + "world_" + oldAcronym + ".txt")) {
+			else if (file == (WorldWindow.region.exportFolderPath + '\\' + "world_" + oldAcronym + ".txt")) {
 				worldFilesToTransfer.Add((file, newExportPath + '\\' + "world_" + newAcronym + ".txt", 4));
 				//Logger.Info($" <- add 4");
 			}
-			else if (file == (WorldWindow.region.exportPath + '\\' + "displayname.txt")) {
+			else if (file == (WorldWindow.region.exportFolderPath + '\\' + "displayname.txt")) {
 				worldFilesToTransfer.Add((file, newExportPath + '\\' + "displayname.txt", 5));
 				//Logger.Info($" <- add 5");
 			}
 			else {
 				encounteredAtypicalFiles = true;
 				if (Directory.Exists(file)) {
-					worldSubDirectoriesToTransfer.Add((file, file.Replace(WorldWindow.region.exportPath, newExportPath)));
+					worldSubDirectoriesToTransfer.Add((file, file.Replace(WorldWindow.region.exportFolderPath, newExportPath)));
 					//Logger.Info($" <- add directory");
 				}
 				else {
-					worldFilesToTransfer.Add((file, file.Replace(WorldWindow.region.exportPath, newExportPath), -1));
+					worldFilesToTransfer.Add((file, file.Replace(WorldWindow.region.exportFolderPath, newExportPath), -1));
 					//Logger.Info($" <- add -1");
 				}
 			}
@@ -453,18 +453,18 @@ public static class NameChanger {
 
 		if (deleteSourceFiles) {
 			Logger.Info($"BACKING UP FILES!");
-			Directory.GetFileSystemEntries(WorldWindow.region.roomsPath, "", searchOption: SearchOption.AllDirectories).ForEach(f => FloodForge.Backup.File(f));
-			Directory.GetFileSystemEntries(WorldWindow.region.exportPath, "", searchOption: SearchOption.AllDirectories).ForEach(f => FloodForge.Backup.File(f));
+			Backup.Folder(WorldWindow.region.exportFolderPath);
+			Backup.Folder(WorldWindow.region.exportRoomsPath);
 			//Logger.Info($"FINISHED BACKING UP FILES!");
 			Logger.Info($"! DELETING ORIGINAL FILES");
-			Directory.Delete(WorldWindow.region.exportPath, true);
-			Directory.Delete(WorldWindow.region.roomsPath, true);
+			Directory.Delete(WorldWindow.region.exportFolderPath, true);
+			Directory.Delete(WorldWindow.region.exportRoomsPath, true);
 			//Logger.Info($"! FINISHED DELETING ORIGINAL FILES");
 		}
 
 		Logger.Info($"Setting new paths");
-		WorldWindow.region.exportPath = newExportPath;
-		WorldWindow.region.roomsPath = newRoomsPath;
+		WorldWindow.region.exportFolderPath = newExportPath;
+		WorldWindow.region.exportRoomsPath = newRoomsPath;
 		WorldWindow.region.acronym = newAcronym;
 		Logger.Info($"Setting new world as recent file.");
 		RecentFiles.AddPath(newExportPath + $"\\world_{newAcronym}.txt");

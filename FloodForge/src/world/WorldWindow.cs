@@ -40,7 +40,7 @@ public static class WorldWindow {
 	public static bool connectionExtensionsEnabled = false;
 
 	public static Region region = null!;
-	public static bool HasExportPath => !WorldWindow.region.exportPath.IsNullOrEmpty();
+	public static bool HasExportPath => !WorldWindow.region.exportFolderPath.IsNullOrEmpty();
 	public static bool ValidRegionLoaded => WorldWindow.region != null && !WorldWindow.region.acronym.IsNullOrEmpty() && (HasExportPath || !Settings.UpdateRegionFiles) && !importIncomplete; // REVIEW - HasExportPath obsolete due to room export changes?
 	public static bool importIncomplete = false;
 	public static List<string> invalidCreatures = [];
@@ -640,7 +640,7 @@ public static class WorldWindow {
 								PopupManager.Add($"Unable to change acronym:\nacronym '{acronym}' is the same as\nexisting acronym '{WorldWindow.region.acronym}'");
 								return;
 							}
-							string checkPath = WorldWindow.region.roomsPath[..(WorldWindow.region.roomsPath.IndexOfReverse('\\') + 1)] + acronym + $"\\world_{acronym}.txt";
+							string checkPath = WorldWindow.region.importFolderPath[..(WorldWindow.region.importFolderPath.IndexOfReverse('\\') + 1)] + acronym + $"\\world_{acronym}.txt";
 							bool fileExists = File.Exists(checkPath);
 							PopupManager.Add(new ConfirmPopup(fileExists ? $"world_{acronym}.txt already exists\nin this folder.\nOverwrite?" : $"Change Acronym to {acronym}?").SetButtons(fileExists ? "Overwrite" : "Yes", "Cancel").Okay(() => {
 								PopupManager.Add(new ConfirmPopup($"Keep or Replace source files?").SetButtons("<s:1>Replace", "Keep").Okay(() => {
@@ -1987,7 +1987,7 @@ public static class WorldWindow {
 
 			string renderOutputFolderPath = Path.Combine("renderOutput", WorldWindow.region.acronym);
 			if (Settings.UpdateRoomImagesOnRender)
-				renderOutputFolderPath = WorldWindow.region.roomsPath;
+				renderOutputFolderPath = WorldWindow.region.exportRoomsPath;
 			else
 				Directory.CreateDirectory(renderOutputFolderPath);
 
@@ -2059,12 +2059,12 @@ public static class WorldWindow {
 			acronym = filename.Split('_')[0];
 		else
 			acronym = "";
-		bool fileIsInRoomsFolder = path.StartsWith(region.roomsPath);
+		bool fileIsInRoomsFolder = path.StartsWith(region.importRoomsPath);
 		if (fileIsInRoomsFolder) {
 			return CreateAndAddRoom(path, filename);
 		}
 		else {
-			Logger.Info($"Room file {path} not in {region.roomsPath}.");
+			Logger.Info($"Room file {path} not in {region.importRoomsPath}.");
 			PopupManager.Add(
 				new ConfirmPopup($"Room {filename} isn't located inside {region.acronym}.\nCopy room to {region.acronym}-rooms?")
 					.SetCancel("Just Add")
@@ -2077,7 +2077,7 @@ public static class WorldWindow {
 						if (!filename.Contains('_'))
 							filename = '_' + filename;
 						string newName = $"{region.acronym}{filename[Math.Max(0, filename.IndexOf('_'))..]}";
-						string toPath = PathUtil.Combine(region.roomsPath, $"../{region.acronym}-rooms/{newName}");
+						string toPath = PathUtil.Combine(region.importRoomsPath, $"../{region.acronym}-rooms/{newName}");
 						if (File.Exists(toPath)) {
 							PopupManager.Add(new ConfirmPopup($"File {newName}already exists in\n{toPath[..Math.Max(0, toPath.IndexOfReverse('\\'))].Split("StreamingAssets")[^1]}\nOverwrite existing file?")
 							.SetOkay("Overwrite")
@@ -2103,17 +2103,17 @@ public static class WorldWindow {
 				if (!Directory.Exists("worlds")) {
 					Directory.CreateDirectory("worlds");
 				}
-				WorldWindow.region.exportPath = PathUtil.FindOrAssumeDirectory("worlds", WorldWindow.region.acronym);
-				WorldWindow.region.roomsPath = PathUtil.FindOrAssumeDirectory("worlds", $"{WorldWindow.region.acronym}-rooms");
-				Logger.Info($"Special exporting to directory: {WorldWindow.region.exportPath}");
+				WorldWindow.region.exportFolderPath = PathUtil.FindOrAssumeDirectory("worlds", WorldWindow.region.acronym);
+				WorldWindow.region.exportRoomsPath = PathUtil.FindOrAssumeDirectory("worlds", $"{WorldWindow.region.acronym}-rooms");
+				Logger.Info($"Special exporting to directory: {WorldWindow.region.exportFolderPath}");
 
-				if (!Directory.Exists(WorldWindow.region.exportPath))
-					Directory.CreateDirectory(WorldWindow.region.exportPath);
-				if (!Directory.Exists(WorldWindow.region.roomsPath))
-					Directory.CreateDirectory(WorldWindow.region.roomsPath);
+				if (!Directory.Exists(WorldWindow.region.exportFolderPath))
+					Directory.CreateDirectory(WorldWindow.region.exportFolderPath);
+				if (!Directory.Exists(WorldWindow.region.exportRoomsPath))
+					Directory.CreateDirectory(WorldWindow.region.exportRoomsPath);
 			}
 
-			if (!string.IsNullOrEmpty(WorldWindow.region.exportPath)) {
+			if (!string.IsNullOrEmpty(WorldWindow.region.exportFolderPath)) {
 				ExportMap();
 			}
 			else {
@@ -2123,11 +2123,11 @@ public static class WorldWindow {
 							return;
 
 						string selectedPath = pathStrings[0];
-						WorldWindow.region.exportPath = PathUtil.FindOrAssumeDirectory(selectedPath, WorldWindow.region.acronym);
-						WorldWindow.region.roomsPath = PathUtil.FindOrAssumeDirectory(selectedPath, $"{WorldWindow.region.acronym}-rooms");
+						WorldWindow.region.exportFolderPath = PathUtil.FindOrAssumeDirectory(selectedPath, WorldWindow.region.acronym);
+						WorldWindow.region.exportRoomsPath = PathUtil.FindOrAssumeDirectory(selectedPath, $"{WorldWindow.region.acronym}-rooms");
 
-						Directory.CreateDirectory(WorldWindow.region.exportPath);
-						Directory.CreateDirectory(WorldWindow.region.roomsPath);
+						Directory.CreateDirectory(WorldWindow.region.exportFolderPath);
+						Directory.CreateDirectory(WorldWindow.region.exportRoomsPath);
 
 						ExportMap();
 					}, 0)
@@ -2164,7 +2164,7 @@ public static class WorldWindow {
 					PopupManager.Add(new FilesystemPopup(selection => {
 						if (selection.Length == 0) return;
 
-						WorldParser.ImportWorld(selection[0], false);
+						WorldParser.ImportWorld(selection[0], null, false);
 					}, 0).Filter(Regexs.WorldFileRegex()).Hint("world_xx.txt"));
 				}),
 
@@ -2216,9 +2216,9 @@ public static class WorldWindow {
 						}
 						confirmRenderPopup = new ConfirmPopup($"Render {(selectedRooms.Count != 0 ? selectedRooms.Count + " rooms" + (selectedReplaceRoomRefs.Count != 0 ? " and " : "") : "")}{(selectedReplaceRoomRefs.Count != 0 ? selectedReplaceRoomRefs.Count + " replaceRoom references" : "")}?"
 							 + (Settings.UpdateRoomImagesOnRender ? 
-								(region.roomsPath.Contains(Path.Combine("StreamingAssets", "world")) ? "\nVanilla rooms may be overwritten!" :
-								region.roomsPath.Contains(Path.Combine("StreamingAssets", "mods", "moreslugcats")) ? "\nDownpour rooms may be overwritten!" :
-								region.roomsPath.Contains(Path.Combine("StreamingAssets", "mods", "watcher")) ? "\nWatcher rooms may be overwritten!" :
+								(region.exportRoomsPath.Contains(Path.Combine("StreamingAssets", "world")) ? "\nVanilla rooms may be overwritten!" :
+								region.exportRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "moreslugcats")) ? "\nDownpour rooms may be overwritten!" :
+								region.exportRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "watcher")) ? "\nWatcher rooms may be overwritten!" :
 								"\n<s:1>This will overwrite all existing images!") :
 								"\nThis will export images to the renderOutput folder"
 							)).Okay(() => renderRoomsTask = MassRenderRooms(allRooms));
@@ -2244,13 +2244,13 @@ public static class WorldWindow {
 
 					// TODO - add option to refresh from export path instead of original import path
 					new Button("Refresh Region", button => {
-						string? path = PathUtil.FindFile(WorldWindow.region.exportPath, $"world_{WorldWindow.region.acronym}.txt");
+						string? path = PathUtil.FindFile(WorldWindow.region.importFolderPath, $"world_{WorldWindow.region.acronym}.txt");
 						if (path == null) {
 							PopupManager.Add(new InfoPopup("Could not find world_xx.txt file!"));
-							Logger.Info($"Failed to find world file at {WorldWindow.region.exportPath}/world_{WorldWindow.region.acronym}.txt");
+							Logger.Info($"Failed to find world file at {WorldWindow.region.importFolderPath}/world_{WorldWindow.region.acronym}.txt");
 							return;
 						}
-						WorldParser.ImportWorld(path, false);
+						WorldParser.ImportWorld(path, (region.exportFolderPath, region.exportRoomsPath), false);
 					}, button => { return WorldWindow.ValidRegionLoaded; },
 					"You must create or import a region\nbefore refreshing."),
 				]),

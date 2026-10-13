@@ -72,7 +72,6 @@ public static class WorldParser {
 	public static bool ParseMapRoom(string line, out MapDraggable? offsetDraggable, string? timeline) {
 		offsetDraggable = null;
 		string? roomName = line[..line.IndexOf(':')];
-		string roomPath = WorldWindow.region.roomsPath;
 
 		Room? room = WorldWindow.region.rooms.FirstOrDefault(x => x.name.Equals(roomName, (StringComparison)3));
 		
@@ -152,7 +151,7 @@ public static class WorldParser {
 		
 		Logger.Info("Looking for alternate maps");
 		string cutMapPath = path[..path.IndexOfReverse('.')];
-		foreach (string alternatePath in Directory.GetFiles(WorldWindow.region.exportPath)) {
+		foreach (string alternatePath in Directory.GetFiles(WorldWindow.region.importFolderPath)) {
 			if (alternatePath.StartsWith(cutMapPath) && alternatePath.EndsWith(".txt") && alternatePath != path) {
 				string fileName = Path.GetFileNameWithoutExtension(alternatePath);
 				Logger.Info($"found alternate map: {fileName}");
@@ -323,7 +322,7 @@ public static class WorldParser {
 			returnValue = new OffscreenRoom(name, name);
 		}
 		else {
-			string path = WorldWindow.region.roomsPath;
+			string path = WorldWindow.region.importRoomsPath;
 			if (name.StartsWith("gate", StringComparison.InvariantCultureIgnoreCase)) {
 				string parentPath = PathUtil.Parent(path);
 				path = PathUtil.FindDirectory(parentPath, "gates") ?? "";
@@ -1253,12 +1252,12 @@ public static class WorldParser {
 		modify //the file modifies another WorldFile
 	}
 
-	public static async void ImportWorld(string worldPath, bool showTutorial) {
+	public static async void ImportWorld(string worldPath, (string, string)? lastExportPaths, bool showTutorial) {
 		(bool success, WorldFileType type, string? message) = CheckImportFile(worldPath);
 
 		if (success) {
 			if (type == WorldFileType.regular)
-				success = ImportWorldFile(worldPath, out message);
+				success = ImportWorldFile(worldPath, lastExportPaths, out message);
 			if (type == WorldFileType.modify)
 				success = ImportModifyingRegion(worldPath, out message);
 		}
@@ -1285,26 +1284,28 @@ public static class WorldParser {
 		return (true, WorldFileType.regular, null);
 	}
 
-	private static bool ImportWorldFile(string worldPath, out string? message) {
+	private static bool ImportWorldFile(string worldPath, (string, string)? lastExportPaths, out string? message) {
 		message = null;
 		WorldWindow.importIncomplete = true;
 		WorldWindow.worldHistory.Clear();
 
 		roomAttractiveness.Clear();
 		WorldWindow.Reset();
-		WorldWindow.region.exportPath = PathUtil.Parent(worldPath);
+		WorldWindow.region.importFolderPath = PathUtil.Parent(worldPath);
+		WorldWindow.region.exportFolderPath = lastExportPaths?.Item1 ?? "";
+		WorldWindow.region.exportRoomsPath = lastExportPaths?.Item2 ?? "";
 		WorldWindow.region.acronym = Path.GetFileNameWithoutExtension(worldPath);
 		WorldWindow.region.acronym = WorldWindow.region.acronym[(WorldWindow.region.acronym.IndexOfReverse('_') + 1)..];
 
 		{
 			// `world/xx/world_xx.txt` -> `world/regions.txt`
-			string? regionsPath = Path.GetFileNameWithoutExtension(PathUtil.Parent(WorldWindow.region.exportPath))?.ToLowerInvariant() == "world"
-				? PathUtil.FindFile(PathUtil.Parent(WorldWindow.region.exportPath), "regions.txt")
+			string? regionsPath = Path.GetFileNameWithoutExtension(PathUtil.Parent(WorldWindow.region.importFolderPath))?.ToLowerInvariant() == "world"
+				? PathUtil.FindFile(PathUtil.Parent(WorldWindow.region.importFolderPath), "regions.txt")
 				: null;
 			if (regionsPath != null)
 				WorldWindow.region.regionsPaths.Add(regionsPath);
 
-			string main = PathUtil.Parent(WorldWindow.region.exportPath, 2);
+			string main = PathUtil.Parent(WorldWindow.region.importFolderPath, 2);
 
 			// `world/xx/world_xx.txt` -> `modify/world/regions.txt`
 			regionsPath = PathUtil.FindDirectory(main, "modify");
@@ -1337,16 +1338,16 @@ public static class WorldParser {
 
 		Logger.Info("Opening world ", WorldWindow.region.acronym);
 
-		string? roomsPath = PathUtil.FindDirectory(PathUtil.Parent(WorldWindow.region.exportPath), WorldWindow.region.acronym + "-rooms");
+		string? roomsPath = PathUtil.FindDirectory(PathUtil.Parent(WorldWindow.region.importFolderPath), WorldWindow.region.acronym + "-rooms");
 		Logger.Info($"RoomsPath: {roomsPath ?? "NULL"}");
 		if (roomsPath == null || roomsPath == "") {
 			message = "Cannot find rooms directory";
 			Logger.Error(message);
 			return false;
 		}
-		WorldWindow.region.roomsPath = roomsPath;
+		WorldWindow.region.importRoomsPath = roomsPath;
 
-		string? propertiesPath = PathUtil.FindFile(WorldWindow.region.exportPath, "properties.txt");
+		string? propertiesPath = PathUtil.FindFile(WorldWindow.region.importFolderPath, "properties.txt");
 		if (propertiesPath != null) {
 			Logger.Info("Loading properties");
 			if (!ParseProperties(propertiesPath)) return false; // Does ParseProperties at any point even have the capacity to return false??
@@ -1356,7 +1357,7 @@ public static class WorldParser {
 
 		if (!ParseWorld(worldPath)) return false;
 
-		string? mapPath = PathUtil.FindFile(WorldWindow.region.exportPath, "map_" + WorldWindow.region.acronym + ".txt");
+		string? mapPath = PathUtil.FindFile(WorldWindow.region.importFolderPath, "map_" + WorldWindow.region.acronym + ".txt");
 		if (mapPath != null) {
 			Logger.Info("Loading map");
 			if (!ParseMap(mapPath)) return false;

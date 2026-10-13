@@ -1635,7 +1635,7 @@ public static class DropletWindow {
 	}
 
 	public static void ExportGeometry() { // REVIEW - move this into Room class? Alternatively, move geometry file loading & exporting into a Utils class?
-		string geoPath = PathUtil.FindOrAssumeFile(WorldWindow.region.roomsPath, Room.name + ".txt")!;
+		string geoPath = PathUtil.FindOrAssumeFile(WorldWindow.region.exportRoomsPath, Room.name + ".txt")!;
 		Logger.Info($"exporting {Room.name} room geometry to path: {geoPath}");
 		if (geoPath.IsNullOrEmpty() || Room.name.StartsWith("GATE")) {
 			Logger.Info($"{(geoPath.IsNullOrEmpty() ? "geoPath null; " : "")}{(Room.name.StartsWith("GATE") ? "gate; " : "")}Trying to use path: {Room.path.Split("Rain World")[^1]}");
@@ -1720,7 +1720,7 @@ public static class DropletWindow {
 		Room.visuals.waterNeedsRefresh = true;
 		Room.visuals.Refresh();
 
-		string? settingsPath = PathUtil.FindFile(WorldWindow.region.roomsPath, Room.name + "_settings.txt");
+		string? settingsPath = PathUtil.FindFile(WorldWindow.region.exportRoomsPath, Room.name + "_settings.txt");
 		FloodForge.Backup.File(settingsPath);
 
 		string before = "";
@@ -1802,7 +1802,7 @@ public static class DropletWindow {
 			placedObjectsLine = output.ToString();
 		}
 
-		settingsPath ??= PathUtil.Combine(WorldWindow.region.roomsPath, Room.name + "_settings.txt");
+		settingsPath ??= PathUtil.Combine(WorldWindow.region.exportRoomsPath, Room.name + "_settings.txt");
 		using StreamWriter sw = new StreamWriter(settingsPath);
 		sw.Write(before);
 		if (!string.IsNullOrEmpty(placedObjectsLine)) {
@@ -2015,7 +2015,7 @@ public static class DropletWindow {
 		List<(string, string, byte[])> renderedRooms = [];
 		for (int i = 0; i < Room.data.cameras.Count; i++) {
 			string imageName = $"{Room.name}_{i + 1}"; // REVIEW - merge this behaviour with revised UpdateRegionFiles? so that images are held and only updated upon export?
-			string outputPath = Settings.UpdateRoomImagesOnRender ? Path.Combine(WorldWindow.region.roomsPath, $"{imageName}.png") : Path.Combine("renderOutput", WorldWindow.region.acronym, $"{imageName}.png");
+			string outputPath = Settings.UpdateRoomImagesOnRender ? Path.Combine(WorldWindow.region.importRoomsPath, $"{imageName}.png") : Path.Combine("renderOutput", WorldWindow.region.acronym, $"{imageName}.png");
 			Logger.Info(outputPath.Split("Rain World")[^1].Split("FloodForge")[^1]);
 			if (WorldWindow.renderStatusPopup != null) WorldWindow.renderStatusPopup?.UpdateText(updateBaseText + " " + (i + 1) + "/" + Room.data.cameras.Count);
 			try {
@@ -2215,7 +2215,7 @@ public static class DropletWindow {
 						string message = "";
 						try {
 							if (Render(out message, out (string name, string outputPath, byte[] image)[] images)){
-								Directory.CreateDirectory(Settings.UpdateRoomImagesOnRender ? WorldWindow.region.roomsPath : Path.Combine("renderOutput", WorldWindow.region.acronym));
+								Directory.CreateDirectory(Settings.UpdateRoomImagesOnRender ? WorldWindow.region.exportRoomsPath : Path.Combine("renderOutput", WorldWindow.region.acronym));
 								for(int i = 0; i < images.Length; i++){
 									FloodForge.Backup.File(images[i].outputPath);
 

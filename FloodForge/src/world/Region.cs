@@ -9,8 +9,22 @@ public class Region {
 	public string extraMap = "";
 	public string extraWorldCreatures = "";
 
-	public string roomsPath = "";
-	public string exportPath = "";
+	/// <summary>
+	/// The location of the <c>mods/XX</c> folder used for importing
+	/// </summary>
+	public string importFolderPath = "";
+	/// <summary>
+	/// The location of the <c>mods/XX</c> folder used for exporting
+	/// </summary>
+	public string exportFolderPath = "";
+	/// <summary>
+	/// The location of the <c>mods/XX-rooms</c> folder used for importing
+	/// </summary>
+	public string importRoomsPath = "";
+	/// <summary>
+	/// The location of the <c>mods/XX-rooms</c> folder used for exporting
+	/// </summary>
+	public string exportRoomsPath = "";
 
 	public Dictionary<string, RoomAttractiveness> defaultAttractiveness = [];
 

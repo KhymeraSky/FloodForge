@@ -18,7 +18,7 @@ public class RenameRoomPopup : Popup {
 		}
 
 		int i = 1;
-		while (PathUtil.FindFile(WorldWindow.region.roomsPath, $"{WorldWindow.region.acronym}_{prefix}{i:D2}.txt") != null) {
+		while (PathUtil.FindFile(WorldWindow.region.importRoomsPath, $"{WorldWindow.region.acronym}_{prefix}{i:D2}.txt") != null) {
 			i++;
 		}
 

@@ -291,7 +291,7 @@ public class SplashArtPopup : Popup {
 
 				if (Mouse.JustLeft) {
 					this.Close();
-					WorldParser.ImportWorld(RecentFiles.recents[i], !Settings.HideTutorial && !Settings.HideTutorialOnLoadWorld && this.showTutorialAfterClose);
+					WorldParser.ImportWorld(RecentFiles.recents[i], null, !Settings.HideTutorial && !Settings.HideTutorialOnLoadWorld && this.showTutorialAfterClose);
 					return;
 				}
 			}

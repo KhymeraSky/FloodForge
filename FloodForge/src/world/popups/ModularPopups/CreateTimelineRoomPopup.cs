@@ -64,8 +64,8 @@ public class CreateTimelineRoomPopup : ModularPopup {
 	}
 
 	private void CreateRoom() {
-		string newPath = Path.Combine(WorldWindow.region.roomsPath, $"{WorldWindow.region.acronym}_{this.newName}.txt");
-		File.Copy(Path.Combine(WorldWindow.region.roomsPath, this.relevantRoom.name + ".txt"), newPath, true);
+		string newPath = Path.Combine(WorldWindow.region.importRoomsPath, $"{WorldWindow.region.acronym}_{this.newName}.txt");
+		File.Copy(Path.Combine(WorldWindow.region.importRoomsPath, this.relevantRoom.name + ".txt"), newPath, true);
 
 		WorldWindow.selectedDraggables = [];
 

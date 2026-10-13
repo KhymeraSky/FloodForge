@@ -171,8 +171,8 @@ public class EditReplaceRoomPopup : ModularPopup {
 	}
 
 	private void CreateNew() {
-		string newPath = Path.Combine(WorldWindow.region.roomsPath, $"{WorldWindow.region.acronym}_{this.replaceRoomName}.txt");
-		File.Copy(Path.Combine(WorldWindow.region.roomsPath, this.relevantRoom.name + ".txt"), newPath, true);
+		string newPath = Path.Combine(WorldWindow.region.exportRoomsPath, $"{WorldWindow.region.acronym}_{this.replaceRoomName}.txt");
+		File.Copy(Path.Combine(WorldWindow.region.exportRoomsPath, this.relevantRoom.name + ".txt"), newPath, true);
 
 		WorldWindow.selectedDraggables = [];
 

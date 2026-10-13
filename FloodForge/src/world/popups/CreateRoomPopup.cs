@@ -35,7 +35,7 @@ public class CreateRoomPopup : Popup {
 				break;
 			i++;
 		}
-		while (PathUtil.FindFile(WorldWindow.region.roomsPath, $"{WorldWindow.region.acronym}_{prefix}{i:D2}.txt") != null) { // REVIEW - skip this step?
+		while (PathUtil.FindFile(WorldWindow.region.importRoomsPath, $"{WorldWindow.region.acronym}_{prefix}{i:D2}.txt") != null) { // REVIEW - skip this step?
 			i++;
 		}
 
@@ -201,7 +201,7 @@ public class CreateRoomPopup : Popup {
 			}
 			else {
 				string name = $"{WorldWindow.region.acronym}_{this.RoomName.value}";
-				if (PathUtil.FindFile(WorldWindow.region.roomsPath, name + ".txt") != null) {
+				if (PathUtil.FindFile(WorldWindow.region.importRoomsPath, name + ".txt") != null) {
 					canCreate = false;
 					this.errorText = "Room with that name already exists in files!";
 				}
