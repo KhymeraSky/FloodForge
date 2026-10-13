@@ -78,6 +78,7 @@ public static class WorldWindow {
 		}
 	}
 	public static WorldDraggable? draggablePossibleSelect = null;
+	public static Connection? connectionPossibleSelect = null;
 	private static SelectingState selectingState = SelectingState.None;
 	public static Vector2 selectionStart;
 	public static Vector2 selectionEnd;
@@ -170,6 +171,7 @@ public static class WorldWindow {
 		selectedConnections.Clear();
 		selectedDraggables.Clear();
 		draggablePossibleSelect = null;
+		connectionPossibleSelect = null;
 		connectionExtensionsEnabled = false;
 		selectingState = SelectingState.None;
 		region = new Region();
@@ -649,9 +651,17 @@ public static class WorldWindow {
 		if (Mouse.Left) {
 			if (!Mouse.LastLeft && !menuItems.Hovered()) { // if just started pressing left
 				if (selectingState == SelectingState.None) { // if we weren't selecting anything before
-					WorldDraggable? draggable = HoveringDraggable; // get hovering room -> WorldDraggable
+					connectionPossibleSelect = null;
+					draggablePossibleSelect = null;
 
-					if (draggable != null && draggable.Selectable) { // if there's a hovering room (WorldDraggable)
+					WorldDraggable? draggable = HoveringDraggable; // get hovering room -> WorldDraggable
+					Connection? connection = HoveringConnection;
+
+					if (connection != null && connection.Selectable) {
+						connectionPossibleSelect = connection;
+						selectingState = SelectingState.PendingDrag;
+					}
+					else if (draggable != null && draggable.Selectable) { // if there's a hovering room (WorldDraggable)
 						holdingDraggable = draggable; // start holding said room (WorldDraggable)
 						holdingStart = worldMouse; // set the hold's start point
 						draggablePossibleSelect = draggable; // we might end up wanting to select this room (WorldDraggable)
@@ -677,7 +687,7 @@ public static class WorldWindow {
 				// if we're either pending drag and moving mouse or already dragging AND we have a room to select AND we have a holdingStart point
 				if ((selectingState == SelectingState.PendingDrag && Mouse.Moved || selectingState == SelectingState.Dragging) && draggablePossibleSelect != null && holdingStart != null) {
 					if (selectingState == SelectingState.PendingDrag) { // if we're only just starting to drag
-						HandleSelectionLogic(draggablePossibleSelect); // change the selectedRooms list depending on shift/ctrl
+						HandleSelectionLogic(draggablePossibleSelect, false); // change the selectedRooms list depending on shift/ctrl
 						selectingState = SelectingState.Dragging; // switch to dragging
 					}
 
@@ -696,8 +706,9 @@ public static class WorldWindow {
 		}
 		else { // if we AREN'T pressing left currently
 			   // if we're pending a drag and we have a possible room to select -> it was a click
-			if (selectingState == SelectingState.PendingDrag && draggablePossibleSelect != null) {
-				HandleSelectionLogic(draggablePossibleSelect); // change the selectedRooms list depending on shift/ctrl
+			if (selectingState == SelectingState.PendingDrag && (draggablePossibleSelect != null || connectionPossibleSelect != null)) {
+				HandleSelectionLogic(draggablePossibleSelect, true); // change the selectedRooms list depending on shift/ctrl
+				HandleSelectionLogic(connectionPossibleSelect);
 				if (roomSnap) {
 					MoveChange draggableMoveChange = new MoveChange();
 					foreach (WorldDraggable draggable in selectedDraggables) {
@@ -743,7 +754,9 @@ public static class WorldWindow {
 		}
 	}
 
-	private static void HandleSelectionLogic(WorldDraggable draggable) {
+	private static void HandleSelectionLogic(WorldDraggable? draggable, bool onRelease) {
+		if (draggable == null)
+			return;
 		if (draggable is Room room) {
 			region.rooms.Remove(room); // reorder the room to be on top (idk if i like this way of doing it)
 			region.rooms.Add(room);
@@ -759,9 +772,33 @@ public static class WorldWindow {
 				selectedDraggables.Add(draggable);
 		}
 		else {
-			if (!selectedDraggables.Contains(draggable)) { // if it's not additive and the room isn't already selected, clear selectedRooms
+			if (onRelease) {
 				selectedDraggables.Clear();
+				selectedConnections.Clear();
+			}
+			if (!selectedDraggables.Contains(draggable)) { // if it's not additive and the room isn't already selected, clear selectedRooms
+				if (!onRelease) {
+					selectedDraggables.Clear();
+					selectedConnections.Clear();
+				}
 				selectedDraggables.Add(draggable);
+			}
+		}
+	}
+	
+	private static void HandleSelectionLogic(Connection? connection) {
+		if (connection == null)
+			return;
+		bool isAdditive = Input.ModifiersPressed(Input.Modifier.Shift) || Input.ModifiersPressed(Input.Modifier.Control);
+		if (isAdditive) { // if it's additive, add room if it doesn't exist and remove if it does
+			if (!selectedConnections.Remove(connection))
+				selectedConnections.Add(connection);
+		}
+		else {
+			if (!selectedConnections.Contains(connection)) { // if it's not additive and the room isn't already selected, clear selectedRooms
+				selectedDraggables.Clear();
+				selectedConnections.Clear();
+				selectedConnections.Add(connection);
 			}
 		}
 	}
