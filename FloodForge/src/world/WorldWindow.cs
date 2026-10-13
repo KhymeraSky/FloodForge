@@ -2154,6 +2154,17 @@ public static class WorldWindow {
 			}
 		}
 
+		public static void RefreshMap(bool usingExportDirectory = false) {
+			string reimportFolderPath = usingExportDirectory ? WorldWindow.region.exportFolderPath : WorldWindow.region.importFolderPath;
+			string? path = PathUtil.FindFile(reimportFolderPath, $"world_{WorldWindow.region.acronym}.txt");
+			if (path == null) {
+				PopupManager.Add(new InfoPopup("Could not find world_xx.txt file!"));
+				Logger.Info($"Failed to find world file at {reimportFolderPath}/world_{WorldWindow.region.acronym}.txt");
+				return;
+			}
+			WorldParser.ImportWorld(path, (region.exportFolderPath, region.exportRoomsPath), false);
+		}
+
 		public WorldMenuItems() {
 			this.items = [
 				new Button("New", button => {
@@ -2251,13 +2262,14 @@ public static class WorldWindow {
 
 					// TODO - add option to refresh from export path instead of original import path
 					new Button("Refresh Region", button => {
-						string? path = PathUtil.FindFile(WorldWindow.region.importFolderPath, $"world_{WorldWindow.region.acronym}.txt");
-						if (path == null) {
-							PopupManager.Add(new InfoPopup("Could not find world_xx.txt file!"));
-							Logger.Info($"Failed to find world file at {WorldWindow.region.importFolderPath}/world_{WorldWindow.region.acronym}.txt");
-							return;
-						}
-						WorldParser.ImportWorld(path, (region.exportFolderPath, region.exportRoomsPath), false);
+						if (region.exportFolderPath != null && !Path.GetFullPath(region.importFolderPath).Equals(Path.GetFullPath(region.exportFolderPath)))
+							PopupManager.Add(new ConfirmPopup("This region was exported to another folder.\nRefresh from the new folder?\nRefreshing from original will revert changes").SetButtons("Use New", "Use Original").Okay(
+								() => RefreshMap(true)
+							).Cancel(
+								() => RefreshMap(false)
+							));
+						else
+							RefreshMap();
 					}, button => { return WorldWindow.ValidRegionLoaded; },
 					"You must create or import a region\nbefore refreshing."),
 				]),
