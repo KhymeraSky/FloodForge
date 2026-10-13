@@ -1538,6 +1538,34 @@ public static class WorldWindow {
 							debugText.Add("Blocked bat migration");
 					}
 				}
+				else if (HoveringDraggable is ReplaceRoom replaceRoom) {
+					debugText.Add("");
+					debugText.Add("    ReplaceRoom:");
+					debugText.Add($"Name: {replaceRoom.replacingRoom.name}");
+					debugText.Add($"Replaces: {replaceRoom.replacedRoom.name}");
+					if (replaceRoom.timeline.timelineType != TimelineType.All)
+						debugText.Add($"Timeline: {replaceRoom.timeline}");	
+					if (replaceRoom.preProcessorConditions.Length != 0) {
+						string line = "PreProcessorConditions: {";
+						bool first = true;
+						foreach(string item in replaceRoom.preProcessorConditions) {
+							line += (first ? "" : ",") + item;
+							first = false;
+						}
+						line += "}";
+						debugText.Add(line);
+					}
+				}
+				else if (HoveringDraggable is ReferenceImage image) {
+					debugText.Add("");
+					debugText.Add("    ReferenceImage:");
+					debugText.Add($"Name: {Path.GetFileName(image.imagePath)}");
+					debugText.Add($"Size: {image.Width}x{image.Height}");
+					debugText.Add($"Opacity: {image.opacity}");
+					debugText.Add($"Scale: {image.Scale}");
+					debugText.Add($"Locked: {image.lockImage}");
+					debugText.Add($"UnderGrid: {image.drawUnderGrid}");
+				}
 			}
 
 			if (VisibleCreatures) {
