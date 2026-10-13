@@ -40,8 +40,9 @@ public static class WorldWindow {
 	public static bool connectionExtensionsEnabled = false;
 
 	public static Region region = null!;
+	public static bool HasImportPath => !WorldWindow.region.importFolderPath.IsNullOrEmpty();
 	public static bool HasExportPath => !WorldWindow.region.exportFolderPath.IsNullOrEmpty();
-	public static bool ValidRegionLoaded => WorldWindow.region != null && !WorldWindow.region.acronym.IsNullOrEmpty() && (HasExportPath || !Settings.UpdateRegionFiles) && !importIncomplete; // REVIEW - HasExportPath obsolete due to room export changes?
+	public static bool ValidRegionLoaded => WorldWindow.region != null && !WorldWindow.region.acronym.IsNullOrEmpty() && !importIncomplete;
 	public static bool importIncomplete = false;
 	public static List<string> invalidCreatures = [];
 	public static Vector2 cameraOffset;
@@ -1101,7 +1102,7 @@ public static class WorldWindow {
 			if (region.acronym.IsNullOrEmpty()) {
 				PopupManager.Add(new InfoPopup("You must create or import your region\nbefore creating or editing a room."));
 			}
-			else if (!HasExportPath && Settings.UpdateRegionFiles) {
+			else if (!ValidRegionLoaded) {
 				PopupManager.Add(new InfoPopup("You must export your region\nbefore creating or editing a room."));
 			}
 			else {
@@ -2112,6 +2113,12 @@ public static class WorldWindow {
 				if (!Directory.Exists(WorldWindow.region.exportRoomsPath))
 					Directory.CreateDirectory(WorldWindow.region.exportRoomsPath);
 			}
+			else {
+				if (!WorldWindow.region.importFolderPath.IsNullOrEmpty()) {
+					WorldWindow.region.exportFolderPath = WorldWindow.region.importFolderPath;
+					WorldWindow.region.exportRoomsPath = WorldWindow.region.importRoomsPath;
+				}
+			}
 
 			if (!string.IsNullOrEmpty(WorldWindow.region.exportFolderPath)) {
 				ExportMap();
@@ -2216,9 +2223,9 @@ public static class WorldWindow {
 						}
 						confirmRenderPopup = new ConfirmPopup($"Render {(selectedRooms.Count != 0 ? selectedRooms.Count + " rooms" + (selectedReplaceRoomRefs.Count != 0 ? " and " : "") : "")}{(selectedReplaceRoomRefs.Count != 0 ? selectedReplaceRoomRefs.Count + " replaceRoom references" : "")}?"
 							 + (Settings.UpdateRoomImagesOnRender ? 
-								(region.exportRoomsPath.Contains(Path.Combine("StreamingAssets", "world")) ? "\nVanilla rooms may be overwritten!" :
-								region.exportRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "moreslugcats")) ? "\nDownpour rooms may be overwritten!" :
-								region.exportRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "watcher")) ? "\nWatcher rooms may be overwritten!" :
+								(region.importRoomsPath.Contains(Path.Combine("StreamingAssets", "world")) ? "\nVanilla rooms may be overwritten!" :
+								region.importRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "moreslugcats")) ? "\nDownpour rooms may be overwritten!" :
+								region.importRoomsPath.Contains(Path.Combine("StreamingAssets", "mods", "watcher")) ? "\nWatcher rooms may be overwritten!" :
 								"\n<s:1>This will overwrite all existing images!") :
 								"\nThis will export images to the renderOutput folder"
 							)).Okay(() => renderRoomsTask = MassRenderRooms(allRooms));

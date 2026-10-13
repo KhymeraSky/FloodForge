@@ -15,7 +15,11 @@ public static class WorldExporter {
 
 		ExportFinished = false;
 
-		bool isNewMap = !WorldWindow.HasExportPath;
+		bool isNewMap = !WorldWindow.HasImportPath;
+		if (isNewMap) {
+			WorldWindow.region.importFolderPath = WorldWindow.region.exportFolderPath;
+			WorldWindow.region.importRoomsPath = WorldWindow.region.exportRoomsPath;
+		}
 		WorldWindow.invalidCreatures = [];
 
 		Backup.Folder(WorldWindow.region.exportFolderPath);
@@ -37,7 +41,7 @@ public static class WorldExporter {
 		ExportRooms(WorldWindow.region.exportRoomsPath);
 
 		if (isNewMap)
-			RecentFiles.AddPath(PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, $"world_{WorldWindow.region.acronym}.txt"));
+			RecentFiles.AddPath(PathUtil.FindOrAssumeFile(WorldWindow.region.importFolderPath, $"world_{WorldWindow.region.acronym}.txt"));
 
 		PersistentData.StorePersistentData(WorldWindow.region.acronym);
 		ExportFinished = true;

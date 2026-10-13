@@ -1292,8 +1292,8 @@ public static class WorldParser {
 		roomAttractiveness.Clear();
 		WorldWindow.Reset();
 		WorldWindow.region.importFolderPath = PathUtil.Parent(worldPath);
-		WorldWindow.region.exportFolderPath = lastExportPaths?.Item1 ?? "";
-		WorldWindow.region.exportRoomsPath = lastExportPaths?.Item2 ?? "";
+		WorldWindow.region.exportFolderPath = lastExportPaths?.Item1!;
+		WorldWindow.region.exportRoomsPath = lastExportPaths?.Item2!;
 		WorldWindow.region.acronym = Path.GetFileNameWithoutExtension(worldPath);
 		WorldWindow.region.acronym = WorldWindow.region.acronym[(WorldWindow.region.acronym.IndexOfReverse('_') + 1)..];
 

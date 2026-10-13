@@ -12,19 +12,19 @@ public class Region {
 	/// <summary>
 	/// The location of the <c>mods/XX</c> folder used for importing
 	/// </summary>
-	public string importFolderPath = "";
+	public string importFolderPath = null!;
 	/// <summary>
 	/// The location of the <c>mods/XX</c> folder used for exporting
 	/// </summary>
-	public string exportFolderPath = "";
+	public string exportFolderPath = null!;
 	/// <summary>
 	/// The location of the <c>mods/XX-rooms</c> folder used for importing
 	/// </summary>
-	public string importRoomsPath = "";
+	public string importRoomsPath = null!;
 	/// <summary>
 	/// The location of the <c>mods/XX-rooms</c> folder used for exporting
 	/// </summary>
-	public string exportRoomsPath = "";
+	public string exportRoomsPath = null!;
 
 	public Dictionary<string, RoomAttractiveness> defaultAttractiveness = [];
 
