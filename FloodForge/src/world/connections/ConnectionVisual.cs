@@ -77,18 +77,17 @@ public abstract class ConnectionVisual {
 		this.drawStriped = drawStriped;
 	}
 
-	public bool Intersects(Vector2 from, Vector2 to) {
+	public bool Intersects(Vector2 from, Vector2 to, float margin = 0f) {
 		Vector2 cornerMin = Vector2.Min(from, to);
 		Vector2 cornerMax = Vector2.Max(from, to);
 
-		if (!(cornerMax.x >= this.fittedAABB.x0 && cornerMax.y >= this.fittedAABB.y0 && cornerMin.x < this.fittedAABB.x1 && cornerMin.y <= this.fittedAABB.y1))
+		if (!(cornerMax.x >= this.AABB.x0 && cornerMax.y >= this.AABB.y0 && cornerMin.x < this.AABB.x1 && cornerMin.y <= this.AABB.y1))
 			return false;
 		for (int i = 0; i < this.BezierPoints.Length - 1; i++) {
-			Vector2 pointA = this.BezierPoints[i];
-			Vector2 pointB = this.BezierPoints[i + 1];
-			if (new Rect(from, to).IntersectsLine(pointA, pointB)) {
+			Vector2 pointA = this.BezierPoints[i] + this.bezierOriginOffset;
+			Vector2 pointB = this.BezierPoints[i + 1] + this.bezierOriginOffset;
+			if (new Rect(from, to).IntersectsLine(pointA, pointB, margin))
 				return true;
-			}
 		}
 		return false;
 	}
