@@ -137,7 +137,7 @@ public static class WorldWindow {
 	public static WorldDraggable? HoveringDraggable => (placingRoom && roomPlacementVisualiser.Inside(worldMouse)) ? roomPlacementVisualiser : HoveringReplaceRoom ?? HoveringRoom ?? (WorldDraggable?)HoveringReferenceImage;
 
 	public static Connection? HoveringConnection => region.connections?.LastOrDefault(c => {
-		return (c.ConnectionVisible || c.roomA.Visible && c.roomB.Visible) && c.Hovered;
+		return c.Selectable && c.Hovered;
 	});
 
 	public static bool HoveringOrSelectedRooms(out HashSet<Room> rooms) {
@@ -820,7 +820,7 @@ public static class WorldWindow {
 	}
 
 	private static void ActionDelete() {
-		Connection? connection = region.connections.FirstOrDefault(c => c.ConnectionVisible && c.roomA.Visible && c.roomB.Visible && c.Hovered);
+		Connection? connection = HoveringConnection;
 		if (connection != null && connection.roomA.data.lockState != RoomLockState.locked && connection.roomB.data.lockState != RoomLockState.locked) {
 			DeleteConnection(connection);
 			return;

@@ -15,6 +15,7 @@ public class Connection : ConnectionVisual{
 	public override Vector2 PointB => this.invalid ? this.roomB.Position : this.roomB.GetConnectionConnectPoint(this.roomBExitID);
 	public override Vector2i DirectionB => this.invalid ? new Vector2i(0, 0) : this.roomB.GetConnectionConnectDirection(this.roomBExitID);
 
+	public bool Selectable => this.ConnectionVisible || this.roomA.Visible && this.roomB.Visible;
 	public override bool AVisible => this.roomA.Visible;
 	public override bool BVisible => this.roomB.Visible;
 
