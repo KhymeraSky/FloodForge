@@ -18,6 +18,7 @@ public class Connection : ConnectionVisual{
 	public bool Selectable => this.ConnectionVisible || this.roomA.Visible && this.roomB.Visible;
 	public override bool AVisible => this.roomA.Visible;
 	public override bool BVisible => this.roomB.Visible;
+	public override float SizeMultiplier => WorldWindow.selectedConnections.Contains(this) ? 1.4f : 1f;
 
 	public string[] preProcessorConditions = [];
 	
@@ -60,7 +61,7 @@ public class Connection : ConnectionVisual{
 	}
 
 	protected override (Color, Color) GetColorInformation(bool fadeMiddle, bool AVisible, bool BVisible, bool hovered) {
-		bool roomConnectionHoverColor = (!fadeMiddle) && AVisible && BVisible && hovered;
+		bool roomConnectionHoverColor = (!fadeMiddle) && AVisible && BVisible && (hovered || WorldWindow.selectedConnections.Contains(this));
 		Color connectionColorA;
 		Color connectionColorB;
 

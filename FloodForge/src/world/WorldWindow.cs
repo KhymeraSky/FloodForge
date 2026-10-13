@@ -57,6 +57,7 @@ public static class WorldWindow {
 	public static float SelectorScale { get; private set; } = 1f;
 	public static Vector2 worldMouse;
 
+	public static HashSet<Connection> selectedConnections = [];
 	public static HashSet<WorldDraggable> selectedDraggables = [];
 	public static HashSet<Room> SelectedRooms {
 		get {
@@ -166,6 +167,7 @@ public static class WorldWindow {
 		referenceImages.Clear();
 		replaceRooms.Clear();
 		replaceReferenceRooms.Clear();
+		selectedConnections.Clear();
 		selectedDraggables.Clear();
 		draggablePossibleSelect = null;
 		connectionExtensionsEnabled = false;
@@ -665,8 +667,10 @@ public static class WorldWindow {
 					selectionEnd = selectionStart; // reset selection
 
 					bool isAdditive = (!isOriginal && Input.ModifiersPressed(Input.Modifier.Shift)) || Input.ModifiersPressed(Input.Modifier.Control);
-					if (!isAdditive && !isPanning)
+					if (!isAdditive && !isPanning) {
 						selectedDraggables.Clear(); // if selecting and not additive, any new selection clears the old one
+						selectedConnections.Clear();
+					}
 				}
 			}
 			else {
@@ -726,6 +730,10 @@ public static class WorldWindow {
 				foreach (ReplaceRoom replaceRoom in replaceRooms) {
 					if (replaceRoom.Intersects(selectionStart, selectionEnd) && replaceRoom.Selectable)
 						selectedDraggables.Add(replaceRoom);
+				}
+				foreach (Connection connection in region.connections) {
+					if (connection.Intersects(selectionStart, selectionEnd, WorldWindow.SelectorScale * 0.25f) && connection.Selectable)
+						selectedConnections.Add(connection);
 				}
 			}
 
@@ -819,7 +827,7 @@ public static class WorldWindow {
 		worldHistory.Apply(change1);
 	}
 
-	private static void ActionDelete() {
+	private static void ActionDelete() { // TODO - rebuild delete behaviour to include connection deletion
 		Connection? connection = HoveringConnection;
 		if (connection != null && connection.roomA.data.lockState != RoomLockState.locked && connection.roomB.data.lockState != RoomLockState.locked) {
 			DeleteConnection(connection);
