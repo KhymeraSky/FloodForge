@@ -1367,6 +1367,23 @@ public static class WorldWindow {
 			debugText.Add($"Rooms: {region.rooms.Count}");
 			debugText.Add($"Screens: {screenCount}");
 			debugText.Add($"Connections: {region.connections.Count}");
+			if (selectedConnections.Count != 0) {
+				List<string> totalDebug = [];
+				string debug = "";
+				foreach (Connection connection in selectedConnections) {
+					debug += $"{connection.roomA.name}<{connection.roomAExitID}> - {connection.roomB.name}<{connection.roomBExitID}>; ";
+					if (debug.Length > 75) {
+						totalDebug.Add(debug);
+						debug = "";
+					}
+				}
+				if (debug != "")
+					totalDebug.Add(debug);
+				debugText.Add($"Selection: {selectedConnections.Count} : {(totalDebug.Count > 0 ? totalDebug[0] : "")}");
+				for (int j = 1; j < totalDebug.Count; j++) {
+					debugText.Add(totalDebug[j]);
+				}
+			}
 			if (selectedDraggables.Count != 0) {
 				List<string> totalDebug = [];
 				string debug = "";
@@ -1391,7 +1408,7 @@ public static class WorldWindow {
 				}
 				if (debug != "")
 					totalDebug.Add(debug);
-				debugText.Add($"Selection: {selectedDraggables.Count} : {(totalDebug.Count >= 0 ? totalDebug[0] : "")}");
+				debugText.Add($"Selection: {selectedDraggables.Count} : {(totalDebug.Count > 0 ? totalDebug[0] : "")}");
 				for (int j = 1; j < totalDebug.Count; j++) {
 					debugText.Add(totalDebug[j]);
 				}
