@@ -10,7 +10,7 @@ public class ConfirmPopup : Popup {
 
 	public ConfirmPopup(string text) {
 		this.question = text.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
-		float height = MathF.Max(0.25f, this.question.Length * 0.05f + 0.07f + 0.06f);
+		float height = MathF.Max(0.25f, this.question.Length * 0.06f + 0.07f + 0.06f);
 		float textWidth = this.question.Length > 0 ? this.question.Max(line => UI.font.Measure(line, 0.04f).x) : 0f;
 		float width = MathF.Max(0.4f, textWidth + 0.05f);
 		this.bounds = new Rect(width * -0.5f, height * -0.5f, width * 0.5f, height * 0.5f);
@@ -69,7 +69,7 @@ public class ConfirmPopup : Popup {
 		if (this.collapsed) return;
 		
 		for (int idx = 0; idx < this.question.Length; idx++) {
-			float y = this.bounds.y1 - 0.08f - 0.05f * idx;
+			float y = this.bounds.y1 - 0.08f - 0.06f * idx;
 			UI.font.WriteFormatted(this.question[idx], this.bounds.CenterX, y, 0.04f, Font.Align.TopCenter | Font.Align.MiddleLeft);
 		}
 
