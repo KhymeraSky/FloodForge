@@ -53,6 +53,11 @@ public class ConditionalPopup : TimelinePopup {
 		this.UpdateTimeline(new (connections?.First().timeline.timelineType ?? lineage?.timeline.timelineType ?? rooms!.First().timeline.timelineType, this.timeline.timelines));
 	}
 
+	public ConditionalPopup(IEnumerable<Connection> connections, IEnumerable<Room> rooms) : this(connections, rooms, null) {
+		this.connections = [ ..connections ];
+		this.rooms = [ ..rooms ];
+	}
+
 	public ConditionalPopup(IEnumerable<Connection> connections) : this(connections, null, null) {
 		this.connections = [ ..connections ];
 	}
