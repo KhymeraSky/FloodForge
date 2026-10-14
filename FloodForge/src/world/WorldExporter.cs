@@ -43,6 +43,10 @@ public static class WorldExporter {
 			RecentFiles.AddPath(PathUtil.FindOrAssumeFile(WorldWindow.region.importFolderPath, $"world_{WorldWindow.region.acronym}.txt"));
 
 		PersistentData.StorePersistentData(WorldWindow.region.acronym);
+
+		if (WorldWindow.region.OldAcronym != WorldWindow.region.acronym)
+			NameChanger.HandleRegionAcronymChange();
+
 		ExportFinished = true;
 		return true;
 	}
@@ -1729,6 +1733,9 @@ public static class WorldExporter {
 				Logger.Info($"    skipping gate {room.name}"); // add exporting to the gates folder?
 				continue;
 			}
+			bool roomNameChanged = room.OldName != room.name;
+			bool deleteOldFiles = !room.retainOldFiles;
+			bool sameFolderExport = Path.GetFullPath(WorldWindow.region.importFolderPath).Equals(Path.GetFullPath(WorldWindow.region.exportFolderPath));
 			if (room.fileModified) {
 				Logger.Info($"    loading room {room.name}");
 				DropletWindow.LoadRoom(room, Vector2.Zero);
@@ -1739,13 +1746,27 @@ public static class WorldExporter {
 				string geoFileSourcePath = Path.GetFullPath(room.path);
 				string geoFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, room.name + ".txt"));
 				if (!geoFileSourcePath.Equals(geoFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(geoFileSourcePath)) {
-					File.Copy(geoFileSourcePath, geoFileDestPath, true);
+					if (roomNameChanged) {
+						string[] originalFile = File.ReadAllLines(geoFileSourcePath);
+						if (originalFile[0].Trim() == room.OldName)
+							originalFile[0] = room.name;
+						File.WriteAllLines(geoFileDestPath, originalFile);
+					}
+					else
+						File.Copy(geoFileSourcePath, geoFileDestPath, true);
+					if ((sameFolderExport || Settings.UpdateRegionFiles) && roomNameChanged && deleteOldFiles) {
+						Backup.File(geoFileSourcePath);
+						File.Delete(geoFileSourcePath);
+					}
 				}
-				string settingsFileName = room.name + $"_settings.txt";
-				string settingsFileSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), settingsFileName));
-				string settingsFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, settingsFileName));
+				string settingsFileSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), room.OldName + $"_settings.txt"));
+				string settingsFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, room.name + $"_settings.txt"));
 				if (!settingsFileSourcePath.Equals(settingsFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(settingsFileSourcePath)) {
 					File.Copy(settingsFileSourcePath, settingsFileDestPath, true);
+					if ((sameFolderExport || Settings.UpdateRegionFiles) && roomNameChanged && deleteOldFiles) {
+						Backup.File(settingsFileSourcePath);
+						File.Delete(settingsFileSourcePath);
+					}
 				}
 			}
 			
@@ -1768,13 +1789,22 @@ public static class WorldExporter {
 			else {
 				Logger.Info($"    copying images for room {room.name};");
 				for (int i = 1; i <= room.data.cameras.Count; i++) {
-					string imageName = room.name + $"_{i}.png";
-					string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), imageName));
-					string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, imageName));
+					string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), room.OldName + $"_{i}.png"));
+					string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, room.name + $"_{i}.png"));
 					if (!imageSourcePath.EndsWith(imageDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(imageSourcePath)) {
 						File.Copy(imageSourcePath, imageDestPath, true);
+						if ((sameFolderExport || Settings.UpdateRegionFiles) && roomNameChanged && deleteOldFiles) {
+							Backup.File(imageSourcePath);
+							File.Delete(imageSourcePath);
+						}
 					}
 				}
+			}
+			if (roomNameChanged) {
+				if ((sameFolderExport || Settings.UpdateRegionFiles) && deleteOldFiles)
+					room.path = Path.Combine(PathUtil.Parent(room.path), room.name + ".txt");
+				room.oldName = null;
+				room.retainOldFiles = true;
 			}
 		}
 		Logger.Info($"done");

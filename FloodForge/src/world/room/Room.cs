@@ -22,6 +22,9 @@ public class Room : MapDraggable {
 	public const uint FLAG_SPEAR = 524288;
 
 	public bool fileModified = false;
+	public string? oldName;
+	public string OldName { get { return this.oldName ?? this.name; } }
+	public bool retainOldFiles;
 	public List<(string imageID, byte[] image)> renderedImages = [];
 	public bool pathOutsideRoomsFolder = false;
 	public string path;

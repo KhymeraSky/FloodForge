@@ -171,15 +171,12 @@ public class EditReplaceRoomPopup : ModularPopup {
 	}
 
 	private void CreateNew() {
-		string newPath = Path.Combine(WorldWindow.region.exportRoomsPath, $"{WorldWindow.region.acronym}_{this.replaceRoomName}.txt");
-		File.Copy(Path.Combine(WorldWindow.region.exportRoomsPath, this.relevantRoom.name + ".txt"), newPath, true);
+		string replaceRoomName = $"{WorldWindow.region.acronym}_{this.replaceRoomName}";
 
 		WorldWindow.selectedDraggables = [];
 
-		string key = "CreateReplaceRoomNew";
-		WorldWindow.worldHistory.StartCollectingChanges([typeof(RoomAndConnectionChange)], key);
-		Room addedRoom = WorldWindow.HandleRoomFilesSelected([newPath]).First();
-		WorldWindow.worldHistory.StopCollectingChanges(key);
+		Room addedRoom = new(replaceRoomName, this.relevantRoom.width, this.relevantRoom.height, false, false, false);
+		this.relevantRoom.CopyTo(addedRoom);
 
 		addedRoom.isVirtualRoom = true;
 		this.CreateReplaceRoom(addedRoom);
@@ -257,10 +254,14 @@ public class EditReplaceRoomPopup : ModularPopup {
 		
 		string key = "CreateReplaceRoomFromFile";
 		WorldWindow.worldHistory.StartCollectingChanges([typeof(RoomAndConnectionChange)], key);
-		Room addedRoom = WorldWindow.HandleRoomFilesSelected([this.filePath]).First();
-		WorldWindow.worldHistory.StopCollectingChanges(key);
-		addedRoom.isVirtualRoom = true;
-		this.CreateReplaceRoom(addedRoom);
+		Room? addedRoom = WorldWindow.HandleRoomFilesSelected([this.filePath]).FirstOrDefault();
+		if (addedRoom == null)
+			Logger.Error("Addedroom == null!");
+		else {
+			WorldWindow.worldHistory.StopCollectingChanges(key);
+			addedRoom.isVirtualRoom = true;
+			this.CreateReplaceRoom(addedRoom);
+		}
 	}
 
 	private void CreateReplaceRoom(Room roomToUse) {

@@ -2,6 +2,9 @@ namespace FloodForge.World;
 
 public class Region {
 	public string acronym = "";
+	public string? oldAcronym;
+	public string OldAcronym { get { return this.oldAcronym ?? this.acronym; } }
+	public bool retainOldFiles = true;
 	public string displayName = "";
 
 	public string extraProperties = "";

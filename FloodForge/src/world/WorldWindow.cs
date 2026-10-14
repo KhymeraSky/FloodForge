@@ -615,7 +615,8 @@ public static class WorldWindow {
 			else if (HoveringDraggable == null) {
 				static string GetDisplayNameText() { return WorldWindow.region.displayName != "" ? WorldWindow.region.displayName : "no displayname set"; }
 				SettingsPopup.LabelContainer displayNameLabel = new SettingsPopup.LabelContainer(GetDisplayNameText());
-				PopupManager.Add(new SettingsPopup([
+				SettingsPopup worldSettingsPopup = null!;
+				worldSettingsPopup = PopupManager.Add((SettingsPopup)new SettingsPopup([
 					displayNameLabel,
 					new SettingsPopup.ButtonContainer("Change Displayname", () => {
 						string newDisplayName = region.displayName;
@@ -635,22 +636,17 @@ public static class WorldWindow {
 						return true;
 					}),
 					new SettingsPopup.ButtonContainer("Change Acronym", () => {
-						PopupManager.Add(new AcronymPopup((acronym) => {
-							if (acronym.Equals(WorldWindow.region.acronym, StringComparison.InvariantCultureIgnoreCase)) {
-								Logger.Info($"Could not change acronym; {acronym} == {WorldWindow.region.acronym}");
-								PopupManager.Add($"Unable to change acronym:\nacronym '{acronym}' is the same as\nexisting acronym '{WorldWindow.region.acronym}'");
-								return;
-							}
-							string checkPath = WorldWindow.region.importFolderPath[..(WorldWindow.region.importFolderPath.IndexOfReverse('\\') + 1)] + acronym + $"\\world_{acronym}.txt";
-							bool fileExists = File.Exists(checkPath);
-							PopupManager.Add(new ConfirmPopup(fileExists ? $"world_{acronym}.txt already exists\nin this folder.\nOverwrite?" : $"Change Acronym to {acronym}?").SetButtons(fileExists ? "Overwrite" : "Yes", "Cancel").Okay(() => {
-								PopupManager.Add(new ConfirmPopup($"Keep or Replace source files?").SetButtons("<s:1>Replace", "Keep").Okay(() => {
-									NameChanger.ChangeRegionAcronym(acronym, true, fileExists);
-								}).Cancel(() => {
-									NameChanger.ChangeRegionAcronym(acronym, false, fileExists);
-								}).Title("Change Acronym"));
+						if (!PopupManager.Has<AcronymPopup>()) {
+							PopupManager.Add(new AcronymPopup((acronym) => {
+								if (acronym.Equals(WorldWindow.region.acronym)) {
+									Logger.Info($"Could not change acronym; {acronym} == {WorldWindow.region.acronym}");
+									PopupManager.Add($"Unable to change acronym:\nacronym '{acronym}' is the same as\nexisting acronym '{WorldWindow.region.acronym}'");
+									return;
+								}
+								NameChanger.ChangeRegionAcronym(acronym);
+								worldSettingsPopup.Close();
 							}).Title("Change Acronym"));
-						}).Title("Change Acronym"));
+						}
 					}),
 					new SettingsPopup.ButtonContainer("Edit Subregions", () => {
 						PopupManager.Add(new SubregionPopup());
@@ -1652,6 +1648,13 @@ public static class WorldWindow {
 					debugText.Add($"UnderGrid: {image.drawUnderGrid}");
 				}
 			}
+			else {
+				debugText.Add("");
+				debugText.Add($"importFolderPath: {(region.importFolderPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.importFolderPath))}");
+				debugText.Add($"importRoomsPath: {(region.importRoomsPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.importRoomsPath))}");
+				debugText.Add($"exportFolderPath: {(region.exportFolderPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.exportFolderPath))}");
+				debugText.Add($"exportRoomsPath: {(region.exportRoomsPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.exportRoomsPath))}");
+			}
 
 			if (VisibleCreatures) {
 				if (denRoom != null) {
@@ -2084,8 +2087,40 @@ public static class WorldWindow {
 		}
 
 		public static void ExportMap() {
+			bool regionNameChanged = WorldWindow.region.OldAcronym != WorldWindow.region.acronym;
+			if (regionNameChanged) {
+				string exportFolderParent = PathUtil.Parent(WorldWindow.region.exportFolderPath);
+				WorldWindow.region.exportFolderPath = Path.Combine(exportFolderParent, WorldWindow.region.acronym);
+				WorldWindow.region.exportRoomsPath = Path.Combine(exportFolderParent, $"{WorldWindow.region.acronym}-rooms");
+				Directory.CreateDirectory(WorldWindow.region.exportFolderPath);
+				Directory.CreateDirectory(WorldWindow.region.exportRoomsPath);	
+
+				if (WorldWindow.HasImportPath) {
+					PopupManager.Add(new ConfirmPopup($"Delete old folders?\n({WorldWindow.region.OldAcronym} and {WorldWindow.region.OldAcronym}-rooms)").SetButtons("Delete", "Keep").Okay(() => {
+							WorldWindow.region.retainOldFiles = false;
+							DoExport(true, false);
+						}).Cancel(() => {
+							WorldWindow.region.retainOldFiles = true;
+							DoExport(true);
+						})
+					);
+				}
+				else {
+					WorldWindow.region.retainOldFiles = true;
+					DoExport(true);
+				}
+			}
+			else {
+				DoExport();
+			}
+		}
+
+		private static void DoExport(bool showAcronymChangePopup = false, bool retainOldFiles = true) {
 			if (WorldExporter.ExportMap(out string? message)) {
-				PopupManager.Add("Exported successfully!");
+				if (!showAcronymChangePopup)
+					PopupManager.Add("Exported successfully!");
+				else
+					PopupManager.Add($"Exported successfully!\nAcronym successfully updated to {WorldWindow.region.acronym}.\n{(retainOldFiles ? "The old folders still exist." : "The old folders have been backed up and deleted.")}\nSome files may require additional attention\nafter an acronymChange.\n(example: properties.txt, regions.txt, gates.txt)");
 			}
 			else {
 				Logger.Error(message ?? "Unknown error encountered while exporting!");
@@ -2095,13 +2130,13 @@ public static class WorldWindow {
 
 		public static void RefreshMap(bool usingExportDirectory = false) {
 			string reimportFolderPath = usingExportDirectory ? WorldWindow.region.exportFolderPath : WorldWindow.region.importFolderPath;
-			string? path = PathUtil.FindFile(reimportFolderPath, $"world_{WorldWindow.region.acronym}.txt");
+			string? path = PathUtil.FindFile(reimportFolderPath, $"world_{(usingExportDirectory ? WorldWindow.region.acronym : WorldWindow.region.OldAcronym)}.txt");
 			if (path == null) {
 				PopupManager.Add(new InfoPopup("Could not find world_xx.txt file!"));
 				Logger.Info($"Failed to find world file at {reimportFolderPath}/world_{WorldWindow.region.acronym}.txt");
 				return;
 			}
-			WorldParser.ImportWorld(path, (region.exportFolderPath, region.exportRoomsPath), false);
+			WorldParser.ImportWorld(path, usingExportDirectory ? (region.exportFolderPath, region.exportRoomsPath) : null, false);
 		}
 
 		public WorldMenuItems() {

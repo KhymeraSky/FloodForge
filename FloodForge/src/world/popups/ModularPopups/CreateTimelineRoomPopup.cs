@@ -64,107 +64,87 @@ public class CreateTimelineRoomPopup : ModularPopup {
 	}
 
 	private void CreateRoom() {
-		string newPath = Path.Combine(WorldWindow.region.importRoomsPath, $"{WorldWindow.region.acronym}_{this.newName}.txt");
-		File.Copy(Path.Combine(WorldWindow.region.importRoomsPath, this.relevantRoom.name + ".txt"), newPath, true);
+		string newRoomName = $"{WorldWindow.region.acronym}_{this.newName}";
 
 		WorldWindow.selectedDraggables = [];
 
-		string key = "TIMELINEROOM";
-		WorldWindow.worldHistory.StartCollectingChanges([], key);
-
-		Room[] newRooms = WorldWindow.HandleRoomFilesSelected([newPath]);
-		Change[] foundChanges = WorldWindow.worldHistory.StopCollectingChanges(key);
+		Room newRoom = new(newRoomName, this.relevantRoom.width, this.relevantRoom.height, false, false, false);
+		this.relevantRoom.CopyTo(newRoom);
 
 		RoomAndConnectionChange addChange = new(adding: true);
+		addChange.AddRoom(newRoom);
 		RoomAndConnectionChange removeChange = new(adding: false);
-		List<Change> unmanagedChanges = [];
-		foreach (Change foundChange in foundChanges) {
-			if (foundChange is RoomAndConnectionChange roomChange) {
-				foreach (Room room in roomChange.GetRooms()) {
-					addChange.AddRoom(room);
-				}
-				foreach (Connection connection in roomChange.GetExternalConnections()) {
-					addChange.AddConnection(connection);
-				}
-			}
-			else {
-				unmanagedChanges.Add(foundChange);
+
+		string key = "TIMELINEROOM";
+		WorldWindow.worldHistory.StartCollectingChanges([], key);
+		newRoom.DevPosition = this.relevantRoom.DevPosition + Vector2.NegY * 5;
+		newRoom.CanonPosition = this.relevantRoom.CanonPosition + Vector2.NegY * 5;
+		newRoom.timeline = new(this.newTimeline);
+
+		List<Change> tlModifications = [];
+
+		Timeline newInverted = this.newTimeline.Inverted();
+		Timeline newInvertedAndRoom = this.relevantRoom.timeline.And(newInverted);
+		TimelineTypeChange roomTLTypeChange = new(newInvertedAndRoom.timelineType);
+		roomTLTypeChange.AddRoom(this.relevantRoom);
+		tlModifications.Add(roomTLTypeChange);
+
+		foreach (string timeline in this.relevantRoom.timeline.timelines) {
+			if (!newInvertedAndRoom.timelines.Contains(timeline)) {
+				TimelineChange roomTLChange = new(false, timeline);
+				roomTLChange.AddRoom(this.relevantRoom);
+				tlModifications.Add(roomTLChange);
 			}
 		}
-
-		WorldWindow.worldHistory.StartCollectingChanges([], key);
-		WorldWindow.worldHistory.Apply(new MassChange([..unmanagedChanges])); // start and immediately apply the unmanaged changes so they'll get applied with the rest once collection finishes.
-		if (newRooms.Length != 0) {
-			Room newRoom = newRooms.First();
-			newRoom.DevPosition = this.relevantRoom.DevPosition + Vector2.NegY * 5;
-			newRoom.CanonPosition = this.relevantRoom.CanonPosition + Vector2.NegY * 5;
-			newRoom.timeline = new(this.newTimeline);
-
-			List<Change> tlModifications = [];
-
-			Timeline newInverted = this.newTimeline.Inverted();
-			Timeline newInvertedAndRoom = this.relevantRoom.timeline.And(newInverted);
-			TimelineTypeChange roomTLTypeChange = new(newInvertedAndRoom.timelineType);
-			roomTLTypeChange.AddRoom(this.relevantRoom);
-			tlModifications.Add(roomTLTypeChange);
-
-			foreach (string timeline in this.relevantRoom.timeline.timelines) {
-				if (!newInvertedAndRoom.timelines.Contains(timeline)) {
-					TimelineChange roomTLChange = new(false, timeline);
-					roomTLChange.AddRoom(this.relevantRoom);
-					tlModifications.Add(roomTLChange);
-				}
+		foreach (string timeline in newInvertedAndRoom.timelines) {
+			if (!this.relevantRoom.timeline.timelines.Contains(timeline)) {
+				TimelineChange roomTLChange = new(true, timeline);
+				roomTLChange.AddRoom(this.relevantRoom);
+				tlModifications.Add(roomTLChange);
 			}
-			foreach (string timeline in newInvertedAndRoom.timelines) {
-				if (!this.relevantRoom.timeline.timelines.Contains(timeline)) {
-					TimelineChange roomTLChange = new(true, timeline);
-					roomTLChange.AddRoom(this.relevantRoom);
-					tlModifications.Add(roomTLChange);
+		}
+		
+		if (this.copyConnections) {
+			foreach (Connection connection in this.relevantRoom.connections) {
+				if (!connection.timeline.OverlapsWith(this.newTimeline)) {
+					continue;
 				}
-			}
-			
-			if (this.copyConnections) {
-				foreach (Connection connection in this.relevantRoom.connections) {
-					if (!connection.timeline.OverlapsWith(this.newTimeline)) {
-						continue;
-					}
 
-					Connection copiedConnection = new Connection(connection.roomA == this.relevantRoom ? newRoom : connection.roomA, connection.roomB == this.relevantRoom ? newRoom : connection.roomB, connection.roomAExitID, connection.roomBExitID) {
-						timeline = this.newTimeline.And(connection.timeline)
-					};
-					addChange.AddConnection(copiedConnection);
-					if (!connection.timeline.OverlapsWith(newInvertedAndRoom)) {
-						removeChange.AddConnection(connection);
+				Connection copiedConnection = new Connection(connection.roomA == this.relevantRoom ? newRoom : connection.roomA, connection.roomB == this.relevantRoom ? newRoom : connection.roomB, connection.roomAExitID, connection.roomBExitID) {
+					timeline = this.newTimeline.And(connection.timeline)
+				};
+				addChange.AddConnection(copiedConnection);
+				if (!connection.timeline.OverlapsWith(newInvertedAndRoom)) {
+					removeChange.AddConnection(connection);
+				}
+				else {
+					if (connection.timeline.timelineType == TimelineType.Only) {
+						foreach (string timeline in this.newTimeline.timelines) {
+							if (connection.timeline.timelines.Contains(timeline)) {
+								TimelineChange connectionTimelineChange = new(false, timeline);
+								connectionTimelineChange.AddConnection(connection);
+								tlModifications.Add(connectionTimelineChange);
+							}
+						}
 					}
 					else {
-						if (connection.timeline.timelineType == TimelineType.Only) {
-							foreach (string timeline in this.newTimeline.timelines) {
-								if (connection.timeline.timelines.Contains(timeline)) {
-									TimelineChange connectionTimelineChange = new(false, timeline);
-									connectionTimelineChange.AddConnection(connection);
-									tlModifications.Add(connectionTimelineChange);
-								}
-							}
+						if (connection.timeline.timelineType == TimelineType.All) {
+							TimelineTypeChange connectionTimelineTypeChange = new(TimelineType.Except);
+							connectionTimelineTypeChange.AddConnection(connection);
+							tlModifications.Add(connectionTimelineTypeChange);
 						}
-						else {
-							if (connection.timeline.timelineType == TimelineType.All) {
-								TimelineTypeChange connectionTimelineTypeChange = new(TimelineType.Except);
-								connectionTimelineTypeChange.AddConnection(connection);
-								tlModifications.Add(connectionTimelineTypeChange);
-							}
-							foreach (string timeline in this.newTimeline.timelines) {
-								if (!connection.timeline.timelines.Contains(timeline)) {
-									TimelineChange connectionTimelineChange = new(true, timeline);
-									connectionTimelineChange.AddConnection(connection);
-									tlModifications.Add(connectionTimelineChange);
-								}
+						foreach (string timeline in this.newTimeline.timelines) {
+							if (!connection.timeline.timelines.Contains(timeline)) {
+								TimelineChange connectionTimelineChange = new(true, timeline);
+								connectionTimelineChange.AddConnection(connection);
+								tlModifications.Add(connectionTimelineChange);
 							}
 						}
 					}
 				}
 			}
-			WorldWindow.worldHistory.Apply(new MassChange([..tlModifications]));
 		}
+		WorldWindow.worldHistory.Apply(new MassChange([..tlModifications]));
 		WorldWindow.worldHistory.Apply(removeChange);
 		WorldWindow.worldHistory.Apply(addChange);
 		WorldWindow.worldHistory.GetAndApplyCollectedMassChange(key);
