@@ -63,9 +63,14 @@ public class ReplaceRoom : MapDraggable {
 
 		this.DrawReplaceRoomShortcuts(renderedPosition);
 
-		Vector2 o = WorldWindow.worldMouse - renderedPosition;
-		bool hovered = o.x >= 0f && o.y <= 0f && o.x <= this.size.x && o.y >= -this.size.y;
-		Immediate.Color(hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder);
+		Vector2 localMouse = WorldWindow.worldMouse - renderedPosition;
+		bool hovered = localMouse.x >= 0f && localMouse.y <= 0f && localMouse.x <= this.size.x && localMouse.y >= -this.size.y;
+		Color outlineColor = hovered ? Themes.RoomBorderHighlight : Themes.RoomBorder;
+		if (this.replacingRoom.fileModified)
+			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f); // REVIEW - make this more readable when the border is air
+		if (this.replacingRoom.renderedImages.Count != 0)
+			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f);
+		Immediate.Color(outlineColor);
 		UI.StrokeRect(renderedPosition.x, renderedPosition.y, renderedPosition.x + this.size.x, renderedPosition.y - this.size.y);
 
 		for (int j = 0; j < this.replacingRoom.denShortcutEntrances.Count && j < this.replacedRoom.dens.Count; j++) {
