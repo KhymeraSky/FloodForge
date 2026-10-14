@@ -171,6 +171,7 @@ public class Room : MapDraggable {
 		};
 		this.visuals.Refresh();
 		this.valid = true;
+		this.EnsureConnections();
 		this.GenerateMesh();
 		this.GenerateWaterMesh();
 		this.CheckImages();
@@ -429,10 +430,6 @@ public class Room : MapDraggable {
 		}
 
 		this.EnsureConnections();
-
-		foreach (Vector2i den in this.denShortcutEntrances) {
-			this.dens.Add(new Den());
-		}
 	}
 
 	protected virtual void LoadSettings() {
@@ -802,6 +799,10 @@ public class Room : MapDraggable {
 					this.batflyHiveCount++;
 				wasL = hive;
 			}
+		}
+
+		foreach (Vector2i _ in this.denShortcutEntrances) {
+			this.dens.Add(new Den());
 		}
 	}
 
