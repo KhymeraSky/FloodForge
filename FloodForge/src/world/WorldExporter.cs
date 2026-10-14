@@ -31,14 +31,13 @@ public static class WorldExporter {
 
 		ExportWorldFile();
 
-		string image = PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, $"map_{WorldWindow.region.acronym}.png");
-		ExportImageFile(image);
+		ExportImageFile();
 
-		ExportPropertiesFile(PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, "properties.txt"));
+		ExportPropertiesFile();
 
-		ExportDisplayName(PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, "displayname.txt"));
+		ExportDisplayName();
 
-		ExportRooms(WorldWindow.region.exportRoomsPath);
+		ExportRooms();
 
 		if (isNewMap)
 			RecentFiles.AddPath(PathUtil.FindOrAssumeFile(WorldWindow.region.importFolderPath, $"world_{WorldWindow.region.acronym}.txt"));
@@ -1370,9 +1369,10 @@ public static class WorldExporter {
 	// whereas this method does end up creating one.
 	// One possible solution might be to have the timeline getting simply ignore any rooms and connections that have preprocessorconditions?
 	// but there's multiple other checks that would have to be added/changed to make sure it works in all cases, which is why I'm leaving this for REVIEW.
-	public static void ExportImageFile(string outputPath) {
+	public static void ExportImageFile() {
 		Logger.Info("Exporting image file");
 
+		string outputPath = PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, $"map_{WorldWindow.region.acronym}.png");
 		string mapPath = PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, $"map_image_{WorldWindow.region.acronym}.txt");
 
 		StreamWriter? mapFile = null;
@@ -1679,10 +1679,10 @@ public static class WorldExporter {
 		writer.Write("\n");
 	}
 
-	public static void ExportPropertiesFile(string outputPath) {
+	public static void ExportPropertiesFile() {
 		Logger.Info("Exporting properties file");
 
-		using StreamWriter writer = new StreamWriter(outputPath, false);
+		using StreamWriter writer = new StreamWriter(PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, "properties.txt"), false);
 		writer.Write(WorldWindow.region.extraProperties);
 
 		foreach (string subregion in WorldWindow.region.subregions) {
@@ -1707,18 +1707,18 @@ public static class WorldExporter {
 		}
 	}
 
-	public static void ExportDisplayName(string outputPath) {
+	public static void ExportDisplayName() {
 		Logger.Info("Exporting displayname file");
 		
 		if (WorldWindow.region.displayName != "")
-			File.WriteAllLines(outputPath, [WorldWindow.region.displayName]);
+			File.WriteAllLines(PathUtil.FindOrAssumeFile(WorldWindow.region.exportFolderPath, "displayname.txt"), [WorldWindow.region.displayName]);
 	}
 
-	public static void ExportRooms(string roomsPath) {
+	public static void ExportRooms() {
 		List<Room> roomsToExport = [.. WorldWindow.region.rooms];
 		WorldWindow.replaceReferenceRooms.ForEach(roomsToExport.Add);
 
-		Logger.Info($"Exporting rooms to {roomsPath} ; updateRegionFiles: {Settings.UpdateRegionFiles}");
+		Logger.Info($"Exporting rooms to {WorldWindow.region.exportRoomsPath} ; updateRegionFiles: {Settings.UpdateRegionFiles}");
 		foreach (Room room in roomsToExport) {
 			if (room is OffscreenRoom)
 				continue;
