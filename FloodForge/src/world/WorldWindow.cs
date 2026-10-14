@@ -905,10 +905,10 @@ public static class WorldWindow {
 			if (connection != null || draggable is Room){
 				RoomAndConnectionChange change = new RoomAndConnectionChange(false);
 				ReplaceRoomChange replaceRoomChange = new ReplaceRoomChange(false);
-				if (draggable != null)
-					selectedDraggables.Add(draggable);
 				if (connection != null)
 					selectedConnections.Add(connection);
+				else if (draggable != null)
+					selectedDraggables.Add(draggable);
 
 				foreach (WorldDraggable selectedDraggable in selectedDraggables) {
 					if (selectedDraggable is OffscreenRoom || selectedDraggable is not Room selectedRoom)
