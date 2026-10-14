@@ -39,7 +39,14 @@ public static class Backup {
 		System.IO.File.Copy(filePath, destinationPath, true);
 	}
 
-	public static void Folder(string? folderPath) {
+	public static void FolderAndDelete(string? folderPath, string tag = "") {
+		if (Directory.Exists(folderPath)) {
+			Backup.Folder(folderPath, tag);
+			Directory.Delete(folderPath, true);
+		}
+	}
+
+	public static void Folder(string? folderPath, string tag = "") {
 		if (folderPath == null)
 			return;
 		if (!Directory.Exists(folderPath))
@@ -48,6 +55,7 @@ public static class Backup {
 		Directory.CreateDirectory(BackupDir);
 
 		string folderName = folderPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)[^1];
+		string taggedFolderName = folderName + (tag == "" ? "" : $"_{tag}");
 
 		string[] allPaths = Directory.GetFiles(folderPath, "", SearchOption.AllDirectories);
 		List<string> relativePaths = [];
@@ -59,7 +67,7 @@ public static class Backup {
 		List<DirectoryInfo> matchingDirectories = [];
 		foreach (string path in existingPaths) {
 			DirectoryInfo existingDirectory = new DirectoryInfo(path);
-			if (existingDirectory.Name[..^TimestampFormat.Length].Equals(folderName, StringComparison.InvariantCultureIgnoreCase))
+			if (existingDirectory.Name[..^TimestampFormat.Length] == taggedFolderName)
 				matchingDirectories.Add(existingDirectory);
 		}
 		matchingDirectories = [.. matchingDirectories.OrderBy(d => d.LastWriteTime)];
@@ -71,7 +79,7 @@ public static class Backup {
 		
 		// Create backup
 		string timestamp = DateTime.Now.ToString(TimestampFormat);
-		string backupFolderName = $"{folderName}{timestamp}";
+		string backupFolderName = $"{taggedFolderName}{timestamp}";
 		string destinationFolder = Path.Combine(BackupDir, backupFolderName);
 
 		Directory.CreateDirectory(destinationFolder);
