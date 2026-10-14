@@ -300,6 +300,7 @@ public static class DropletWindow {
 	public static void SetDenFlag(int x, int y, uint mask, bool remove) {
 		int index = x * Room.height + y;
 		bool hasFlag = (Room.geometry[index] & mask) != 0;
+		Room.geometry[index] &= ~12608u; // inverted mask of den tiles - TODO: expand this to other single-tile things (such as garbage worms)
 
 		if (remove) {
 			if (!hasFlag) return;
