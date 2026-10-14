@@ -2192,7 +2192,6 @@ public static class WorldWindow {
 						return WorldWindow.ValidRegionLoaded;
 					}),
 
-					// TODO - add option to refresh from export path instead of original import path
 					new Button("Refresh Region", button => {
 						if (region.exportFolderPath != null && !Path.GetFullPath(region.importFolderPath).Equals(Path.GetFullPath(region.exportFolderPath)))
 							PopupManager.Add(new ConfirmPopup("This region was exported to another folder.\nRefresh from the new folder?\nRefreshing from original will revert changes").SetButtons("Use New", "Use Original").Okay(

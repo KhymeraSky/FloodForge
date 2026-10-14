@@ -161,8 +161,9 @@ public static class WorldExporter {
 					StreamWriter timelineWriter = new StreamWriter(timelinePath, false);
 					timelineMapWriters.Add(timeline, timelineWriter);
 				}
-				catch (Exception) {
-					Logger.Info($"Error opening {timelineFileName}");
+				catch (Exception exception) {
+					Logger.Error($"Error opening {timelineFileName}");
+					Logger.Error($"> {exception}");
 				}
 			}
 			Logger.Info("- Rooms");
@@ -344,8 +345,8 @@ public static class WorldExporter {
 				timelineWriter?.Dispose();
 			}
 		}
-		catch (Exception) {
-			Logger.Info($"Error opening {fileName}");
+		catch (Exception e) {
+			Logger.Info($"Error opening {fileName}:\n{e}");
 		}
 	}
 
@@ -1380,8 +1381,9 @@ public static class WorldExporter {
 		try {
 			mapFile = new StreamWriter(mapPath, false);
 		}
-		catch (Exception) {
-			Logger.Info($"Error creating map_image_{WorldWindow.region.acronym}.txt");
+		catch (Exception exception) {
+			Logger.Error($"Error creating map_image_{WorldWindow.region.acronym}.txt");
+			Logger.Error($"> {exception}");
 		}
 
 		// delete existing timeline-specifying files in case the new export doesn't use those
@@ -1398,8 +1400,9 @@ public static class WorldExporter {
 				StreamWriter? timelineMapFile = new StreamWriter(timelineMapPath, false);
 				timelineMapFiles.Add(timeline, timelineMapFile);
 			}
-			catch (Exception) {
-				Logger.Info($"Error creating map_image_{WorldWindow.region.acronym}-{timeline}.txt");
+			catch (Exception exception) {
+				Logger.Error($"Error creating map_image_{WorldWindow.region.acronym}-{timeline}.txt");
+				Logger.Error($"> {exception}");
 			}
 		}
 
