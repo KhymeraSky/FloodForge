@@ -177,6 +177,47 @@ public class Room : MapDraggable {
 		this.CheckImages();
 	}
 
+	public void CopyTo(Room target) {
+		target.data.attractiveness = this.data.attractiveness;
+		target.data.blockedBatMigration = this.data.blockedBatMigration;
+		List<RoomData.Camera> cameras = [];
+		foreach (RoomData.Camera camera in this.data.cameras)
+			cameras.Add(new() { angles = [..camera.angles], position = camera.position });
+		target.data.cameras = cameras;
+		target.data.enclosedRoom = this.data.enclosedRoom;
+		target.data.hidden = this.data.hidden;
+		target.data.layer = this.data.layer;
+		target.data.merge = this.data.merge;
+		List<DevObject> objects = [];
+		foreach (DevObject devObject in this.data.objects)
+			objects.Add(devObject.Clone());
+		target.data.objects = objects;
+		target.data.subregion = this.data.subregion;
+		target.data.tags = [.. this.data.tags];
+		target.data.warpable = this.data.warpable;
+		target.data.waterHeight = this.data.waterHeight;
+		target.data.waterInFront = this.data.waterInFront;
+
+		target.visuals.hasTerrain = this.visuals.hasTerrain;
+		target.visuals.terrain = this.visuals.terrain;
+		target.visuals.water = this.visuals.water;
+		target.visuals.Refresh();
+
+		target.geometry = [.. this.geometry];
+		target.fileModified = true;
+
+		target.allRoomExitPoints = [.. this.allRoomExitPoints];
+		target.allShortcutEntrancePoints = [.. this.allShortcutEntrancePoints];
+		target.denShortcutEntrances = [.. this.denShortcutEntrances];
+		target.garbageWormDens = [.. this.garbageWormDens];
+		target.shortcutEntrancePaths = this.shortcutEntrancePaths.Clone();
+
+		target.GenerateMesh();
+		target.GenerateWaterMesh();
+		target.CheckImages();
+		target.EnsureConnections();
+	}
+
 	public void SetToInvalidRoom() {
 		this.valid = false;
 		this.width = 72;
