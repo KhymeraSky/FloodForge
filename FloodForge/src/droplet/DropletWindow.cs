@@ -322,8 +322,9 @@ public static class DropletWindow {
 
 		int geometryIndex = x * Room.height + y;
 		uint oldValue = Room.geometry[geometryIndex];
+		bool hasBackground = (oldValue & 512u) != 0;
 		if (selectedTool == GeometryTool.Wall) {
-			Room.geometry[geometryIndex] = right ? 0u : 1u;
+			Room.geometry[geometryIndex] = right ? oldValue & 512u : oldValue | 513u;
 		}
 		else if (selectedTool == GeometryTool.Slope) {
 			if (right) {
@@ -348,11 +349,11 @@ public static class DropletWindow {
 				else if (bits == 2 + 8) type = 3;
 
 				if (type != 4) {
-					Room.geometry[geometryIndex] = 2 + 1024 * type;
+					Room.geometry[geometryIndex] = (2 + 1024 * type) | (hasBackground ? 512u : 0u);
 				}
 			}
 		}
-		else if (selectedTool == GeometryTool.Platform) Room.geometry[geometryIndex] = right ? 0u : 3u;
+		else if (selectedTool == GeometryTool.Platform) Room.geometry[geometryIndex] = (right ? 0u : 3u) | (hasBackground ? 512u : 0u);
 		else if (selectedTool == GeometryTool.VerticalPole) SetFlag(x, y, 16, right);
 		else if (selectedTool == GeometryTool.HorizontalPole) SetFlag(x, y, 32, right);
 		else if (selectedTool == GeometryTool.BackgroundWall) SetFlag(x, y, 512, right);
