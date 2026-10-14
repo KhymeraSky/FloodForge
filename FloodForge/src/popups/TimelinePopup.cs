@@ -109,6 +109,15 @@ public class TimelinePopup : Popup {
 							else
 								this.timeline.timelines?.Remove(timeline);
 						}
+						if (!selected && Input.Pressed(Keys.SoloLayer)) {
+							foreach(string otherTimeline in timelines) {
+								if (otherTimeline == timeline)
+									continue;
+								this.onSelectionChangeCallback.Invoke(true, otherTimeline);
+								if (this.updateSelf)
+									this.timeline.timelines?.Remove(otherTimeline);
+							}
+						}
 					}
 
 					if (response.hovered) {
