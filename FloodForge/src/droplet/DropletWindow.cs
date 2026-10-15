@@ -709,6 +709,7 @@ public static class DropletWindow {
 	private static void DrawSelection() {
 		Vector2i pasteStart = selectionStart + currentDragged;
 		Vector2i pasteEnd = selectionEnd + currentDragged + Vector2i.One;
+		int pasteHeight = pasteEnd.y - pasteStart.y;
 		Program.gl.Enable(EnableCap.Blend);
 		Immediate.Begin(Immediate.PrimitiveType.QUADS);
 		float selectionAlpha = 0.5f;
@@ -824,21 +825,16 @@ public static class DropletWindow {
 				if ((geo & 15) == 4) {
 					Immediate.Color(Themes.RoomShortcutRoom);
 					Immediate.Alpha(selectionAlpha);
-					if ((Room.GetTile(x, y + 1) & 128) > 0) {
+					if (((y < pasteEnd.y - 1 ? selectionGeometry[index + 1] : Room.GetTile(x, y + 1)) & 128) > 0)
 						UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0f, 0f, 0.125f, 0.125f));
-					}
-					else if ((Room.GetTile(x - 1, y) & 128) > 0) {
+					else if (((x > pasteStart.x ? selectionGeometry[index - pasteHeight] : Room.GetTile(x - 1, y)) & 128) > 0)
 						UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.125f, 0f, 0.25f, 0.125f));
-					}
-					else if ((Room.GetTile(x + 1, y) & 128) > 0) {
+					else if (((x < pasteEnd.x - 1 ? selectionGeometry[index + pasteHeight] : Room.GetTile(x + 1, y)) & 128) > 0)
 						UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.25f, 0f, 0.375f, 0.125f));
-					}
-					else if ((Room.GetTile(x, y - 1) & 128) > 0) {
+					else if (((y > pasteStart.y ? selectionGeometry[index - 1] : Room.GetTile(x, y - 1)) & 128) > 0)
 						UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.375f, 0f, 0.5f, 0.125f));
-					}
-					else {
+					else
 						UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.125f, 0.125f, 0.25f, 0.25f));
-					}
 				}
 				else if ((geo & 64) > 0) {
 					Immediate.Color(Themes.RoomShortcutRoom);
