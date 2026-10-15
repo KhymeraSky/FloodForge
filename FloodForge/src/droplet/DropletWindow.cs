@@ -711,8 +711,8 @@ public static class DropletWindow {
 		Vector2i pasteEnd = selectionEnd + currentDragged + Vector2i.One;
 		Program.gl.Enable(EnableCap.Blend);
 		Immediate.Begin(Immediate.PrimitiveType.QUADS);
-		Immediate.Color(Color.Blue);
-		Immediate.Alpha(0.25f);
+		float selectionAlpha = 0.5f;
+		Immediate.Color(new Color(0.4f, 0.4f, 1.0f, selectionAlpha));
 		Immediate.Vertex(pasteStart.x, -pasteStart.y);
 		Immediate.Vertex(pasteEnd.x, -pasteStart.y);
 		Immediate.Vertex(pasteEnd.x, -pasteEnd.y);
@@ -730,7 +730,7 @@ public static class DropletWindow {
 				// Solid Blocks
 				if ((geo % 16) == 1) {
 					Immediate.Color(Themes.RoomSolid);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					Immediate.Vertex(x0, y0);
 					Immediate.Vertex(x1, y0);
 					Immediate.Vertex(x1, y1);
@@ -739,7 +739,7 @@ public static class DropletWindow {
 				// Platforms
 				else if ((geo % 16) == 3) {
 					Immediate.Color(Themes.RoomPlatform);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					Immediate.Vertex(x0, y0);
 					Immediate.Vertex(x1, y0);
 					Immediate.Vertex(x1, y0 - 0.5f);
@@ -749,7 +749,7 @@ public static class DropletWindow {
 				else if ((geo % 16) == 2) {
 					uint type = (Room.GetTile(x, y) & (1024 + 2048)) / 1024;
 					Immediate.Color(Themes.RoomSolid);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 
 					if (type == 0) {
 						Immediate.Vertex(x0, y1);
@@ -779,7 +779,7 @@ public static class DropletWindow {
 				// Shortcut Entrances
 				else if ((geo % 16) == 4) {
 					Immediate.Color(Themes.RoomShortcutEntrance);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					Immediate.Vertex(x0, y0);
 					Immediate.Vertex(x1, y0);
 					Immediate.Vertex(x1, y1);
@@ -789,7 +789,7 @@ public static class DropletWindow {
 				// Vertical Poles
 				if ((geo & 16) > 0) {
 					Immediate.Color(Themes.RoomPole);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					Immediate.Vertex(x0 + 0.4f, y0);
 					Immediate.Vertex(x1 - 0.4f, y0);
 					Immediate.Vertex(x1 - 0.4f, y1);
@@ -798,7 +798,7 @@ public static class DropletWindow {
 				// Horizontal Poles
 				if ((geo & 32) > 0) {
 					Immediate.Color(Themes.RoomPole);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					Immediate.Vertex(x0, y0 - 0.4f);
 					Immediate.Vertex(x1, y0 - 0.4f);
 					Immediate.Vertex(x1, y1 + 0.4f);
@@ -808,8 +808,6 @@ public static class DropletWindow {
 			}
 		}
 		Immediate.End();
-
-		Profiler.MarkPoint("Geo");
 
 		Immediate.UseTexture(GeometryTexture);
 		Immediate.Begin(Immediate.PrimitiveType.QUADS);
@@ -825,7 +823,7 @@ public static class DropletWindow {
 
 				if ((geo & 15) == 4) {
 					Immediate.Color(Themes.RoomShortcutRoom);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					if ((Room.GetTile(x, y + 1) & 128) > 0) {
 						UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0f, 0f, 0.125f, 0.125f));
 					}
@@ -844,62 +842,62 @@ public static class DropletWindow {
 				}
 				else if ((geo & 64) > 0) {
 					Immediate.Color(Themes.RoomShortcutRoom);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0f, 0.375f, 0.125f, 0.5f));
 				}
 				else if ((geo & 128) > 0) {
 					Immediate.Color(Themes.RoomShortcutDot);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0f, 0.125f, 0.125f, 0.25f));
 				}
 
 				if ((geo & 256) > 0) {
 					Immediate.Color(Themes.RoomShortcutDen);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.125f, 0.375f, 0.25f, 0.5f));
 				}
 				if ((geo & 4096) > 0) {
 					Immediate.Color(Themes.RoomShortcutDen);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.25f, 0.375f, 0.375f, 0.5f));
 				}
 				if ((geo & 8192) > 0) {
 					Immediate.Color(Themes.RoomShortcutDen);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.375f, 0.375f, 0.5f, 0.5f));
 				}
 				if ((geo & 16384) > 0) {
 					Immediate.Color(Themes.RoomShortcutDot);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.25f, 0.125f, 0.375f, 0.25f));
 				}
 				if ((geo & 32768) > 0) {
 					Immediate.Color(Themes.RoomShortcutDot);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.25f, 0.25f, 0.375f, 0.375f));
 				}
 				if ((geo & 65536) > 0) {
 					Immediate.Color(Themes.RoomShortcutDot);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.375f, 0.25f, 0.5f, 0.375f));
 				}
 				if ((geo & 262144) > 0) {
 					Immediate.Color(Themes.RoomShortcutDot);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0.125f, 0.25f, 0.25f, 0.375f));
 				}
 				if ((geo & 524288) > 0) {
 					Immediate.Color(Themes.RoomShortcutDot);
-					Immediate.Alpha(0.5f);
+					Immediate.Alpha(selectionAlpha);
 					UI.FillRectNoCall(new UVRect(x0, y0, x1, y1).UV(0f, 0.25f, 0.125f, 0.375f));
 				}
 				index++;
 			}
 		}
-		Immediate.Alpha(1f);
-		Program.gl.Disable(EnableCap.Blend);
 		Immediate.End();
 		Immediate.UseTexture(null);
+		Immediate.Alpha(1f);
+		Program.gl.Disable(EnableCap.Blend);
 	}
 
 	private static bool DrawCameraAngle(Vector2 pos, ref Vector2 angle, bool dragging) {
