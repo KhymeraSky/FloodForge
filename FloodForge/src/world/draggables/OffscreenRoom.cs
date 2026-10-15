@@ -43,7 +43,11 @@ public class OffscreenRoom : Room {
 		UI.FillRect(position.x, position.y, position.x + this.width, position.y - this.height);
 
 		Immediate.Color(Themes.RoomSolid);
-		UI.font.Write(this.name, position.x + (this.width * 0.5f), position.y - (this.height * 0.5f), 5f, Font.Align.MiddleCenter);
+		float fontSize = 5f;
+		float textWidth = UI.font.Measure(this.name, fontSize).x;
+		if (textWidth > this.width)
+			fontSize *= this.width / textWidth;
+		UI.font.Write(this.name, position.x + (this.width * 0.5f), position.y - (this.height * 0.5f), fontSize, Font.Align.MiddleCenter);
 
 		if (this.dens.Count == 0) {
 			this.dens.Add(new Den());
