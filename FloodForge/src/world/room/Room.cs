@@ -109,7 +109,7 @@ public class Room : MapDraggable {
 	public Room(string path, string name, bool pathOutsideRoomsFolder = false) {
 		this.pathOutsideRoomsFolder = pathOutsideRoomsFolder;
 		this.path = path;
-		this.name = name;
+		this.name = WorldWindow.region.worldFileLowerCase != null ? ((bool)WorldWindow.region.worldFileLowerCase ? name.ToLowerInvariant() : name.ToUpperInvariant()) : name;
 
 		this.CanonPosition = Vector2.Zero;
 		this.DevPosition = Vector2.Zero;

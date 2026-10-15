@@ -6,6 +6,8 @@ public class Region {
 	public string OldAcronym { get { return this.oldAcronym ?? this.acronym; } }
 	public bool retainOldFiles = true;
 	public string displayName = "";
+	public bool? worldFileLowerCase = null;
+	public bool? roomFilesLowerCase = null;
 
 	public string extraProperties = "";
 	public string extraWorld = "";
@@ -45,7 +47,7 @@ public class Region {
 			string line = (l.StartsWith("[ADD]") ? l[5..] : l).Trim();
 
 			if (line.Equals(acronym, StringComparison.InvariantCultureIgnoreCase)) {
-				return line;
+				return acronym;
 			}
 		}
 

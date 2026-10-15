@@ -9,6 +9,7 @@ public static class WorldExporter {
 	public static bool ExportFinished = true;
 	
 	private static HashSet<string> timelinesInRegion = [];
+	private static Dictionary<string, string> warpNames = [];
 
 	public static bool ExportMap(out string? message) {
 		message = null;
@@ -49,65 +50,6 @@ public static class WorldExporter {
 
 		ExportFinished = true;
 		return true;
-	}
-
-	private static string AcronymCasing(string acronym) {
-		if (Settings.ForceExportCasing.value == Settings.STForceExportCasing.MatchAcronym) {
-			return acronym;
-		}
-
-		return Settings.ForceExportCasing.value == Settings.STForceExportCasing.Lower ? acronym.ToLowerInvariant() : acronym.ToUpperInvariant();
-	}
-
-	private static string FancyRoomCasing(Room room) {
-		return room.data.warpable ? RoomNameCasing(room.name) : OppositeRoomCasing(room.name);
-	}
-
-	private static string OppositeRoomCasing(string name) {
-		string o = RoomNameCasing(name);
-		string result = "";
-
-		foreach (char c in o) {
-			result += char.IsUpper(c) ? char.ToLower(c) : char.ToUpper(c);
-		}
-
-		return result;
-	}
-
-	private static string RoomNameCasing(string name) {
-		if (name.StartsWith("gate_", StringComparison.InvariantCultureIgnoreCase)) {
-			string[] regions = name.Split('_');
-			string gateName = Settings.ForceExportCasing.value == Settings.STForceExportCasing.Lower ? "gate_" : "GATE_";
-
-			if (regions[1].Equals(WorldWindow.region.acronym, StringComparison.InvariantCultureIgnoreCase)) {
-				gateName += AcronymCasing(WorldWindow.region.acronym);
-			}
-			else {
-				gateName += AcronymCasing(WorldWindow.region.FindAcronym(regions[1]));
-			}
-
-			gateName += "_";
-
-			if (regions[2].Equals(WorldWindow.region.acronym, StringComparison.InvariantCultureIgnoreCase)) {
-				gateName += AcronymCasing(WorldWindow.region.acronym);
-			}
-			else {
-				gateName += AcronymCasing(WorldWindow.region.FindAcronym(regions[2]));
-			}
-
-			return gateName;
-		}
-
-		if (Settings.ForceExportCasing.value == Settings.STForceExportCasing.Lower) {
-			return name.ToLowerInvariant();
-		}
-		if (Settings.ForceExportCasing.value == Settings.STForceExportCasing.Upper) {
-			return name.ToUpperInvariant();
-		}
-		if (Settings.ForceExportCasing.value == Settings.STForceExportCasing.MatchAcronym && name.ToLowerInvariant().StartsWith(WorldWindow.region.acronym.ToLowerInvariant())) {
-			return WorldWindow.region.acronym + name[WorldWindow.region.acronym.Length..];
-		}
-		return name;
 	}
 
 	public static void GatherTimelines() {
@@ -218,7 +160,7 @@ public static class WorldExporter {
 				Vector2 canonPosition = (room.CanonPosition - averageCanonPosition + roomCornerVector) * 3.0f;
 				Vector2 devPosition = (room.DevPosition - averageDevPosition + new Vector2(0f, -room.height)) * 2.0f;
 
-				string line = $"{FancyRoomCasing(room)}: " +
+				string line = $"{room.name}: " +
 							$"{canonPosition.x:G12}><{canonPosition.y:G12}><" +
 							$"{devPosition.x:G12}><{devPosition.y:G12}><" +
 							$"{room.data.layer}><";
@@ -257,7 +199,7 @@ public static class WorldExporter {
 					Vector2 canonPosition = (replaceRoom.CanonPosition - averageCanonPosition + roomCornerVector) * 3.0f;
 					Vector2 devPosition = (replaceRoom.DevPosition - averageDevPosition + new Vector2(0f, -replaceRoom.replacingRoom.height)) * 2.0f;
 
-					string line = $"{FancyRoomCasing(replaceRoom.replacedRoom)}: " +
+					string line = $"{replaceRoom.replacedRoom.name}: " +
 								$"{canonPosition.x:G12}><{canonPosition.y:G12}><" +
 								$"{devPosition.x:G12}><{devPosition.y:G12}><" +
 								$"{replaceRoom.replacedRoom.data.layer}><";
@@ -275,7 +217,7 @@ public static class WorldExporter {
 				if (room is OffscreenRoom || !room.data.ExtraFlags)
 					continue;
 
-				writer.Write($"//FloodForge;ROOM|{RoomNameCasing(room.name)}");
+				writer.Write($"//FloodForge;ROOM|{room.name}");
 				if (room.data.hidden != 0)
 					writer.Write("|hidden=" + room.data.hidden);
 				if (!room.data.merge)
@@ -299,8 +241,8 @@ public static class WorldExporter {
 				connB = new Vector2i(connB.x, connection.roomB.height - connB.y - 1);
 
 				string line = $"Connection: " +
-					$"{FancyRoomCasing(connection.roomA)}," +
-					$"{FancyRoomCasing(connection.roomB)}," +
+					$"{connection.roomA.name}," +
+					$"{connection.roomB.name}," +
 					$"{connA.x},{connA.y}," +
 					$"{connB.x},{connB.y}," +
 					$"{(int) connection.roomA.GetShortcutEntranceDirectionInt(connection.roomAExitID)}," +
@@ -329,8 +271,8 @@ public static class WorldExporter {
 							newConnB = new Vector2i(newConnB.x, replaceRoomB.height - newConnB.y - 1);
 							
 							string newLine = $"Connection: " +
-								$"{FancyRoomCasing(connection.roomA)}," +
-								$"{FancyRoomCasing(connection.roomB)}," +
+								$"{connection.roomA.name}," +
+								$"{connection.roomB.name}," +
 								$"{newConnA.x},{newConnA.y}," +
 								$"{newConnB.x},{newConnB.y}," +
 								$"{(int) replaceRoomA.GetShortcutEntranceDirectionInt(connection.roomAExitID)}," +
@@ -378,7 +320,10 @@ public static class WorldExporter {
 				ExportLog($"        offscreenroom, skipping");
 				continue;
 			}
-			allRooms.Add(new(room.name, room.data.tags, room.data.subregion, room.data.cameras.Count, new IDExit[room.roomExits.Count], room.timeline, room.preProcessorConditions));
+			ExportRoom newRoom = new(room.name, room.data.tags, room.data.warpable, room.data.subregion, room.data.cameras.Count, new IDExit[room.roomExits.Count], room.timeline, room.preProcessorConditions);
+			allRooms.Add(newRoom);
+			if (!newRoom.warpable)
+				warpNames.Add(newRoom.name, newRoom.WarpableName);
 		}
 		ExportLog("Connections:");
 		List<ExportConnection> allConnections = [];
@@ -503,7 +448,7 @@ public static class WorldExporter {
 			foreach (ExportRoom exportRoom in allRooms) {
 				if (exportRoom.timeline.OverlapsWith(TimelineType.Only, [worldTimeline]) || (exportRoom.timeline.timelines.Contains(worldTimeline) && exportRoom.HasPreprocessors)) {
 					ExportLog($"        added {exportRoom}");
-					roomsInTimeline.Add(new(exportRoom.name, [.. exportRoom.tags], exportRoom.subregion, exportRoom.cameraCount, new IDExit[exportRoom.connections.Length], exportRoom.timeline, exportRoom.preProcessorConditions)); // new instance to avoid modifying default
+					roomsInTimeline.Add(new(exportRoom.name, [.. exportRoom.tags], exportRoom.warpable, exportRoom.subregion, exportRoom.cameraCount, new IDExit[exportRoom.connections.Length], exportRoom.timeline, exportRoom.preProcessorConditions)); // new instance to avoid modifying default
 				}
 			}
 			List<ExportConnection> connectionsInTimeline = [];
@@ -717,7 +662,7 @@ public static class WorldExporter {
 				addSpace = true;
 
 				foreach (ReplaceRoom replaceRoom in WorldWindow.replaceRooms)
-					finalWorldFile.Add($"{PreProcessorsToString(replaceRoom.preProcessorConditions)}{replaceRoom.timeline} : REPLACEROOM : {replaceRoom.replacedRoom.name} : {replaceRoom.replacingRoom.name}");
+					finalWorldFile.Add($"{PreProcessorsToString(replaceRoom.preProcessorConditions)}{replaceRoom.timeline} : REPLACEROOM : {GetWarpName(replaceRoom.replacedRoom.name)} : {replaceRoom.replacingRoom.name}");
 			}
 			if (hideRooms.Count != 0) {
 				if (addSpace)
@@ -725,7 +670,7 @@ public static class WorldExporter {
 				addSpace = true;
 
 				foreach (ExportRoom hideRoom in hideRooms)
-					finalWorldFile.Add($"{PreProcessorsToString(hideRoom.preProcessorConditions)}{hideRoom.timeline.Inverted()} : HIDEROOM : {hideRoom.name}");
+					finalWorldFile.Add($"{PreProcessorsToString(hideRoom.preProcessorConditions)}{hideRoom.timeline.Inverted()} : HIDEROOM : {GetWarpName(hideRoom.name)}");
 			}
 			if (exclusiveRooms.Count != 0) {
 				if (addSpace)
@@ -733,14 +678,14 @@ public static class WorldExporter {
 				addSpace = true;
 
 				foreach (ExportRoom exclusiveRoom in exclusiveRooms)
-					finalWorldFile.Add($"{PreProcessorsToString(exclusiveRoom.preProcessorConditions)}{exclusiveRoom.timeline} : EXCLUSIVEROOM : {exclusiveRoom.name}");
+					finalWorldFile.Add($"{PreProcessorsToString(exclusiveRoom.preProcessorConditions)}{exclusiveRoom.timeline} : EXCLUSIVEROOM : {GetWarpName(exclusiveRoom.name)}");
 			}
 			if (mergedSpecifiedChanges.Count != 0) {
 				if (addSpace)
 					finalWorldFile.Add("");
 
 				foreach (SpecifiedChange specifiedChange in mergedSpecifiedChanges) {
-					string finalLine = $"{PreProcessorsToString(specifiedChange.newConnection.connectionConditions)}{specifiedChange.timeline} : {specifiedChange.affectedRoom} : ";
+					string finalLine = $"{PreProcessorsToString(specifiedChange.newConnection.connectionConditions)}{specifiedChange.timeline} : {GetWarpName(specifiedChange.affectedRoom)} : ";
 					if (specifiedChange.oldConnection.roomName.IsNullOrEmpty() || specifiedChange.oldConnection.roomName == "DISCONNECTED") {
 						ExportRoom affectedRoom = allRooms.First(r => r.name == specifiedChange.affectedRoom);
 						int disconnectedBeforeExit = 0;
@@ -751,7 +696,7 @@ public static class WorldExporter {
 						finalLine += $"{disconnectedBeforeExit + 1} : ";
 					}
 					else {
-						finalLine += $"{specifiedChange.oldConnection.roomName + (CEEE && defaultSpecifyLists[specifiedChange.oldConnection.roomName].Contains(specifiedChange.affectedRoom) ? $"<{specifiedChange.oldConnection.exitID}>" : "")} : ";
+						finalLine += $"{GetWarpName(specifiedChange.oldConnection.roomName) + (CEEE && defaultSpecifyLists[specifiedChange.oldConnection.roomName].Contains(specifiedChange.affectedRoom) ? $"<{specifiedChange.oldConnection.exitID}>" : "")} : ";
 					}
 					bool specifyExitID = false;
 					foreach (string timeline in specifiedChange.timeline.timelines) {
@@ -774,9 +719,9 @@ public static class WorldExporter {
 					.ThenBy(room => room.tags.Contains("SHELTER") ? 0 : 1)
 					.ThenBy(room => room.cameraCount)
 					.ThenBy(room => room.name, StringComparer.OrdinalIgnoreCase)) {
-			string finalLine = $"{(exportRoom.timeline.IsNeutral() ? PreProcessorsToString(exportRoom.preProcessorConditions) : "")}{exportRoom.name} : ";
+			string finalLine = $"{(exportRoom.timeline.IsNeutral() ? PreProcessorsToString(exportRoom.preProcessorConditions) : "")}{GetWarpName(exportRoom.name)} : ";
 			for (int i = 0; i < exportRoom.connections.Length; i++)
-				finalLine += (i > 0 ? ", " : "") + (exportRoom.connections[i].roomName.IsNullOrEmpty() ? "DISCONNECTED" : (exportRoom.connections[i].roomName + ((CEEE && defaultSpecifyLists[exportRoom.name].Contains(exportRoom.connections[i].roomName)) ? $"<{exportRoom.connections[i].exitID}>" : "")));
+				finalLine += (i > 0 ? ", " : "") + (exportRoom.connections[i].roomName.IsNullOrEmpty() ? "DISCONNECTED" : (GetWarpName(exportRoom.connections[i].roomName) + ((CEEE && defaultSpecifyLists[exportRoom.name].Contains(exportRoom.connections[i].roomName)) ? $"<{exportRoom.connections[i].exitID}>" : "")));
 			foreach (string tag in exportRoom.tags)
 				finalLine += $" : {tag}";
 			finalWorldFile.Add(finalLine);
@@ -801,7 +746,7 @@ public static class WorldExporter {
 			finalWorldFile.Add("");
 			finalWorldFile.Add("BAT MIGRATION BLOCKAGES");
 			foreach (Room room in sortedMigrationRooms) {
-				finalWorldFile.Add($"{FancyRoomCasing(room)}");
+				finalWorldFile.Add($"{GetWarpName(room.name)}");
 			}
 			finalWorldFile.Add("END BAT MIGRATION BLOCKAGES");
 		}
@@ -827,6 +772,17 @@ public static class WorldExporter {
 		ExportLog("");
 		Logger.Info($"Elapsed time: {stopwatch.Elapsed.TotalMilliseconds}ms");
 		stopwatch.Stop();
+	}
+
+	private static string GetWarpName(string name) {
+		return warpNames.TryGetValue(name, out string? value) ? value : name;
+	}
+
+	private static string GetFileName(string roomName) {
+		if (WorldWindow.region.roomFilesLowerCase != null) {
+			return (bool)WorldWindow.region.roomFilesLowerCase ? roomName.ToLowerInvariant() : roomName.ToUpperInvariant();
+		}
+		return roomName;
 	}
 
 	public static string PreProcessorsToString(string[] preProcessorConditions) {
@@ -893,6 +849,22 @@ public static class WorldExporter {
 		public string[] preProcessorConditions;
 		public bool HasPreprocessors => this.preProcessorConditions.Length != 0;
 		public HashSet<string> tags;
+		public bool warpable;
+		public string WarpableName {
+			get {
+				string nameToUse = this.name;
+				if (!this.tags.Contains("GATE") && !this.warpable) {
+					string[] splitName = nameToUse.Split('_');
+					string newAcronym = "";
+					foreach (char character in splitName[0])
+						newAcronym += char.IsLower(character) ? char.ToUpper(character) : char.ToLower(character);
+					splitName[0] = newAcronym;
+					nameToUse = string.Join('_', splitName);
+					ExportLog($"        nameToUse: {nameToUse}");
+				}
+				return nameToUse;
+			}
+		}
 		
 		// ordering information
 		public int subregion;
@@ -901,12 +873,13 @@ public static class WorldExporter {
 			return PreProcessorsToString(this.preProcessorConditions) + (this.timeline.timelineType == TimelineType.All ? "" : $"({this.timeline}) ") + $"{this.name}";
 		}
 
-		public ExportRoom(string name, HashSet<string> tags, int subregion, int cameraCount, IDExit[] connections, Timeline timeline, string[] preProcessorConditions) {
+		public ExportRoom(string name, HashSet<string> tags, bool warpable, int subregion, int cameraCount, IDExit[] connections, Timeline timeline, string[] preProcessorConditions) {
 			this.name = name;
 			this.connections = connections;
 			this.timeline = timeline;
 			this.preProcessorConditions = preProcessorConditions;
 			this.tags = tags;
+			this.warpable = warpable;
 			this.subregion = subregion;
 			this.cameraCount = cameraCount;
 		}
@@ -1081,7 +1054,7 @@ public static class WorldExporter {
 					finalWorm += $"({worm.timeline})";
 				}
 
-				finalWorm += $"{PreProcessorsToString(worm.preProcessorConditions)}{RoomNameCasing(room.name)} : {room.GarbageWormHoleIndex}-{Mods.ExportCreatureName(worm.type)}";
+				finalWorm += $"{PreProcessorsToString(worm.preProcessorConditions)}{GetWarpName(room.name)} : {room.GarbageWormHoleIndex}-{Mods.ExportCreatureName(worm.type)}";
 				if (worm.count > 1)
 					finalWorm += $"-{worm.count}";
 				finalWorldFile.Add(finalWorm);
@@ -1131,7 +1104,7 @@ public static class WorldExporter {
 		public List<ExportDen> dens = [];
 
 		public CreatureRoom(string name, bool isOffscreenDen) {
-			this.name = isOffscreenDen ? "OFFSCREEN" : RoomNameCasing(name);
+			this.name = isOffscreenDen ? "OFFSCREEN" : name;
 			this.isOffscreenDen = isOffscreenDen;
 		}
 
@@ -1200,7 +1173,7 @@ public static class WorldExporter {
 					finalCreature += $"({timeline})";
 				}
 
-				finalCreature += $"{PreProcessorsToString(preProcessorToCheck)}{this.name} : ";
+				finalCreature += $"{PreProcessorsToString(preProcessorToCheck)}{GetWarpName(this.name)} : ";
 
 				bool first = true;
 
@@ -1234,7 +1207,7 @@ public static class WorldExporter {
 						finalLineage += $"({lineage.timeline})";
 					}
 
-					finalLineage += $"{PreProcessorsToString(lineage.preProcessorConditions)}LINEAGE : {this.name} : {den.denID} : ";
+					finalLineage += $"{PreProcessorsToString(lineage.preProcessorConditions)}LINEAGE : {GetWarpName(this.name)} : {den.denID} : ";
 
 					for (int lineageIndex = 0; lineageIndex < lineage.creatures.Count; lineageIndex++) {
 						LineageExportCreature creature = lineage.creatures[lineageIndex];
@@ -1510,7 +1483,7 @@ public static class WorldExporter {
 			int mapfileRoomYPos = textureHeight - roomPosition.y - layerYOffset - room.height;
 
 			if (room.timeline.timelineType != TimelineType.Only) { // only rooms set to "only" don't appear in the default map
-				mapFile?.WriteLine($"{RoomNameCasing(room.name)}: {roomPosition.x + layerXOffset},{mapfileRoomYPos},{room.width},{room.height}");
+				mapFile?.WriteLine($"{room.name}: {roomPosition.x + layerXOffset},{mapfileRoomYPos},{room.width},{room.height}");
 			}
 			foreach (KeyValuePair<string, StreamWriter?> timelineWriter in timelineMapFiles) {
 				bool skipForReplaceRoom = false;
@@ -1521,7 +1494,7 @@ public static class WorldExporter {
 					}
 				}
 				if (!skipForReplaceRoom && room.timeline.OverlapsWith(timelineWriter.Key)) {
-					timelineWriter.Value?.WriteLine($"{RoomNameCasing(room.name)}: {roomPosition.x + layerXOffset},{mapfileRoomYPos},{room.width},{room.height}");
+					timelineWriter.Value?.WriteLine($"{room.name}: {roomPosition.x + layerXOffset},{mapfileRoomYPos},{room.width},{room.height}");
 				}
 			}
 
@@ -1570,7 +1543,7 @@ public static class WorldExporter {
 
 				int mapfileRoomYPos = textureHeight - replaceRoomPosition.y - layerYOffset - replaceRoom.replacingRoom.height;
 
-				timelineWriter.Value?.WriteLine($"{RoomNameCasing(replaceRoom.replacedRoom.name)}: {replaceRoomPosition.x + layerXOffset},{mapfileRoomYPos},{replaceRoom.replacingRoom.width},{replaceRoom.replacingRoom.height}");
+				timelineWriter.Value?.WriteLine($"{replaceRoom.replacedRoom.name}: {replaceRoomPosition.x + layerXOffset},{mapfileRoomYPos},{replaceRoom.replacingRoom.width},{replaceRoom.replacingRoom.height}");
 
 				timelineImageData[timelineWriter.Key] = DrawRoomAtMapPosition(replaceRoom.replacingRoom, replaceRoomPosition, timelineImageData[timelineWriter.Key], textureWidth, textureHeight, layerXOffset, layerYOffset);
 			}
@@ -1706,7 +1679,7 @@ public static class WorldExporter {
 			if (room.data.attractiveness.IsNullOrEmpty())
 				continue;
 
-			ExportRoomAttr(writer, RoomNameCasing(room.name), room.data.attractiveness);
+			ExportRoomAttr(writer, room.name, room.data.attractiveness);
 		}
 
 		foreach (KeyValuePair<int, Color> item in WorldWindow.region.overrideSubregionColors) {
@@ -1744,12 +1717,12 @@ public static class WorldExporter {
 			}
 			else {
 				string geoFileSourcePath = Path.GetFullPath(room.path);
-				string geoFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, room.name + ".txt"));
+				string geoFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, GetFileName(room.name) + ".txt"));
 				if (!geoFileSourcePath.Equals(geoFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(geoFileSourcePath)) {
 					if (roomNameChanged) {
 						string[] originalFile = File.ReadAllLines(geoFileSourcePath);
 						if (originalFile[0].Trim() == room.OldName)
-							originalFile[0] = room.name;
+							originalFile[0] = GetFileName(room.name);
 						File.WriteAllLines(geoFileDestPath, originalFile);
 					}
 					else
@@ -1760,7 +1733,7 @@ public static class WorldExporter {
 					}
 				}
 				string settingsFileSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), room.OldName + $"_settings.txt"));
-				string settingsFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, room.name + $"_settings.txt"));
+				string settingsFileDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, GetFileName(room.name) + $"_settings.txt"));
 				if (!settingsFileSourcePath.Equals(settingsFileDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(settingsFileSourcePath)) {
 					File.Copy(settingsFileSourcePath, settingsFileDestPath, true);
 					if ((sameFolderExport || Settings.UpdateRegionFiles) && roomNameChanged && deleteOldFiles) {
@@ -1774,7 +1747,7 @@ public static class WorldExporter {
 				Logger.Info($"    saving rendered images for room {room.name}");
 				foreach ((string imageID, byte[] image) in room.renderedImages) {
 					try {
-						string imageOutputPath = Path.Combine(WorldWindow.region.exportRoomsPath, $"{room.name}{imageID}.png");
+						string imageOutputPath = Path.Combine(WorldWindow.region.exportRoomsPath, $"{GetFileName(room.name)}{imageID}.png");
 						Logger.Info($"        saving {imageOutputPath}");
 						using Stream stream = File.OpenWrite(imageOutputPath);
 						ImageWriter writer = new ImageWriter();
@@ -1790,7 +1763,7 @@ public static class WorldExporter {
 				Logger.Info($"    copying images for room {room.name};");
 				for (int i = 1; i <= room.data.cameras.Count; i++) {
 					string imageSourcePath = Path.GetFullPath(Path.Combine(PathUtil.Parent(room.path), room.OldName + $"_{i}.png"));
-					string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, room.name + $"_{i}.png"));
+					string imageDestPath = Path.GetFullPath(Path.Combine(WorldWindow.region.exportRoomsPath, GetFileName(room.name) + $"_{i}.png"));
 					if (!imageSourcePath.EndsWith(imageDestPath, StringComparison.InvariantCultureIgnoreCase) && File.Exists(imageSourcePath)) {
 						File.Copy(imageSourcePath, imageDestPath, true);
 						if ((sameFolderExport || Settings.UpdateRegionFiles) && roomNameChanged && deleteOldFiles) {
@@ -1802,7 +1775,7 @@ public static class WorldExporter {
 			}
 			if (roomNameChanged) {
 				if ((sameFolderExport || Settings.UpdateRegionFiles) && deleteOldFiles)
-					room.path = Path.Combine(PathUtil.Parent(room.path), room.name + ".txt");
+					room.path = Path.Combine(PathUtil.Parent(room.path), GetFileName(room.name) + ".txt");
 				room.oldName = null;
 				room.retainOldFiles = true;
 			}

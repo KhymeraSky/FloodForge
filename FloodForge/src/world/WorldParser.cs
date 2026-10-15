@@ -328,9 +328,31 @@ public static class WorldParser {
 				}
 			}
 
-			string filePath = PathUtil.FindFile(path, name + ".txt") ?? "";
+			string pathName = WorldWindow.region.roomFilesLowerCase == null ? name : ((bool)WorldWindow.region.roomFilesLowerCase ? name.ToLowerInvariant() : name.ToUpperInvariant());
+			string filePath = PathUtil.FindFile(path, pathName + ".txt", true) ?? "";
 			if (filePath.IsNullOrEmpty()) {
-				Logger.Warn($"Room file {path}/{name}.txt could not be found");
+				string casing = name.Equals(name.ToUpperInvariant()) ? "upper" : (name.Equals(name.ToLowerInvariant()) ? "lower" : "unknown");
+				Logger.Warn($"Unable to find room file {path}/{pathName}.txt; name casing: {casing}");
+				filePath = PathUtil.FindFile(path, name + ".txt") ?? "";
+				if (filePath.IsNullOrEmpty())
+					Logger.Warn("Unable to find non-sensitive room");
+				else {
+					string fileName = Path.GetFileNameWithoutExtension(filePath);
+					string fileCasing = fileName.Equals(fileName.ToUpperInvariant()) ? "upper" : (fileName.Equals(fileName.ToLowerInvariant()) ? "lower" : "unknown");
+					if (fileCasing.Equals(casing, StringComparison.InvariantCultureIgnoreCase)) {
+						if (!casing.Equals("unknown")) {
+							WorldWindow.region.roomFilesLowerCase = casing.Equals("lower");
+							Logger.Warn($"set roomFilesLowerCase to {WorldWindow.region.roomFilesLowerCase}");
+						}
+					}
+					else if (!fileCasing.Equals("unknown")) {
+						WorldWindow.region.roomFilesLowerCase = fileCasing.Equals("lower");
+						Logger.Warn($"set roomFilesLowerCase to {WorldWindow.region.roomFilesLowerCase}");
+					}
+				}
+			}
+			if (filePath.IsNullOrEmpty()) {
+				Logger.Warn($"Room file {path}/{pathName}.txt could not be found");
 			}
 
 			returnValue = new Room(filePath, name);
@@ -354,6 +376,15 @@ public static class WorldParser {
 			string conditions = roomName[1..closingBracketPosition];
 			roomName = roomName[(closingBracketPosition + 1)..].Trim();
 			preProcessorConditions = [.. conditions.Split(',')];
+		}
+		string roomAcronym = roomName.Split('_')[0];
+		if (WorldWindow.region.worldFileLowerCase == null && roomAcronym.Equals(WorldWindow.region.acronym, StringComparison.InvariantCultureIgnoreCase)) {
+			if (!WorldWindow.region.acronym.ToLowerInvariant().Equals(WorldWindow.region.acronym.ToUpperInvariant())) {
+				if (roomAcronym.Equals(WorldWindow.region.acronym.ToLowerInvariant()))
+					WorldWindow.region.worldFileLowerCase = true;
+				else if (roomAcronym.Equals(WorldWindow.region.acronym.ToUpperInvariant()))
+					WorldWindow.region.worldFileLowerCase = false;
+			}
 		}
 
 		Room? room = WorldWindow.region.rooms.FirstOrDefault(x => x.name.Equals(roomName, StringComparison.InvariantCultureIgnoreCase));
@@ -1056,7 +1087,7 @@ public static class WorldParser {
 
 				parseState = WorldParseState.None;
 				if (WorldWindow.region.offscreenDen == null) {
-					WorldWindow.region.offscreenDen = new OffscreenRoom("offscreenden" + WorldWindow.region.acronym, "OffscreenDen" + WorldWindow.region.acronym.ToUpperInvariant());
+					WorldWindow.region.offscreenDen = new OffscreenRoom("offscreenden" + WorldWindow.region.acronym, "OffScreenDen_" + WorldWindow.region.acronym);
 					WorldWindow.region.rooms.Add(WorldWindow.region.offscreenDen);
 				}
 				continue;
@@ -1292,12 +1323,13 @@ public static class WorldParser {
 		WorldWindow.region.exportRoomsPath = lastExportPaths?.Item2!;
 		WorldWindow.region.acronym = Path.GetFileNameWithoutExtension(worldPath);
 		WorldWindow.region.acronym = WorldWindow.region.acronym[(WorldWindow.region.acronym.IndexOfReverse('_') + 1)..];
+		WorldWindow.region.worldFileLowerCase = null;
+		WorldWindow.region.roomFilesLowerCase = null;
+		Logger.Info($"Importing new region; worldPath: {worldPath}; acronym: {WorldWindow.region.acronym}");
 
 		{
 			// `world/xx/world_xx.txt` -> `world/regions.txt`
-			string? regionsPath = Path.GetFileNameWithoutExtension(PathUtil.Parent(WorldWindow.region.importFolderPath))?.ToLowerInvariant() == "world"
-				? PathUtil.FindFile(PathUtil.Parent(WorldWindow.region.importFolderPath), "regions.txt")
-				: null;
+			string? regionsPath = Path.GetFileNameWithoutExtension(PathUtil.Parent(WorldWindow.region.importFolderPath)) == "world" ? PathUtil.FindFile(PathUtil.Parent(WorldWindow.region.importFolderPath), "regions.txt") : null;
 			if (regionsPath != null)
 				WorldWindow.region.regionsPaths.Add(regionsPath);
 

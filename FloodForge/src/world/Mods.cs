@@ -227,9 +227,7 @@ public static class Mods {
 	}
 
 	public static Texture GetTagTexture(string type) {
-		type = type.ToLowerInvariant();
-
-		if (tagTextures.TryGetValue(type, out Texture? tex)) {
+		if (tagTextures.TryGetValue(type.ToLowerInvariant(), out Texture? tex)) {
 			return tex;
 		}
 
@@ -239,9 +237,7 @@ public static class Mods {
 	public static string ParseCreature(string type) {
 		if (type.Equals("NONE", StringComparison.InvariantCultureIgnoreCase)) return "";
 
-		type = type.ToLowerInvariant();
-
-		if (creatureParseMap.TryGetValue(type, out string? o)) {
+		if (creatureParseMap.TryGetValue(type.ToLowerInvariant(), out string? o)) {
 			return o;
 		}
 
