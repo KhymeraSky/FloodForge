@@ -85,9 +85,8 @@ public class SplashArtPopup : Popup {
 	}
 
 	protected void Scroll(float x, float y) {
-		Logger.Info("SCROLL!");
-		if (!this.recentsBounds.Inside(Mouse.Pos)) return;
-		Logger.Info("got through :)");
+		if (!this.recentsBounds.Inside(Mouse.Pos))
+			return;
 
 		this.targetScroll += y * 0.06f;
 		this.ClampScroll();
