@@ -1,7 +1,7 @@
 namespace FloodForge.Droplet;
 
 public static class LevelUtils {
-	public static List<Vector2i> Line(int x0, int y0, int x1, int y1) {
+	public static List<Vector2i> Line(int x0, int y0, int x1, int y1, bool connected = false) {
 		List<Vector2i> points = [];
 
 		int dx = Math.Abs(x1 - x0);
@@ -21,7 +21,7 @@ public static class LevelUtils {
 				error -= dy;
 				x0 += sx;
 			}
-			if (e2 < dx) {
+			if (!(connected && (e2 > -dy)) && e2 < dx) {
 				error += dx;
 				y0 += sy;
 			}

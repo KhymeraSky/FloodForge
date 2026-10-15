@@ -472,7 +472,7 @@ public static class DropletWindow {
 			else if (drawingState == 3 || drawingState == 4) {
 				if ((drawingState == 3 && !Mouse.Left) || (drawingState == 4 && !Mouse.Right)) {
 					dropletHistory.StartCollectingChanges([typeof(TileChange)]);
-					List <Vector2i> drawLine = LevelUtils.Line(drawStart.x, drawStart.y, mouseTile.x, mouseTile.y);
+					List <Vector2i> drawLine = LevelUtils.Line(drawStart.x, drawStart.y, mouseTile.x, mouseTile.y, selectedTool == GeometryTool.Shortcut);
 					foreach (Vector2i point in drawLine) {
 						if (Room.Inside(point)) {
 							ApplyTool(point.x, point.y, drawingState == 4);
@@ -488,7 +488,7 @@ public static class DropletWindow {
 					drawingState = -1;
 				}
 				else if ((Mouse.Left || Mouse.Right) && (lastMouseTile != mouseTile)) {
-					List<Vector2i> drawLine = LevelUtils.Line(lastMouseTile.x, lastMouseTile.y, mouseTile.x, mouseTile.y);
+					List<Vector2i> drawLine = LevelUtils.Line(lastMouseTile.x, lastMouseTile.y, mouseTile.x, mouseTile.y, selectedTool == GeometryTool.Shortcut);
 					foreach (Vector2i point in drawLine) {
 						if (Room.Inside(point)) {
 							ApplyTool(point.x, point.y, Mouse.Right);
@@ -565,7 +565,7 @@ public static class DropletWindow {
 			else if (drawingState == 3 || drawingState == 4) {
 				Program.gl.Enable(EnableCap.Blend);
 				Immediate.Alpha(0.5f);
-				List <Vector2i> drawLine = LevelUtils.Line(drawStart.x, drawStart.y, mouseTile.x, mouseTile.y);
+				List <Vector2i> drawLine = LevelUtils.Line(drawStart.x, drawStart.y, mouseTile.x, mouseTile.y, selectedTool == GeometryTool.Shortcut);
 				foreach (Vector2i point in drawLine) {
 					UI.FillRect(Rect.FromSize(roomRect.x0 + point.x, roomRect.y1 - point.y - 1, 1f, 1f));
 				}
