@@ -23,7 +23,7 @@ public static class WorldParser {
 		};
 	}
 
-	public static bool ParseProperties(string path) {
+	public static void ParseProperties(string path) {
 		foreach (string line in File.ReadAllLines(path)) {
 			if (line.IsNullOrEmpty()) continue;
 
@@ -47,9 +47,8 @@ public static class WorldParser {
 				if (room.Equals("default", StringComparison.InvariantCultureIgnoreCase)) {
 					WorldWindow.region.defaultAttractiveness = attractiveness;
 				}
-				else {
+				else
 					roomAttractiveness.Add((room, attractiveness));
-				}
 			}
 			else if (line.StartsWith("//FloodForge|")) {
 				string[] splits = line.Split('|');
@@ -65,17 +64,15 @@ public static class WorldParser {
 				WorldWindow.region.extraProperties += line + "\n";
 			}
 		}
-
-		return true;
 	}
 
 	public static bool ParseMapRoom(string line, out MapDraggable? offsetDraggable, string? timeline) {
 		offsetDraggable = null;
 		string? roomName = line[..line.IndexOf(':')];
 
-		Room? room = WorldWindow.region.rooms.FirstOrDefault(x => x.name.Equals(roomName, (StringComparison)3));
+		Room? room = WorldWindow.region.rooms.FirstOrDefault(x => x.name.Equals(roomName, StringComparison.InvariantCultureIgnoreCase));
 		
-		if (roomName.StartsWith("offscreenden", (StringComparison) 3)) {
+		if (roomName.StartsWith("offscreenden", StringComparison.InvariantCultureIgnoreCase)) {
 			room = WorldWindow.region.rooms.FirstOrDefault(x => x is OffscreenRoom);
 		}
 
@@ -1158,7 +1155,6 @@ public static class WorldParser {
 		Logger.Info("Loading connections");
 
 		foreach (ConnectionToAdd connectionData in connectionsToAdd) {
-			// Logger.Info($"connectionData - roomA: {connectionData.roomA.name} roomB: {connectionData.roomB?.name} roomAExitID: {connectionData.roomAExitID} roomBExitID: {connectionData.roomBExitID}");
 			if (connectionData.roomB == null || connectionData.roomBExitID == null) {
 				Logger.Warn($"Failed to load connection from {connectionData.roomA.name}({connectionData.roomAExitID}) to {connectionData.roomB?.name ?? $"'{connectionData.roomBName}'"}({connectionData.roomBExitID})");
 				continue;
@@ -1309,9 +1305,8 @@ public static class WorldParser {
 
 			// `world/xx/world_xx.txt` -> `modify/world/regions.txt`
 			regionsPath = PathUtil.FindDirectory(main, "modify");
-			if (regionsPath != null) {
+			if (regionsPath != null)
 				regionsPath = PathUtil.FindDirectory(regionsPath, "world");
-			}
 			if (regionsPath != null) {
 				regionsPath = PathUtil.FindFile(regionsPath, "regions.txt");
 				if (regionsPath != null)
@@ -1350,7 +1345,7 @@ public static class WorldParser {
 		string? propertiesPath = PathUtil.FindFile(WorldWindow.region.importFolderPath, "properties.txt");
 		if (propertiesPath != null) {
 			Logger.Info("Loading properties");
-			if (!ParseProperties(propertiesPath)) return false; // Does ParseProperties at any point even have the capacity to return false??
+			ParseProperties(propertiesPath);
 		}
 
 		Logger.Info("Loading world");
