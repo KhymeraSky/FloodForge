@@ -2,7 +2,7 @@ namespace FloodForge.Popups;
 
 public static class PopupManager {
 	private static readonly List<Popup> trash = [];
-	private static readonly List<Popup> toAdd = [];
+	private static readonly List<(Popup, bool)> toAdd = [];
 	private static Popup? holdingPopup = null;
 	private static Popup? mousePopup = null;
 	private static Popup? interactingPopup = null;
@@ -16,8 +16,11 @@ public static class PopupManager {
 	}
 
 	public static void Cleanup() {
-		foreach (Popup popup in toAdd) {
-			Windows.Add(popup);
+		foreach ((Popup popup, bool behind) in toAdd) {
+			if (behind)
+				Windows.Insert(0, popup);
+			else
+				Windows.Add(popup);
 			popup.Open();
 		}
 		foreach (Popup popup in trash) {
@@ -97,9 +100,9 @@ public static class PopupManager {
 		Mouse.Disabled = interactingPopup != null;
 	}
 
-	public static T Add<T>(T popup, bool checkTitleForDuplicates = false) where T : Popup {
+	public static T Add<T>(T popup, bool checkTitleForDuplicates = false, bool addBehind = false) where T : Popup {
 		if(!checkTitleForDuplicates || !PopupManager.HasTitle<T>(popup.popupTitle))
-			toAdd.Add(popup);
+			toAdd.Add((popup, addBehind));
 		return popup;
 	}
 	

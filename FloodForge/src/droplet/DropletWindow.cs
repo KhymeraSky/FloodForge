@@ -597,7 +597,7 @@ public static class DropletWindow {
 					(selectionStart, selectionEnd) = (new(Math.Min(selectionStart.x, selectionEnd.x), Math.Min(selectionStart.y, selectionEnd.y)), new(Math.Max(selectionStart.x, selectionEnd.x), Math.Max(selectionStart.y, selectionEnd.y)));
 					selectionState = 2;
 					selectionButtonPopup = new SelectionButtonPopup();
-					PopupManager.Add(selectionButtonPopup);
+					PopupManager.Add(selectionButtonPopup, addBehind: true);
 				}
 			}
 			if (selectionState == 2 && !preventMouseInteraction) { // 2 == done creating rectangle
