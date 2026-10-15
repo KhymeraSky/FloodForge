@@ -1,5 +1,4 @@
 using FloodForge.Droplet;
-using Silk.NET.Input;
 
 namespace FloodForge.Popups;
 
@@ -54,8 +53,8 @@ public class SelectionButtonPopup : Popup {
 			UI.ButtonResponse copyResponse = UI.TextureButton(this.copyButton, new(){ disabled = !mouseInWindow });
 			if (mouseInWindow) {
 				if (copyResponse.clicked || Input.JustPressed(Keys.Copy)) {
-					DropletWindow.selectionState = 3;
 					DropletWindow.selectionModificationMode = 0;
+					DropletWindow.InitiateSelectionMove();
 				}
 				if (copyResponse.hovered) {
 					this.hoverText = "Copy Selection";
@@ -66,20 +65,20 @@ public class SelectionButtonPopup : Popup {
 			UI.ButtonResponse cutResponse = UI.TextureButton(this.cutButton, new(){ disabled = !mouseInWindow });
 			if (mouseInWindow) {
 				if (cutResponse.clicked || Input.JustPressed(Keys.Cut)) {
-					DropletWindow.selectionState = 3;
 					DropletWindow.selectionModificationMode = 1;
+					DropletWindow.InitiateSelectionMove();
 				}
 				if (cutResponse.hovered) {
 					this.hoverText = "Cut Selection";
 				}
 			}
 		}
-		else if (DropletWindow.selectionState == 4) {
+		else if (DropletWindow.selectionState == 3) {
 			this.pasteButton = new UVRect(this.bounds.x0 + 0.07f, this.bounds.y0 + 0.01f, this.bounds.x0 + 0.12f, this.bounds.y1 - 0.01f).AtlasUV("ArrowDown");
 			UI.ButtonResponse pasteResponse = UI.TextureButton(this.pasteButton, new(){ disabled = !mouseInWindow });
 			if (mouseInWindow) {
 				if (pasteResponse.clicked || Input.JustPressed(Keys.Paste)) {
-					DropletWindow.selectionState = 5;
+					DropletWindow.FinaliseSelection();
 					this.Close();
 				}
 				if (pasteResponse.hovered) {
@@ -109,8 +108,7 @@ public class SelectionButtonPopup : Popup {
 	}
 
 	public override void Close() {
-		if (DropletWindow.selectionState != 5)
-			DropletWindow.selectionState = -1;
+		DropletWindow.selectionState = -1;
 		base.Close();
 	}
 }
