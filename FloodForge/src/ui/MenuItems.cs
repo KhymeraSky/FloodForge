@@ -5,8 +5,8 @@ namespace FloodForge;
 public abstract class MenuItems {
 	protected UIItem[] items = [];
 	protected Rect menuBarRect;
-	protected Dropdown? selectedDropdownButton;
-	protected Rect selectedDropdownRect;
+	public Dropdown? selectedDropdownButton;
+	public Rect selectedDropdownRect;
 
 	public bool Hovered() {
 		return this.menuBarRect.Inside(Mouse.Pos) || (this.selectedDropdownButton != null && this.selectedDropdownRect.Inside(Mouse.Pos));
@@ -126,7 +126,7 @@ public abstract class MenuItems {
 		}
 	}
 
-	protected abstract class UIItem {
+	public abstract class UIItem {
 		protected string text;
 		public Vector2 Size { get; protected set; }
 
@@ -148,7 +148,7 @@ public abstract class MenuItems {
 		}
 	}
 
-	protected class Dropdown : UIItem {
+	public class Dropdown : UIItem {
 		public readonly List<Button> buttons;
 
 		public Dropdown(string name, List<Button> buttons) : base(name) {
@@ -156,7 +156,7 @@ public abstract class MenuItems {
 		}
 	}
 
-	protected class Button : UIItem {
+	public class Button : UIItem {
 		public bool useUITexture = false;
 		public Action<Button> onclick;
 		public Func<Button, bool>? contextCheckCallback;

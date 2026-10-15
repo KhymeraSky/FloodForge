@@ -31,6 +31,20 @@ public class SelectionButtonPopup : Popup {
 			return;
 		}
 
+		bool useStencil = DropletWindow.menuItems.selectedDropdownButton != null;
+		if (useStencil) {
+			Program.gl.Enable(EnableCap.StencilTest);
+			Program.gl.Clear((uint)GLEnum.StencilBufferBit);
+			Program.gl.StencilOp(GLEnum.Keep, GLEnum.Keep, GLEnum.Replace);
+			Program.gl.StencilFunc(GLEnum.Always, 1, 0xFF);
+			Program.gl.StencilMask(0xFF);
+			Program.gl.ColorMask(false, false, false, false);
+			UI.FillRect(DropletWindow.menuItems.selectedDropdownRect);
+			UI.StrokeRect(DropletWindow.menuItems.selectedDropdownRect);
+			Program.gl.ColorMask(true, true, true, true);
+			Program.gl.StencilFunc(GLEnum.Notequal, 1, 0xFF);
+			Program.gl.StencilMask(0x00);
+		}
 		Program.gl.Enable(EnableCap.ScissorTest);
 		Rect roomViewBounds = new Rect(-Main.screenBounds.x, -Main.screenBounds.y, Main.screenBounds.x - DropletWindow.sidebarWidth, Main.screenBounds.y - DropletWindow.topbarHeight);
 		UI.ScissorRect(roomViewBounds);
@@ -104,6 +118,11 @@ public class SelectionButtonPopup : Popup {
 			UI.font.Write(this.hoverText, hoverRect.x0 + 0.01f, hoverRect.CenterY, 0.03f, Font.Align.MiddleLeft);
 			Immediate.Color(Themes.Border);
 			UI.StrokeRect(hoverRect);
+		}
+		if (useStencil) {
+			Program.gl.StencilFunc(GLEnum.Always, 1, 0xFF);
+			Program.gl.StencilMask(0xFF);
+			Program.gl.Disable(EnableCap.StencilTest);
 		}
 	}
 

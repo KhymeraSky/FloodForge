@@ -9,7 +9,7 @@ using static FloodForge.Main;
 namespace FloodForge.Droplet;
 
 public static class DropletWindow {
-	private static readonly DropletMenuItems menuItems = new DropletMenuItems();
+	public static readonly DropletMenuItems menuItems = new DropletMenuItems();
 	// REVIEW - edit ChangeHistory so that two separate methods exist, Register & Apply, so that it's clear within code that these differ in function
 	// since in droplet the change isn't actually applied, it's only registered that something has happened
 	public static readonly ChangeHistory dropletHistory = new ChangeHistory(RedoChangeOnApply: false);
@@ -2181,7 +2181,7 @@ public static class DropletWindow {
 		}
 	}
 
-	private class DropletMenuItems : MenuItems {
+	public class DropletMenuItems : MenuItems {
 		public DropletMenuItems() {
 			this.items = [
 				new Dropdown("File", [
