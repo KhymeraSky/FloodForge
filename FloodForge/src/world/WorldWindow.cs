@@ -1650,10 +1650,8 @@ public static class WorldWindow {
 			}
 			else {
 				debugText.Add("");
-				debugText.Add($"importFolderPath: {(region.importFolderPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.importFolderPath))}");
-				debugText.Add($"importRoomsPath: {(region.importRoomsPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.importRoomsPath))}");
-				debugText.Add($"exportFolderPath: {(region.exportFolderPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.exportFolderPath))}");
-				debugText.Add($"exportRoomsPath: {(region.exportRoomsPath.IsNullOrEmpty() ? "EMPTY" : Path.GetRelativePath(PathUtil.Parent(Environment.ProcessPath!), region.exportRoomsPath))}");
+				debugText.Add($"importPath: {(region.importFolderPath.IsNullOrEmpty() ? "EMPTY" : UI.font.CropText(PathUtil.Parent(region.importFolderPath), 30, 1, out _, true))}");
+				debugText.Add($"exportPath: {(region.exportFolderPath.IsNullOrEmpty() ? "EMPTY" : UI.font.CropText(PathUtil.Parent(region.exportFolderPath), 30, 1, out _, true))}");
 			}
 
 			if (VisibleCreatures) {
