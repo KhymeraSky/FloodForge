@@ -26,7 +26,7 @@ public class TagPopup : Popup {
 	}
 
 	protected void ClampScroll() {
-		float maxScroll = (RoomTags.Count - 3) * -0.075f;
+		float maxScroll = (Mods.roomTagNames.Count - 3) * -0.075f;
 		if (this.targetScroll < maxScroll) {
 			this.targetScroll = maxScroll;
 			if (this.scroll <= maxScroll + 0.06f) {
@@ -93,8 +93,8 @@ public class TagPopup : Popup {
 		this.DrawTagButton("None", "", y);
 		y -= 0.075f;
 
-		for (int i = 0; i < RoomTags.Count; i++) {
-			this.DrawTagButton(RoomTags.Names[i], RoomTags.Ids[i], y);
+		foreach (KeyValuePair<string, string> roomTagName in Mods.roomTagNames) {
+			this.DrawTagButton(roomTagName.Value, roomTagName.Key, y);
 			y -= 0.075f;
 		}
 

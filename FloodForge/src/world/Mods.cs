@@ -22,6 +22,8 @@ public static class Mods {
 	private static readonly Dictionary<string, Texture> timelineTextures = [];
 	public static readonly List<string> timelines = [];
 
+	public static readonly Dictionary<string, string> roomTagNames = [];
+
 	private static readonly Dictionary<string, Texture> objectTextures = [];
 
 	public static IEnumerable<Tag> Tags(string creature) => tags.Values.Where(t => t.Supports(creature));
@@ -167,6 +169,18 @@ public static class Mods {
 					}
 					if (workingTag != null && displayType != null) {
 						tagData.Add(workingTag, (displayType, tagCreatures));
+					}
+				}
+			}
+
+			if (PathUtil.TryGetDirectory(dir, "roomtags", out string? roomTagsPath)) {
+				if (PathUtil.TryGetFile(roomTagsPath, "roomtags.txt", out string? file)) {
+					string[] roomTagLines = File.ReadAllText(file).Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+					foreach (string line in roomTagLines) {
+						string[] split = line.Split('|');
+						string internalName = split[0];
+						string userFriendlyName = string.Join('|', split[1..]);
+						roomTagNames.Add(internalName, userFriendlyName);
 					}
 				}
 			}

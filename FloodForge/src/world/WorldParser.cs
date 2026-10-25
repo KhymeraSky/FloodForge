@@ -467,7 +467,7 @@ public static class WorldParser {
 		}
 
 		room.data.tags = [ ];
-		tags.ForEach(room.data.tags.Toggle);
+		tags.ForEach(t => { room.data.tags.Toggle(t); Mods.roomTagNames.TryAdd(t, t); });
 	}
 
 	// TODO: Handle dynamically

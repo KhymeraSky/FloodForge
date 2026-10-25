@@ -1,0 +1,8 @@
+SHELTER|Shelter
+ANCIENTSHELTER|Ancient Shelter
+GATE|Gate
+SWARMROOM|Swarm Room
+PERF_HEAVY|Performance Heavy
+SCAVOUTPOST|Scavenger Outpost
+SCAVTRADER|Scavenger Trader
+NOTRACKERS|No Trackers
