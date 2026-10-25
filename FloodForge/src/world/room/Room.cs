@@ -1734,7 +1734,8 @@ public class Room : MapDraggable {
 
 		this.DrawStateIcons(renderedPosition, this.width);
 
-		this.DrawTagIcons(renderedPosition);
+		if (WorldWindow.VisibleTagIcons)
+			this.DrawTagIcons(renderedPosition);
 	}
 
 	protected void DrawInvalidRoom(Vector2 renderedPosition) {
@@ -1929,6 +1930,7 @@ public class Room : MapDraggable {
 		}
 	}
 
+	// TODO - add icons for nowarp, batfly migration blockage, etc.
 	protected void DrawStateIcons(Vector2 renderedPosition, int width) {
 		List<(string, Color)> iconsToDraw = [];
 

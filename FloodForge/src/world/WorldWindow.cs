@@ -25,6 +25,7 @@ public static class WorldWindow {
 	public static bool VisibleDevItems { get; private set; } = false;
 	public static bool VisibleCreatures { get; private set; } = true;
 	public static bool VisibleTimelineIcons { get; private set; } = true;
+	public static bool VisibleTagIcons { get; private set; } = true;
 	public static bool VisibleReplaceRooms { get; private set; } = true;
 	public static RoomPosition PositionType { get; private set; } = RoomPosition.Canon;
 	public static RoomColors ColorType { get; private set; } = RoomColors.None;
@@ -2318,6 +2319,11 @@ public static class WorldWindow {
 					new Button("Timeline icons: Shown", button => {
 						VisibleTimelineIcons = !VisibleTimelineIcons;
 						button.Text = VisibleTimelineIcons ? "Timeline icons: Shown" : "Timeline icons: Hidden";
+					}, button => { return WorldWindow.ValidRegionLoaded; }) { preventClose = true },
+
+					new Button("Tag icons: Shown", button => {
+						VisibleTagIcons = !VisibleTagIcons;
+						button.Text = VisibleTagIcons ? "Tags icons: Shown" : "Tags icons: Hidden";
 					}, button => { return WorldWindow.ValidRegionLoaded; }) { preventClose = true },
 
 					new Button("ReplaceRooms: Shown", button => {
