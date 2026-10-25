@@ -1892,7 +1892,14 @@ public class Room : MapDraggable {
 
 	protected void DrawDens(Vector2 renderedPosition) {
 		for (int i = 0; i < this.denShortcutEntrances.Count; i++) {
-			DrawDen(this.dens[i], renderedPosition.x + this.denShortcutEntrances[i].x, renderedPosition.y - this.denShortcutEntrances[i].y, WorldWindow.denRoom == this && WorldWindow.hoveredDen == i, WorldWindow.HoveringDraggable == this);
+			bool denHovered = WorldWindow.denRoom == this && WorldWindow.hoveredDen == i;
+			if (this.dens[i].creatures.Count == 0 && !denHovered)
+				DrawDen(this.dens[i], renderedPosition.x + this.denShortcutEntrances[i].x, renderedPosition.y - this.denShortcutEntrances[i].y, denHovered, WorldWindow.HoveringDraggable == this);
+		}
+		for (int i = 0; i < this.denShortcutEntrances.Count; i++) { // draw occupied dens after empty ones to avoid green dots appearing over images (unless hovering the relevant den)
+			bool denHovered = WorldWindow.denRoom == this && WorldWindow.hoveredDen == i;
+			if (this.dens[i].creatures.Count != 0 || denHovered)
+				DrawDen(this.dens[i], renderedPosition.x + this.denShortcutEntrances[i].x, renderedPosition.y - this.denShortcutEntrances[i].y, denHovered, WorldWindow.HoveringDraggable == this);
 		}
 	}
 
