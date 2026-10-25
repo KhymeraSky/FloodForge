@@ -1301,10 +1301,6 @@ public static class WorldWindow {
 			}
 			Profiler.MarkPoint("rooms", 0, true);
 		}
-
-		if (placingRoom) {
-			roomPlacementVisualiser.Draw();
-		}
 		Program.gl.Disable(EnableCap.Blend);
 		Profiler.MarkPoint("DrawRooms");
 
@@ -1368,9 +1364,28 @@ public static class WorldWindow {
 				freeConnection.Draw(roomA.GetConnectionConnectPoint(connection.roomAExitID, roomAPosition), roomB.GetConnectionConnectPoint(connection.roomBExitID, roomBPosition), roomA.GetConnectionConnectDirection(connection.roomAExitID), roomB.GetConnectionConnectDirection(connection.roomBExitID), Themes.RoomConnection, isLoop);
 			}
 		}
+		Profiler.MarkPoint("DrawConnections");
+
+		foreach (Room room in WorldWindow.region.rooms) {
+			if (PositionType == RoomPosition.Both) {
+				room.PostDraw(RoomPosition.Canon);
+				room.PostDraw(RoomPosition.Dev);
+			}
+			else {
+				room.PostDraw(PositionType);
+				if (Input.Pressed(Keys.DevAndCanon)) {
+					room.PostDraw((PositionType == RoomPosition.Canon) ? RoomPosition.Dev : RoomPosition.Canon);
+				}
+			}
+		}
+
+		if (placingRoom) {
+			roomPlacementVisualiser.Draw();
+		}
+		Profiler.MarkPoint("RoomsPostDraw");
 
 		DrawCurrentConnection();
-		Profiler.MarkPoint("DrawConnections");
+		Profiler.MarkPoint("DrawCurrentConnection");
 
 		if (selectingState == SelectingState.Selecting) {
 			Program.gl.Enable(EnableCap.Blend);

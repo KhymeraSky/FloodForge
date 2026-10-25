@@ -1724,11 +1724,17 @@ public class Room : MapDraggable {
 			outlineColor = Color.Lerp(outlineColor, Themes.TextWarn, 0.4f);
 		Immediate.Color(outlineColor);
 		UI.StrokeRect(renderedPosition.x, renderedPosition.y, renderedPosition.x + this.width, renderedPosition.y - this.height);
+	}
+
+	public virtual void PostDraw(WorldWindow.RoomPosition positionType) {
+		Vector2 renderedPosition = positionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
 
 		if (this.timeline.timelineType != TimelineType.All)
 			this.DrawTimelineIcons(renderedPosition);
 
 		this.DrawStateIcons(renderedPosition, this.width);
+
+		this.DrawTagIcons(renderedPosition);
 	}
 
 	protected void DrawInvalidRoom(Vector2 renderedPosition) {
@@ -1939,6 +1945,30 @@ public class Room : MapDraggable {
 			UVRect itemRect = new UVRect(rightX - textureSize - displacement * textureSize, topY - textureSize, rightX - displacement * textureSize, topY).AtlasUV(atlasUV);
 			UI.UVTexture(itemRect, textureColor: color);
 			displacement++;
+		}
+	}
+
+	protected void DrawTagIcons(Vector2 renderedPosition) {
+		float scale = WorldWindow.SelectorScale * 1.4f;
+
+		List<Texture> tagIconsToDraw = [];
+		foreach (string tag in this.data.tags) {
+			Texture? result = Mods.GetRoomTagTexture(tag);
+			if (result != null)
+				tagIconsToDraw.Add(result);
+		}
+		
+		int i = 0;
+		Immediate.Color(1f, 1f, 1f);
+		float centerX = renderedPosition.x + Math.Max(this.width * 0.5f, this.width - tagIconsToDraw.Count * scale * 0.5f);
+		float startX = centerX - (tagIconsToDraw.Count - 1f) * scale * 0.5f;
+
+		float yVal = renderedPosition.y - Math.Min(this.height * 0.5f, this.height + scale * 0.5f);
+
+		foreach (Texture texture in tagIconsToDraw) {
+			Immediate.Color(1f, 1f, 1f);
+			UI.CenteredTexture(texture, startX + (i * scale), yVal, scale);
+			i++;
 		}
 	}
 

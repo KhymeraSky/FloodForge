@@ -22,6 +22,7 @@ public static class Mods {
 	private static readonly Dictionary<string, Texture> timelineTextures = [];
 	public static readonly List<string> timelines = [];
 
+	private static readonly Dictionary<string, Texture> roomTagTextures = [];
 	public static readonly Dictionary<string, string> roomTagNames = [];
 
 	private static readonly Dictionary<string, Texture> objectTextures = [];
@@ -174,6 +175,11 @@ public static class Mods {
 			}
 
 			if (PathUtil.TryGetDirectory(dir, "roomtags", out string? roomTagsPath)) {
+				foreach (string filePath in Directory.GetFiles(roomTagsPath, "*.png")) {
+					string roomTag = Path.GetFileNameWithoutExtension(filePath);
+					roomTagTextures.Add(roomTag.ToLowerInvariant(), Texture.Load(filePath));
+				}
+
 				if (PathUtil.TryGetFile(roomTagsPath, "roomtags.txt", out string? file)) {
 					string[] roomTagLines = File.ReadAllText(file).Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 					foreach (string line in roomTagLines) {
@@ -246,6 +252,14 @@ public static class Mods {
 		}
 
 		return Unknown;
+	}
+
+	public static Texture? GetRoomTagTexture(string tagID) {
+		if (roomTagTextures.TryGetValue(tagID.ToLowerInvariant(), out Texture? tex)) {
+			return tex;
+		}
+
+		return null;
 	}
 
 	public static string ParseCreature(string type) {
