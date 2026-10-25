@@ -1728,11 +1728,7 @@ public class Room : MapDraggable {
 		if (this.timeline.timelineType != TimelineType.All)
 			this.DrawTimelineIcons(renderedPosition);
 
-		if (this.data.lockState != RoomLockState.none) {
-			UVRect lockRect = new (renderedPosition.x + this.width - 10f, renderedPosition.y - 10f, renderedPosition.x + this.width, renderedPosition.y);
-			lockRect.AtlasUV("Lock");
-			UI.UVTexture(lockRect, textureColor: Themes.TextHighlight);
-		}
+		this.DrawStateIcons(renderedPosition, this.width);
 	}
 
 	protected void DrawInvalidRoom(Vector2 renderedPosition) {
@@ -1924,6 +1920,23 @@ public class Room : MapDraggable {
 				float y1 = yVal - 0.5f * scale;
 				UI.Line(x0, y0, x0, y1, scale * 3f);
 			}
+		}
+	}
+
+	protected void DrawStateIcons(Vector2 renderedPosition, int width) {
+		List<(string, Color)> iconsToDraw = [];
+
+		if (this.data.lockState != RoomLockState.none)
+			iconsToDraw.Add(("Lock", Themes.TextHighlight));
+		
+		float rightX = renderedPosition.x + width;
+		float topY = renderedPosition.y;
+		int displacement = 0;
+		float textureSize = 7f;
+		foreach ((string atlasUV, Color color) in iconsToDraw) {
+			UVRect itemRect = new UVRect(rightX - textureSize - displacement * textureSize, topY - textureSize, rightX - displacement * textureSize, topY).AtlasUV(atlasUV);
+			UI.UVTexture(itemRect, textureColor: color);
+			displacement++;
 		}
 	}
 
