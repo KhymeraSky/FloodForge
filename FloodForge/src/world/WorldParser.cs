@@ -90,6 +90,7 @@ public static class WorldParser {
 				dataTarget = relevantReplaceRoom.replacedRoom;
 				positionTarget = relevantReplaceRoom;
 				sizeSource = relevantReplaceRoom.replacingRoom;
+				relevantReplaceRoom.hasHadPositionSet = true;
 			}
 		}
 		
@@ -218,6 +219,14 @@ public static class WorldParser {
 				foreach (MapDraggable offsetDraggable in offsetDraggables) {
 					offsetDraggable.CanonPosition -= totalAvgOffset;
 				}
+			}
+		}
+
+		foreach (ReplaceRoom replaceRoom in WorldWindow.replaceRooms) {
+			if (!replaceRoom.hasHadPositionSet) {
+				replaceRoom.CanonPosition = replaceRoom.replacedRoom.CanonPosition;
+				replaceRoom.DevPosition = replaceRoom.replacedRoom.DevPosition;
+				replaceRoom.hasHadPositionSet = true;
 			}
 		}
 
@@ -759,6 +768,7 @@ public static class WorldParser {
 			// 		{condition}Watcher : HIDEROOM : XX_A01
             // 		Rivulet : HIDEROOM : XX_A01
 			// overwriting the preprocessorcondition for both conditionals to be the same, practically merging two distinct cases
+			// REVIEW UPDATE - I have not tested this in a long time, it may or may not still apply.
 			room2.preProcessorConditions = preProcessorConditions;
 
 			if (mod == "exclusiveroom" || (mod == "hideroom" && xminus)) {

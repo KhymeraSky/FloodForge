@@ -12,6 +12,8 @@ public class ReplaceRoom : MapDraggable {
 	public bool setHidden = false;
 	public bool IsHidden => this.setHidden && !Input.Pressed(Keys.ShowHiddenReplaceRooms);
 
+	public bool hasHadPositionSet = false;
+
 	public Vector2i size;
 
 	protected override bool IsVisible() {
