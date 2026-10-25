@@ -1972,7 +1972,7 @@ public class Room : MapDraggable {
 		float centerX = renderedPosition.x + Math.Max(this.width * 0.5f, this.width - tagIconsToDraw.Count * scale * 0.5f);
 		float startX = centerX - (tagIconsToDraw.Count - 1f) * scale * 0.5f;
 
-		float yVal = renderedPosition.y - Math.Min(this.height * 0.5f, this.height + scale * 0.5f);
+		float yVal = renderedPosition.y - Math.Max(this.height * 0.5f, this.height - scale * 0.5f);
 
 		foreach (Texture texture in tagIconsToDraw) {
 			Immediate.Color(1f, 1f, 1f);
