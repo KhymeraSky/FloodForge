@@ -1367,6 +1367,29 @@ public static class WorldWindow {
 		}
 		Profiler.MarkPoint("DrawConnections");
 
+		// I'm not the biggest fan of the way this works, but I can't think of any other method that isn't much more complicated and obtuse.
+		foreach (Room room in WorldWindow.region.rooms) {
+			if (WorldWindow.VisibleCreatures) {
+				if (PositionType == RoomPosition.Both) {
+					room.DrawEmptyDens(room.CanonPosition);
+					room.DrawEmptyDens(room.DevPosition);
+				}
+				else
+					room.DrawEmptyDens(room.Position);
+			}
+		}
+
+		foreach (Room room in WorldWindow.region.rooms) {
+			if (WorldWindow.VisibleCreatures) {
+				if (PositionType == RoomPosition.Both) {
+					room.DrawOccupiedDens(room.CanonPosition);
+					room.DrawOccupiedDens(room.DevPosition);
+				}
+				else
+					room.DrawOccupiedDens(room.Position);
+			}
+		}
+
 		foreach (Room room in WorldWindow.region.rooms) {
 			if (PositionType == RoomPosition.Both) {
 				room.PostDraw(RoomPosition.Canon);

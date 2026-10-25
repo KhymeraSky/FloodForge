@@ -1710,9 +1710,6 @@ public class Room : MapDraggable {
 				this.DrawRoomDevObjects(renderedPosition);
 
 			this.DrawRoomShortcuts(renderedPosition);
-
-			if (WorldWindow.VisibleCreatures)
-				this.DrawDens(renderedPosition);
 		}
 
 		Vector2 localMouse = WorldWindow.worldMouse - renderedPosition;
@@ -1890,12 +1887,15 @@ public class Room : MapDraggable {
 		}
 	}
 
-	protected void DrawDens(Vector2 renderedPosition) {
+	public void DrawEmptyDens(Vector2 renderedPosition) {
 		for (int i = 0; i < this.denShortcutEntrances.Count; i++) {
 			bool denHovered = WorldWindow.denRoom == this && WorldWindow.hoveredDen == i;
 			if (this.dens[i].creatures.Count == 0 && !denHovered)
 				DrawDen(this.dens[i], renderedPosition.x + this.denShortcutEntrances[i].x, renderedPosition.y - this.denShortcutEntrances[i].y, denHovered, WorldWindow.HoveringDraggable == this);
 		}
+	}
+
+	public void DrawOccupiedDens(Vector2 renderedPosition) {
 		for (int i = 0; i < this.denShortcutEntrances.Count; i++) { // draw occupied dens after empty ones to avoid green dots appearing over images (unless hovering the relevant den)
 			bool denHovered = WorldWindow.denRoom == this && WorldWindow.hoveredDen == i;
 			if (this.dens[i].creatures.Count != 0 || denHovered)
