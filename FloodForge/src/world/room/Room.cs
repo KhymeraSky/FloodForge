@@ -1926,6 +1926,8 @@ public class Room : MapDraggable {
 	protected void DrawStateIcons(Vector2 renderedPosition, int width) {
 		List<(string, Color)> iconsToDraw = [];
 
+		if (this.fileModified)
+			iconsToDraw.Add(("Page", Themes.TextWarn));
 		if (this.data.lockState != RoomLockState.none)
 			iconsToDraw.Add(("Lock", Themes.TextHighlight));
 		
