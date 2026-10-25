@@ -767,8 +767,26 @@ public static class WorldParser {
 			// REVIEW - this fails to correctly parse a case such as:
 			// 		{condition}Watcher : HIDEROOM : XX_A01
             // 		Rivulet : HIDEROOM : XX_A01
-			// overwriting the preprocessorcondition for both conditionals to be the same, practically merging two distinct cases
-			// REVIEW UPDATE - I have not tested this in a long time, it may or may not still apply.
+			// overwriting the preprocessorcondition for both conditionals to be the same, practically merging two distinct cases into
+			// 		{condition}Watcher,Rivulet : HIDEROOM : XX_A01
+			// This even applies in the much simpler case of:
+			// 		{condition1}Watcher : HIDEROOM : XX_A01
+            // 		{condition2}Watcher : HIDEROOM : XX_A01
+			//
+			// REVIEW UPDATE - one way to solve this would be to
+			// -move preprocessorconditions to be contained within the Timeline class
+			// -allow timelines or rooms to define multiple individual timeline cases (HIDEROOM if {A-condition}Gourmand OR if {B-condition}Rivulet OR if Inv)
+			// in this case, the conditionalpopup would require a rework.
+			// a vague idea for how this conditionalPopup would look:
+			// the popup would contain a list of Conditions; these are independent and work like OR gates.
+			// each Condition would have a field for the timelineType, timelines & preprocessorconditions.
+			//
+			// The only case in which this would 'fail' would be if something like this happened:
+			// 		Watcher : HIDEROOM : XX_A01
+            // 		{condition2}Watcher : EXCLUSIVEROOM : XX_A01
+			// but in that case the clauses could be combined into a single line:
+			//		{!condition2}Watcher : HIDEROOM : XX_A01
+			// therefore, this case can be disregarded.
 			room2.preProcessorConditions = preProcessorConditions;
 
 			if (mod == "exclusiveroom" || (mod == "hideroom" && xminus)) {
