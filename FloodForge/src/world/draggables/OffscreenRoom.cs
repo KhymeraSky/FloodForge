@@ -35,6 +35,14 @@ public class OffscreenRoom : Room {
 		base.DrawBlack(positionType);
 	}
 
+	public override void DrawEmptyDens(Vector2 renderedPosition) {
+		
+	}
+
+	public override void DrawOccupiedDens(Vector2 renderedPosition) {
+		DrawDen(this.dens[0], renderedPosition.x + this.width * 0.5f, renderedPosition.y - this.height * 0.25f, WorldWindow.denRoom == this && WorldWindow.hoveredDen == 0, WorldWindow.HoveringDraggable == this);
+	}
+
 	public override void Draw(WorldWindow.RoomPosition positionType) {
 		if (!WorldWindow.VisibleCreatures) return;
 
@@ -53,8 +61,6 @@ public class OffscreenRoom : Room {
 			this.dens.Add(new Den());
 			this.denShortcutEntrances.Add(new Vector2i(0, 0));
 		}
-
-		DrawDen(this.dens[0], position.x + this.width * 0.5f, position.y - this.height * 0.25f, WorldWindow.denRoom == this && WorldWindow.hoveredDen == 0, WorldWindow.HoveringDraggable == this);
 
 		Vector2 o = WorldWindow.worldMouse - position;
 		bool hovered = o.x >= 0f && o.y >= 0f && o.x <= this.width && o.y <= this.height;
