@@ -294,7 +294,7 @@ public static class Mods {
 	public static bool CreatureKnown(string type) {
 		if (type.IsNullOrEmpty()) return true;
 
-		return creatureTextures.ContainsKey(ParseCreature(type));
+		return creatureTextures.ContainsKey(ParseCreature(type).ToLowerInvariant());
 	}
 
 

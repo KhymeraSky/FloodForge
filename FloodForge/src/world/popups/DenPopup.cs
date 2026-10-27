@@ -172,7 +172,7 @@ public class DenPopup : Popup {
 				if (id >= count) break;
 
 				string type = Mods.creatures[id];
-				bool selected = creature.type == type || (unknown && type == "UNKNOWN") || (creature.type == "" && id == 0);
+				bool selected = creature.type.Equals(type, StringComparison.InvariantCultureIgnoreCase) || (unknown && type == "UNKNOWN") || (creature.type == "" && id == 0);
 				UVRect rect = UVRect.FromSize(
 					centerX + (x - 0.5f * CreatureRows) * (buttonSize + buttonPadding) + buttonPadding * 0.5f,
 					this.bounds.y1 - 0.1f - buttonPadding * 0.5f - (y + 1) * (buttonSize + buttonPadding) - this.scrollCreatures,
