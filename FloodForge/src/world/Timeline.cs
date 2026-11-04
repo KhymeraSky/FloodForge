@@ -31,20 +31,17 @@ public class Timeline {
 	}
 
 	public override string ToString() {
-		if (this.timelineType == TimelineType.All) {
+		if (this.timelineType == TimelineType.All)
 			return "ALL";
+		bool first = true;
+		string timelineText = "";
+		foreach (string timelineEntry in this.timelines) {
+			timelineText += (first ? "" : ",") + timelineEntry;
+			first = false;
 		}
-		else {
-			bool first = true;
-			string timelineText = "";
-			foreach (string timelineEntry in this.timelines) {
-				timelineText += (first ? "" : ",") + timelineEntry;
-				first = false;
-			}
-			if (this.timelineType == TimelineType.Except)
-				timelineText = "X-" + timelineText;
-			return timelineText;
-		}
+		if (this.timelineType == TimelineType.Except)
+			timelineText = "X-" + timelineText;
+		return timelineText;
 	}
 
 	public Timeline And(Timeline timeline) {
@@ -55,33 +52,29 @@ public class Timeline {
 		if (this.timelineType == TimelineType.Only) {
 			if (timeline.timelineType == TimelineType.Only) {
 				Timeline newTimeline = new(TimelineType.Only, []);
-				foreach (string line in timeline.timelines) {
+				foreach (string line in timeline.timelines)
 					if (this.timelines.Contains(line))
 						newTimeline.timelines.Add(line);
-				}
 				return newTimeline;
 			}
 			if (timeline.timelineType == TimelineType.Except) {
 				Timeline newTimeline = new(TimelineType.Only, [.. this.timelines]);
-				foreach (string line in timeline.timelines) {
+				foreach (string line in timeline.timelines)
 					newTimeline.timelines.Remove(line);
-				}
 				return newTimeline;
 			}
 		}
 		if (this.timelineType == TimelineType.Except) {
 			if (timeline.timelineType == TimelineType.Only) {
 				Timeline newTimeline = new(TimelineType.Only, [.. timeline.timelines]);
-				foreach (string line in this.timelines) {
+				foreach (string line in this.timelines)
 					newTimeline.timelines.Remove(line);
-				}
 				return newTimeline;
 			}
 			if (timeline.timelineType == TimelineType.Except) {
 				Timeline newTimeline = new(TimelineType.Except, [.. this.timelines]);
-				foreach (string line in timeline.timelines) {
+				foreach (string line in timeline.timelines)
 					newTimeline.timelines.Add(line);
-				}
 				return newTimeline;
 			}
 		}
@@ -108,37 +101,26 @@ public class Timeline {
 		switch (this.timelineType) {
 			case TimelineType.Except:
 				switch (timeline.timelineType) {
-					case TimelineType.Except:
-						// theoretically this should return false if timeline.timelines excludes every scug not excluded by this.timelines
-						// but that does not take custom scugs into account, so there's always a possible overlap
+					case TimelineType.Except: // theoretically this should return false if timeline.timelines excludes every scug not excluded by this.timelines, but that does not take custom scugs into account, so there's always a possible overlap
 						return true;
-					case TimelineType.Only:
-						// if any timeline.timelines isn't excluded by this.timelines they can overlap
-						foreach (string timelineEntry in timeline.timelines) {
-							if (!this.timelines.Contains(timelineEntry)) {
+					case TimelineType.Only: // if any timeline.timelines isn't excluded by this.timelines they can overlap
+						foreach (string timelineEntry in timeline.timelines)
+							if (!this.timelines.Contains(timelineEntry))
 								return true;
-							}
-						}
 						return false;
 				}
 				break;
 			case TimelineType.Only:
 				switch (timeline.timelineType) {
-					case TimelineType.Except:
-						// if any this.timelines isn't excluded by timeline.timelines they can overlap
-						foreach (string timelineEntry in this.timelines) {
-							if (!timeline.timelines.Contains(timelineEntry)) {
+					case TimelineType.Except: // if any this.timelines isn't excluded by timeline.timelines they can overlap
+						foreach (string timelineEntry in this.timelines)
+							if (!timeline.timelines.Contains(timelineEntry))
 								return true;
-							}
-						}
 						return false;
-					case TimelineType.Only:
-						// if this.timelines includes any timeline.timelines they can overlap
-						foreach (string timelineEntry in this.timelines) {
-							if (timeline.timelines.Contains(timelineEntry)) {
+					case TimelineType.Only: // if this.timelines includes any timeline.timelines they can overlap
+						foreach (string timelineEntry in this.timelines)
+							if (timeline.timelines.Contains(timelineEntry))
 								return true;
-							}
-						}
 						return false;
 				}
 				break;
@@ -146,9 +128,7 @@ public class Timeline {
 		return false;
 	}
 
-	public bool OverlapsWith(string timeline) {
-		return this.OverlapsWith(TimelineType.Only, [timeline]);
-	}
+	public bool OverlapsWith(string timeline) => this.OverlapsWith(TimelineType.Only, [timeline]);
 
 	public bool OverlapsWith(TimelineType timelineType, HashSet<string> timelines) {
 		if (this.timelineType == TimelineType.All || timelineType == TimelineType.All)
@@ -159,29 +139,23 @@ public class Timeline {
 					case TimelineType.Except:
 						return true;
 					case TimelineType.Only:
-						foreach (string timelineEntry in timelines) {
-							if (!this.timelines.Contains(timelineEntry)) {
+						foreach (string timelineEntry in timelines)
+							if (!this.timelines.Contains(timelineEntry))
 								return true;
-							}
-						}
 						return false;
 				}
 				break;
 			case TimelineType.Only:
 				switch (timelineType) {
 					case TimelineType.Except:
-						foreach (string timelineEntry in this.timelines) {
-							if (!timelines.Contains(timelineEntry)) {
+						foreach (string timelineEntry in this.timelines)
+							if (!timelines.Contains(timelineEntry))
 								return true;
-							}
-						}
 						return false;
 					case TimelineType.Only:
-						foreach (string timelineEntry in this.timelines) {
-							if (timelines.Contains(timelineEntry)) {
+						foreach (string timelineEntry in this.timelines)
+							if (timelines.Contains(timelineEntry))
 								return true;
-							}
-						}
 						return false;
 				}
 				break;
@@ -189,16 +163,9 @@ public class Timeline {
 		return false;
 	}
 
-	public bool IsNone() {
-		if (this.timelineType == TimelineType.Only) {
-			return this.timelines.Count == 0;
-		}
-		return false;
-	}
+	public bool IsNone() => this.timelineType == TimelineType.Only && this.timelines.Count == 0;
 
-	public bool IsNeutral() {
-		return this.timelineType == TimelineType.All || (this.timelineType == TimelineType.Except && this.timelines.Count == 0);
-	}
+	public bool IsNeutral() => this.timelineType == TimelineType.All || (this.timelineType == TimelineType.Except && this.timelines.Count == 0);
 }
 
 public enum TimelineType {
