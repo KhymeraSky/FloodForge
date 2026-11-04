@@ -1,5 +1,53 @@
 namespace FloodForge.World;
 
+public class Conditional {
+	public List<Condition> conditions = [];
+	
+	public bool PassesConditions(Condition check) {
+		foreach (Condition condition in this.conditions)
+			if (!condition.Passes(check))
+				return false;
+		return true;
+	}
+}
+
+public class Condition {
+	public PreProcessors preProcessors;
+	public Timeline timeline;
+
+	public Condition(PreProcessors preProcessors, Timeline timeline) {
+		this.preProcessors = preProcessors;
+		this.timeline = timeline;
+	}
+	
+	public bool Passes(Condition check) {
+		return this.preProcessors.Passes(check.preProcessors) && this.timeline.OverlapsWith(check.timeline);
+	}
+}
+
+public class PreProcessors {
+	public List<PreProcessor> items = [];
+
+	public bool Passes(PreProcessors preProcessors) {
+		foreach (PreProcessor item in this.items)
+			if (!preProcessors.PassesItem(item))
+				return false;
+		return true;
+	}
+	
+	public bool PassesItem(PreProcessor check) {
+		foreach (PreProcessor item in this.items)
+			if (item.condition.Equals(check.condition, StringComparison.InvariantCultureIgnoreCase) == item.negate)
+				return false;
+		return true;
+	}
+}
+
+public class PreProcessor {
+	public string condition = "";
+	public bool negate = false;
+}
+
 public class Timeline {
 	public TimelineType timelineType;
 	public HashSet<string> timelines;
