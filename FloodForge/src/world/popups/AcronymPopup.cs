@@ -6,15 +6,14 @@ public class AcronymPopup : Popup {
 	protected string? setTo = null;
 
 	protected virtual int MinLength => 1;
-	protected virtual string BanLetters => "_/\\ ";
 
 	protected UI.TextInputEditable Acronym;
 	protected Action<string> onSubmitCallback;
 
-	public AcronymPopup(Action<string> onSubmitCallback) {
+	public AcronymPopup(Action<string> onSubmitCallback, string banLetters = "_/\\ ") {
 		this.bounds = new Rect(-0.25f, -0.08f, 0.25f, 0.25f);
 		this.onSubmitCallback = onSubmitCallback;
-		this.Acronym = new UI.TextInputEditable(UI.TextInputEditable.Type.Text, "") { bannedLetters = this.BanLetters };
+		this.Acronym = new UI.TextInputEditable(UI.TextInputEditable.Type.Text, "") { bannedLetters = banLetters };
 		this.Acronym.GrabFocus();
 	}
 
