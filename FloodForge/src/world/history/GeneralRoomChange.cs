@@ -13,11 +13,6 @@ public class GeneralRoomChange<T> : MultipleRoomChange {
 		this.setter = setter;
 	}
 
-	[Obsolete("Use AddRoom(Room, T) instead")]
-	public new void AddRoom(Room room) {
-		throw new NotImplementedException("Use AddRoom(Room, T) instead");
-	}
-
 	public virtual void AddRoom(Room room, T redoValue) {
 		base.AddRoom(room);
 
