@@ -40,6 +40,10 @@ public class OffscreenRoom : Room {
 	}
 
 	public override void DrawOccupiedDens(Vector2 renderedPosition) {
+		if (this.dens.Count == 0) {
+			Logger.Warn("No dens in offscreenden!!!");
+			return;
+		}
 		DrawDen(this.dens[0], renderedPosition.x + this.width * 0.5f, renderedPosition.y - this.height * 0.25f, WorldWindow.denRoom == this && WorldWindow.hoveredDen == 0, WorldWindow.HoveringDraggable == this);
 	}
 
