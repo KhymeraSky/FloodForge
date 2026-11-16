@@ -46,9 +46,23 @@ public class TimelinePopup : Popup {
 
 	public virtual void DrawButtons(float centerX, float buttonY) {
 		// draw (and check for clicks on) the view type buttons (ALL, ONLY, EXCEPT)
-		if (this.allText != "") this.DrawButton(Rect.FromSize(this.bounds.x0 * 0.6f + centerX * 0.4f - 0.1f, buttonY - 0.025f, 0.2f, 0.05f), this.allText, TimelineType.All);
-		if (this.onlyText != "") this.DrawButton(Rect.FromSize(centerX - 0.1f, buttonY - 0.025f, 0.2f, 0.05f), this.onlyText, TimelineType.Only);
-		if (this.exceptText != "") this.DrawButton(Rect.FromSize(this.bounds.x1 * 0.6f + centerX * 0.4f - 0.1f, buttonY - 0.025f, 0.2f, 0.05f), this.exceptText, TimelineType.Except);
+		int buttonCount = (this.allText != "" ? 1 : 0) + (this.onlyText != "" ? 1 : 0) + (this.exceptText != "" ? 1 : 0);
+		if (buttonCount == 0)
+			return;
+		float buttonWidth = 0.6f / buttonCount;
+		float boundsDist = (this.bounds.x1 - centerX) * 0.9f;
+		float buttonDistance = boundsDist * 2f / buttonCount;
+		float xPos = centerX - boundsDist + buttonDistance * 0.5f;
+		if (this.allText != "") {
+			this.DrawButton(Rect.FromSize(xPos - buttonWidth * 0.5f, buttonY - 0.025f, buttonWidth, 0.05f), this.allText, TimelineType.All);
+			xPos += buttonDistance;
+		}
+		if (this.onlyText != "") {
+			this.DrawButton(Rect.FromSize(xPos - buttonWidth * 0.5f, buttonY - 0.025f, buttonWidth, 0.05f), this.onlyText, TimelineType.Only);
+			xPos += buttonDistance;
+		}
+		if (this.exceptText != "")
+			this.DrawButton(Rect.FromSize(xPos - buttonWidth * 0.5f, buttonY - 0.025f, buttonWidth, 0.05f), this.exceptText, TimelineType.Except);
 	}
 
 	public void UpdateTimeline(Timeline timeline) {
