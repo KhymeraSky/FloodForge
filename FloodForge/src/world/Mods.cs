@@ -22,6 +22,8 @@ public static class Mods {
 	private static readonly Dictionary<string, Texture> timelineTextures = [];
 	public static readonly List<string> timelines = [];
 
+	public static readonly HashSet<string> preProcessorConditions = []; // REVIEW - might need to be cleared upon import at some point
+
 	private static readonly Dictionary<string, Texture> roomTagTextures = [];
 	public static readonly Dictionary<string, string> roomTagNames = [];
 
