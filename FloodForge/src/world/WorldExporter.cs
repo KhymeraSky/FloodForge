@@ -1700,6 +1700,10 @@ public static class WorldExporter {
 
 		Logger.Info($"Exporting rooms to {WorldWindow.region.exportRoomsPath} ; updateRegionFiles: {Settings.UpdateRegionFiles}");
 		foreach (Room room in roomsToExport) {
+			if (!room.valid) {
+				Logger.Info($"    skipping invalid room {room.name}"); // add exporting to the gates folder?
+				continue;
+			}
 			if (room is OffscreenRoom)
 				continue;
 			if (room.data.tags.Contains("GATE")) {
