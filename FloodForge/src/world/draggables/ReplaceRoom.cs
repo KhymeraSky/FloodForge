@@ -17,7 +17,7 @@ public class ReplaceRoom : MapDraggable {
 	public Vector2i size;
 
 	protected override bool IsVisible() {
-		return WorldWindow.VisibleTimeline.OverlapsWith(this.timeline) && !this.IsHidden;
+		return WorldWindow.VisibleTimeline.OverlapsWith(this.timeline) && !this.IsHidden && WorldWindow.VisibleLayers[this.replacedRoom.data.layer];
 	}
 
 	protected override bool IsSelectable() {
