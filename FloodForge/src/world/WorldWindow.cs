@@ -1369,7 +1369,7 @@ public static class WorldWindow {
 
 		// I'm not the biggest fan of the way this works, but I can't think of any other method that isn't much more complicated and obtuse.
 		foreach (Room room in WorldWindow.region.rooms) {
-			if (WorldWindow.VisibleCreatures) {
+			if (WorldWindow.VisibleCreatures && VisibleLayers[room.data.layer] && timelineCullResults[room]) {
 				if (PositionType == RoomPosition.Both) {
 					room.DrawEmptyDens(room.CanonPosition);
 					room.DrawEmptyDens(room.DevPosition);
@@ -1380,7 +1380,7 @@ public static class WorldWindow {
 		}
 
 		foreach (Room room in WorldWindow.region.rooms) {
-			if (WorldWindow.VisibleCreatures) {
+			if (WorldWindow.VisibleCreatures && VisibleLayers[room.data.layer] && timelineCullResults[room]) {
 				if (PositionType == RoomPosition.Both) {
 					room.DrawOccupiedDens(room.CanonPosition);
 					room.DrawOccupiedDens(room.DevPosition);
@@ -1391,6 +1391,8 @@ public static class WorldWindow {
 		}
 
 		foreach (Room room in WorldWindow.region.rooms) {
+			if (!timelineCullResults[room] || !VisibleLayers[room.data.layer])
+				continue;
 			if (PositionType == RoomPosition.Both) {
 				room.PostDraw(RoomPosition.Canon);
 				room.PostDraw(RoomPosition.Dev);
