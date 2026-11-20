@@ -5,7 +5,9 @@ public struct UVRect {
 	public Vector2 uv0, uv1, uv2, uv3;
 
 	public readonly float CenterX => (this.x0 + this.x1) * 0.5f;
+	public readonly float Width => this.x1 - this.x0;
 	public readonly float CenterY => (this.y0 + this.y1) * 0.5f;
+	public readonly float Height => this.y1 - this.y0;
 
 	public UVRect() {
 		this.x0 = this.y0 = this.x1 = this.y1 = 0f;
