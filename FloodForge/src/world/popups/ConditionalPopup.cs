@@ -3,10 +3,10 @@ using FloodForge.Popups;
 
 namespace FloodForge.World;
 
-public class NewConditionalPopup : Popup {
+public class ConditionalPopup : Popup {
 	public Conditional relevantConditional; // TODO - allow this to add multiple conditionals
 
-	public NewConditionalPopup(Conditional conditional) {
+	public ConditionalPopup(Conditional conditional) {
 		this.bounds = new Rect(-0.4f, -0.4f, 0.4f, 0.4f);
 		this.relevantConditional = conditional;
 		this.relevantConditional.conditionalPopup = this;

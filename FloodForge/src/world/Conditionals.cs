@@ -1,7 +1,7 @@
 namespace FloodForge.World;
 
 public class Conditional {
-	public NewConditionalPopup? conditionalPopup;
+	public ConditionalPopup? conditionalPopup;
 	public List<Condition> conditions = [];
 
 	public bool ShowsOnMap(string timeline = "") {

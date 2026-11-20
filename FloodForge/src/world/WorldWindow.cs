@@ -1014,11 +1014,11 @@ public static class WorldWindow {
 
 		if (Input.JustPressed(Keys.ChangeConditionals)) {
 			if (HoveringConnection != null)
-				PopupManager.Add(new NewConditionalPopup(HoveringConnection.conditional)).Title("Conditional - Connection");
+				PopupManager.Add(new ConditionalPopup(HoveringConnection.conditional)).Title("Conditional - Connection");
 			else if (HoveringReplaceRoom != null && HoveringReplaceRoom.lockState != RoomLockState.locked)
 				PopupManager.Add(new ConditionPopup(HoveringReplaceRoom.condition).Title($"Condition - {HoveringReplaceRoom.replacingRoom.name}"));
 			else if (HoveringRoom != null && HoveringRoom.data.lockState != RoomLockState.locked)
-				PopupManager.Add(new NewConditionalPopup(HoveringRoom.conditional)).Title($"Conditional - {HoveringRoom.name}");
+				PopupManager.Add(new ConditionalPopup(HoveringRoom.conditional)).Title($"Conditional - {HoveringRoom.name}");
 		}
 
 		if (Input.JustPressed(Keys.EditRoom)) {
