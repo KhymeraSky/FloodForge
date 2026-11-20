@@ -6,7 +6,7 @@ public class VisibleTimelinePopup : TimelinePopup {
 	public SettingsPopup.BoolSettingContainer setNewConnectionsContainer;
 
 	public VisibleTimelinePopup(Timeline timeline, Action<TimelineType> onTimelineTypeChangeCallback, Action<bool, string> onSelectionChangeCallback, ref Action<Timeline>? updateEvent) : base(timeline, onTimelineTypeChangeCallback, onSelectionChangeCallback, ref updateEvent) {
-		this.setNewConnectionsContainer = new("Set new connections to timeline", WorldWindow.setNewConnectionTimeline, b => {
+		this.setNewConnectionsContainer = new("Set new connection timelines", WorldWindow.setNewConnectionTimeline, b => {
 			WorldWindow.setNewConnectionTimeline = b;
 		});
 	}
