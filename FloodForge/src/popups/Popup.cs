@@ -224,7 +224,10 @@ public abstract class Popup {
 		UI.ButtonFillRect(this.collapsed ? this.bounds.x1 - this.CollapsedWidth : this.bounds.x0, this.bounds.y1 - 0.05f, this.bounds.x1, this.bounds.y1);
 		if(this.popupTitle != "") {
 			Color textColor = this.collapsed ? Themes.TextDisabled : Themes.Text;
+			Program.gl.Enable(EnableCap.ScissorTest);
+			UI.ScissorRect(this.collapsed ? this.bounds.x1 - this.CollapsedWidth : this.bounds.x0, this.bounds.y1 - 0.05f, this.bounds.x1 - 0.1f, this.bounds.y1);
 			UI.font.WriteFormatted(this.popupTitle, this.collapsed ? this.bounds.x1 - this.CollapsedWidth + 0.01f : this.bounds.x0 + 0.01f, this.bounds.y1 - 0.025f, 0.03f, Font.Align.MiddleLeft, textColor);
+			Program.gl.Disable(EnableCap.ScissorTest);
 		}
 
 		this.closeButton = new UVRect(this.bounds.x1 - 0.05f, this.bounds.y1 - 0.05f, this.bounds.x1, this.bounds.y1).AtlasUV("cross");
