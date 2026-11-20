@@ -64,6 +64,8 @@ public class CreateTimelineRoomPopup : ModularPopup {
 	}
 
 	private void CreateRoom() {
+		PopupManager.Add("Temporarily disabled due to timeline system modifications");
+		/*
 		string newRoomName = $"{WorldWindow.region.acronym}_{this.newName}";
 
 		WorldWindow.selectedDraggables = [];
@@ -150,5 +152,6 @@ public class CreateTimelineRoomPopup : ModularPopup {
 		WorldWindow.worldHistory.GetAndApplyCollectedMassChange(key);
 		this.parent.Close();
 		this.Close();
+		*/
 	}
 }
