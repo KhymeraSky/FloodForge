@@ -57,6 +57,7 @@ public static class Backup {
 		string folderName = folderPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)[^1];
 		string taggedFolderName = folderName + (tag == "" ? "" : $"_{tag}");
 
+		// REVIEW - Is it necessary for any subfolders be backed up? Perhaps it should be an optional thing?
 		string[] allPaths = Directory.GetFiles(folderPath, "", SearchOption.AllDirectories);
 		List<string> relativePaths = [];
 		foreach (string path in allPaths)
@@ -84,7 +85,10 @@ public static class Backup {
 
 		Directory.CreateDirectory(destinationFolder);
 		for (int i = 0; i < allPaths.Length; i++) {
-			System.IO.File.Copy(allPaths[i], Path.Combine(destinationFolder, relativePaths[i]));
+			string destinationPath = Path.Combine(destinationFolder, relativePaths[i]);
+			if (!Directory.Exists(PathUtil.Parent(destinationPath)))
+				Directory.CreateDirectory(PathUtil.Parent(destinationPath));
+			System.IO.File.Copy(allPaths[i], destinationPath);
 		}
 	}
 }
