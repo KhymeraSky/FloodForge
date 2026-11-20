@@ -70,7 +70,7 @@ public class FloodforgeConfigPopup : Popup {
 		this.scroll += (this.targetScroll - this.scroll) * (1f - MathF.Pow(1f - Settings.PopupScrollSpeed, Program.Delta * 60f));
 
 		float y = -0.06f + this.scroll;
-		float nameWidth = Math.Min(0.6f, (this.bounds.x1 - this.bounds.x0) * 0.65f);
+		float nameWidth = Math.Min(0.6f, this.bounds.Width * 0.65f);
 
 		Rect settingRect = new (this.bounds.x0 + nameWidth + 0.03f, this.bounds.y1 + y, this.bounds.x1 - 0.01f, this.bounds.y1 + y - 0.05f);
 		Rect squareRect;

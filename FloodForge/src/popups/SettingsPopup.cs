@@ -13,8 +13,8 @@ public class SettingsPopup : Popup {
 	}
 
 	protected void RecalculateBounds(bool retainTopLeft = false, bool tryRetainScale = false) {
-		float oldWidth = this.bounds.x1 - this.bounds.x0;
-		float oldHeight = this.bounds.y1 - this.bounds.y0;
+		float oldWidth = this.bounds.Width;
+		float oldHeight = this.bounds.Height;
 		Vector2 TopLeft = new (this.bounds.x0, this.bounds.y1);
 		float totalHeight = 0;
 		float maxWidth = UI.font.Measure(this.popupTitle, 0.03f).x + 0.1f;
@@ -205,8 +205,8 @@ public class SettingsPopup : Popup {
 		}
 
 		public override void Draw(Rect bounds) {
-			if (this.lastCalculatedWidth != bounds.x1 - bounds.x0)
-				this.RecalculateWidths(bounds.x1 - bounds.x0);
+			if (this.lastCalculatedWidth != bounds.Width)
+				this.RecalculateWidths(bounds.Width);
 			float currentXPosition = bounds.x0;
 			for (int i = 0; i < this.settings.Length; i++) {
 				float x1 = currentXPosition + this.resultingWidths[i];
@@ -299,9 +299,9 @@ public class SettingsPopup : Popup {
 			float textWidth = UI.font.Measure(this.settingName, 0.03f).x;
 			UVRect rect = new UVRect(bounds.x0 + textWidth + 0.02f, bounds.y1, bounds.x1, bounds.y0);
 			int previousValue = this.value;
-			UI.SliderResponse slider = UI.Slider(Rect.FromSize(rect.x0, rect.y0, rect.x1 - rect.x0 - 0.04f, rect.y1 - rect.y0), this.valueSlider, ref this.value, new UI.SliderMods() { disabled = false });
+			UI.SliderResponse slider = UI.Slider(Rect.FromSize(rect.x0, rect.y0, rect.Width - 0.04f, rect.Height), this.valueSlider, ref this.value, new UI.SliderMods() { disabled = false });
 			Immediate.Color(Themes.Text);
-			bool swap = slider.sliderPos.x > (rect.x1 - rect.x0) / 2; // REVIEW - swap seems based on absolute position rather than relative
+			bool swap = slider.sliderPos.x > rect.Width * 0.5f; // REVIEW - swap seems based on absolute position rather than relative
 			float x = slider.sliderPos.x + (swap ? -0.01f : 0.01f);
 			UI.font.Write($"{this.value}", x, slider.sliderPos.y, 0.03f, swap ? Font.Align.MiddleRight : Font.Align.MiddleLeft);
 			if ((slider.submitted & !slider.dragging) || (slider.dragging && this.updateWhileDragging && (this.value != previousValue || this.updateWhileUnchanged))) {
@@ -332,9 +332,9 @@ public class SettingsPopup : Popup {
 			float textWidth = UI.font.Measure(this.settingName, 0.03f).x;
 			UVRect rect = new UVRect(bounds.x0 + textWidth + 0.02f, bounds.y1, bounds.x1, bounds.y0);
 			float previousValue = this.value;
-			UI.SliderResponse slider = UI.Slider(Rect.FromSize(rect.x0, rect.y0, rect.x1 - rect.x0 - 0.04f, rect.y1 - rect.y0), this.valueSlider, ref this.value, new UI.SliderMods() { disabled = false });
+			UI.SliderResponse slider = UI.Slider(Rect.FromSize(rect.x0, rect.y0, rect.Width - 0.04f, rect.Height), this.valueSlider, ref this.value, new UI.SliderMods() { disabled = false });
 			Immediate.Color(Themes.Text);
-			bool swap = slider.sliderPos.x > (rect.x1 - rect.x0) / 2;
+			bool swap = slider.sliderPos.x > rect.Width * 0.5f;
 			float x = slider.sliderPos.x + (swap ? -0.01f : 0.01f);
 			UI.font.Write($"{this.value}", x, slider.sliderPos.y, 0.03f, swap ? Font.Align.MiddleRight : Font.Align.MiddleLeft);
 			if ((slider.submitted & !slider.dragging) || (slider.dragging && this.updateWhileDragging && (this.value != previousValue || this.updateWhileUnchanged))) {
@@ -501,7 +501,7 @@ public class SettingsPopup : Popup {
 			string[] splitLines = this.settingName.Split('\n');
 			float y = bounds.y1;
 			foreach (string line in splitLines) {
-				string croppedLine = this.autoCrop ? UI.font.CropText(line, bounds.x1 - bounds.x0 - 0.02f, 0.03f, out _, this.fromRight) : line;
+				string croppedLine = this.autoCrop ? UI.font.CropText(line, bounds.Width - 0.02f, 0.03f, out _, this.fromRight) : line;
 				float xStart = bounds.x0;
 				float yStart = y;
 				if (this.align.HasFlag(Font.Align.AnyCenter))
@@ -534,7 +534,7 @@ public class SettingsPopup : Popup {
 		public override void Draw(Rect bounds) {
 			Immediate.Color(Color.White);
 			bounds = new (bounds.x0 - 0.01f, bounds.y0 - 0.01f, bounds.x1 + 0.01f, bounds.y1 + 0.01f); // reverse padding variable?
-			UI.CenteredTexture(this.textureToDraw, bounds.CenterX, bounds.CenterY, Math.Min(bounds.x1 - bounds.x0, bounds.y1 - bounds.y0));
+			UI.CenteredTexture(this.textureToDraw, bounds.CenterX, bounds.CenterY, Math.Min(bounds.Width, bounds.Height));
 		}
 	}
 

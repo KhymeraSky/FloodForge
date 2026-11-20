@@ -509,7 +509,7 @@ public static class UI {
 		UI.Line(rect.x0, centerY, rect.x1, centerY);
 
 		float progress = (value - editable.min) / (editable.max - editable.min);
-		float x = progress * (rect.x1 - rect.x0 - 0.02f) + rect.x0 + 0.01f;
+		float x = progress * (rect.Width - 0.02f) + rect.x0 + 0.01f;
 		Immediate.Color(Themes.Border);
 		UI.ButtonFillRect(x - 0.005f, rect.y0, x + 0.005f, rect.y1);
 		if (highlight || CurrentEditable == editable) {
@@ -526,7 +526,7 @@ public static class UI {
 				submitted = true;
 			}
 			else {
-				value = Mathf.Clamp01((Mouse.X - rect.x0 - 0.01f) / (rect.x1 - rect.x0 - 0.02f)) * (editable.max - editable.min) + editable.min;
+				value = Mathf.Clamp01((Mouse.X - rect.x0 - 0.01f) / (rect.Width - 0.02f)) * (editable.max - editable.min) + editable.min;
 			}
 		}
 
@@ -543,7 +543,7 @@ public static class UI {
 		UI.Line(rect.x0, centerY, rect.x1, centerY);
 
 		float progress = (value - editable.min) / (float) (editable.max - editable.min);
-		float x = progress * (rect.x1 - rect.x0 - 0.02f) + rect.x0 + 0.01f;
+		float x = progress * (rect.Width - 0.02f) + rect.x0 + 0.01f;
 		Immediate.Color(Themes.Border);
 		UI.ButtonFillRect(x - 0.005f, rect.y0, x + 0.005f, rect.y1);
 		if (highlight || CurrentEditable == editable) {
@@ -560,7 +560,7 @@ public static class UI {
 				submitted = true;
 			}
 			else {
-				value = Mathf.RoundToInt(Mathf.Clamp01((Mouse.X - rect.x0 - 0.01f) / (rect.x1 - rect.x0 - 0.02f)) * (editable.max - editable.min) + editable.min);
+				value = Mathf.RoundToInt(Mathf.Clamp01((Mouse.X - rect.x0 - 0.01f) / (rect.Width - 0.02f)) * (editable.max - editable.min) + editable.min);
 			}
 		}
 

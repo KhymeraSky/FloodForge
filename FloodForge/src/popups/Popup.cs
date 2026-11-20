@@ -19,7 +19,7 @@ public abstract class Popup {
 	protected Rect minimumResizeBounds;
 	protected Rect? initialBounds;
 	public Vector2 TopLeft => new (this.bounds.x0, this.bounds.y1);
-	public float CollapsedWidth => Math.Min(Math.Max(UI.font.Measure(this.popupTitle, 0.03f).x + 0.12f, 0.25f), this.bounds.x1 - this.bounds.x0);
+	public float CollapsedWidth => Math.Min(Math.Max(UI.font.Measure(this.popupTitle, 0.03f).x + 0.12f, 0.25f), this.bounds.Width);
 
 	protected Rect scaleControlIncluder;
 	protected Rect scaleControlExcluder;
@@ -178,15 +178,15 @@ public abstract class Popup {
 				float newY1 = lockYScale || this.resizeDirection.y < 0 ? originalBounds.y1 : Math.Max(PointB.y, this.resizeAnchorPoint.y);
 				if (!lockXScale) {
 					if (this.resizeDirection.x > 0)
-						newX1 = Math.Max(this.resizeAnchorPoint.x + (this.minimumResizeBounds.x1 - this.minimumResizeBounds.x0), newX1);
+						newX1 = Math.Max(this.resizeAnchorPoint.x + this.minimumResizeBounds.Width, newX1);
 					else
-						newX0 = Math.Min(this.resizeAnchorPoint.x - (this.minimumResizeBounds.x1 - this.minimumResizeBounds.x0), newX0);
+						newX0 = Math.Min(this.resizeAnchorPoint.x - this.minimumResizeBounds.Width, newX0);
 				}
 				if (!lockYScale) {
 					if (this.resizeDirection.y > 0)
-						newY1 = Math.Max(this.resizeAnchorPoint.y + (this.minimumResizeBounds.y1 - this.minimumResizeBounds.y0), newY1);
+						newY1 = Math.Max(this.resizeAnchorPoint.y + this.minimumResizeBounds.Height, newY1);
 					else
-						newY0 = Math.Min(this.resizeAnchorPoint.y - (this.minimumResizeBounds.y1 - this.minimumResizeBounds.y0), newY0);
+						newY0 = Math.Min(this.resizeAnchorPoint.y - this.minimumResizeBounds.Height, newY0);
 				}
 
 				this.resizePreviewBounds = new Rect(newX0, newY0, newX1, newY1);

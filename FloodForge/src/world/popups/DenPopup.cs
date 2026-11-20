@@ -473,8 +473,8 @@ public class DenPopup : Popup {
 		bool unknown = creature != null && !Mods.CreatureKnown(creature.type);
 
 		this.minimumResizeBounds.x1 = this.minimumResizeBounds.x0 + 0.6f + 0.3f + 0.22f;
-		if (this.bounds.x1 - this.bounds.x0 < this.minimumResizeBounds.x1 - this.minimumResizeBounds.x0) {
-			this.bounds.x1 = this.bounds.x0 + this.minimumResizeBounds.x1 - this.minimumResizeBounds.x0;
+		if (this.bounds.Width < this.minimumResizeBounds.Width) {
+			this.bounds.x1 = this.bounds.x0 + this.minimumResizeBounds.Width;
 		}
 
 		base.Draw();

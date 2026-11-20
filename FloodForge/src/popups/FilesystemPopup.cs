@@ -533,7 +533,7 @@ public class FilesystemPopup : Popup {
 				UI.FillRect(this.bounds.x0 + 0.1f, this.bounds.y1 - 0.12f, this.bounds.x1 - 0.07f, this.bounds.y1 - 0.17f);
 
 				Immediate.Color(Themes.TextHighlight);
-				string cropText = UI.font.CropText(this.search, this.bounds.x1 - this.bounds.x0 - 0.16f, this.fontSize, out float margin, true);
+				string cropText = UI.font.CropText(this.search, this.bounds.Width - 0.16f, this.fontSize, out float margin, true);
 				margin = cropText.Length != this.search.Length ? margin : 0f;
 				UI.font.Write(cropText, margin + this.bounds.x0 + 0.1f, this.bounds.y1 - 0.12f, this.fontSize);
 
@@ -554,7 +554,7 @@ public class FilesystemPopup : Popup {
 				UI.FillRect(this.bounds.x0 + 0.1f, this.bounds.y1 - 0.12f, this.bounds.x1 - 0.07f, this.bounds.y1 - 0.17f);
 
 				Immediate.Color(Themes.TextHighlight);
-				string cropText = UI.font.CropText(this.newDirectory, this.bounds.x1 - this.bounds.x0 - 0.16f, this.fontSize, out float margin, true);
+				string cropText = UI.font.CropText(this.newDirectory, this.bounds.Width - 0.16f, this.fontSize, out float margin, true);
 				margin = cropText.Length != this.newDirectory.Length ? margin : 0f;
 				UI.font.Write(cropText, margin + this.bounds.x0 + 0.1f, this.bounds.y1 - 0.12f, this.fontSize);
 

@@ -37,8 +37,8 @@ public class ColorEditPopup : Popup {
 
 		float newx0 = this.bounds.x0 + 0.01f;
 		this.selectorRect = new Rect(newx0, this.bounds.y0 + 0.01f, this.bounds.x1 - 0.01f - (this.hueSliderSize + 0.03f), this.bounds.y1 - 0.06f);
-		float selectorHeight = this.selectorRect.y1 - this.selectorRect.y0;
-		float selectorWidth = this.selectorRect.x1 - this.selectorRect.x0;
+		float selectorHeight = this.selectorRect.Height;
+		float selectorWidth = this.selectorRect.Width;
 		this.sliderRect = Rect.FromSize(this.selectorRect.x1 + 0.02f, this.selectorRect.y0, this.hueSliderSize, selectorHeight);
 
 		Immediate.Color(Themes.Background);

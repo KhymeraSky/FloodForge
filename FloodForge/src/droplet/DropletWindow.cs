@@ -155,7 +155,7 @@ public static class DropletWindow {
 		DrawTerrain();
 
 		Node? hoveringNode = null;
-		Vector2 nodeMouse = new Vector2(transformedMouse.x, transformedMouse.y + (roomRect.y1 - roomRect.y0)) * 20f;
+		Vector2 nodeMouse = new Vector2(transformedMouse.x, transformedMouse.y + roomRect.Height) * 20f;
 		float mouseDistance = 0.3f * cameraScale;
 		foreach (DevObject devObject in Room.data.objects) {
 			if (!devObject.ShowInDroplet) continue;
