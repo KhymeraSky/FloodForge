@@ -21,11 +21,9 @@ public class ChangeHistory {
 		public List<Change> collectedChanges = [];
 		public HashSet<Type> typesToCollect = typesToCollect;
 	}
-	
-	// REVIEW - add ability to specify Collection Key, which is then used to retrieve collected changes
+
 	/// <summary>
 	/// Start collecting changes of types <c>collectingTypes</c> instead of applying them directly.
-	/// Does not yet support multiple differing collections happening at the same time.
 	/// Make sure to use <c>StopCollectingChanges</c> in order to avoid nullifying all changes of types <c>collectingTypes</c>.
 	/// </summary>
 	public void StartCollectingChanges(HashSet<Type> collectingTypes, string key = "") {
