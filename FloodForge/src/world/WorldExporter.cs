@@ -77,11 +77,7 @@ public static class WorldExporter {
 				}
 			}
 		}
-		string timelinesLogger = "";
-		foreach (string timeline in timelinesInRegion) {
-			timelinesLogger += (timelinesLogger != "" ? ", " : "") + timeline;
-		}
-		Logger.Info("Final timelines: " + timelinesLogger);
+		Logger.Info("Final timelines: " + string.Join(", ", timelinesInRegion));
 	}
 
 	public static void ExportMapFile() {
@@ -287,8 +283,9 @@ public static class WorldExporter {
 
 			writer.Write(WorldWindow.region.extraMap);
 
-			foreach (StreamWriter timelineWriter in timelineMapWriters.Values) {
-				timelineWriter?.Dispose();
+			foreach (KeyValuePair<string, StreamWriter> kvp in timelineMapWriters) {
+				Logger.Info(kvp.Key);
+				kvp.Value?.Dispose();
 			}
 		}
 		catch (Exception e) {
