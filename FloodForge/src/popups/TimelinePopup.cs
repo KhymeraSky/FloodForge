@@ -3,9 +3,9 @@ using FloodForge.World;
 namespace FloodForge.Popups;
 
 public class TimelinePopup : Popup {
-	protected const float buttonSize = 1f / 14f;
+	protected const float buttonSize = 0.07f;
 	protected const float buttonPadding = 0.02f;
-	protected const int TimelineColumns = 8;
+	protected const float totalSidePadding = 0.1f;
 
 	protected float scroll;
 
@@ -22,7 +22,7 @@ public class TimelinePopup : Popup {
 	}
 
 	public TimelinePopup(Timeline timeline, Action<TimelineType> onTimelineTypeChangeCallback, Action<bool, string> onSelectionChangeCallback, bool updateSelf = false) {
-		this.bounds = new Rect(-0.4f, -0.4f, 0.4f, 0.4f);
+		this.bounds = new Rect(-0.3f, -0.2f, 0.3f, 0.2f);
 		this.onSelectionChangeCallback = onSelectionChangeCallback;
 		this.onTimelineTypeChangeCallback = onTimelineTypeChangeCallback;
 		this.timeline = timeline;
@@ -49,7 +49,7 @@ public class TimelinePopup : Popup {
 		int buttonCount = (this.allText != "" ? 1 : 0) + (this.onlyText != "" ? 1 : 0) + (this.exceptText != "" ? 1 : 0);
 		if (buttonCount == 0)
 			return;
-		float buttonWidth = 0.6f / buttonCount;
+		float buttonWidth = this.bounds.Width / (buttonCount + 1);
 		float boundsDist = (this.bounds.x1 - centerX) * 0.9f;
 		float buttonDistance = boundsDist * 2f / buttonCount;
 		float xPos = centerX - boundsDist + buttonDistance * 0.5f;
@@ -82,39 +82,34 @@ public class TimelinePopup : Popup {
 
 		this.DrawButtons(centerX, buttonY);
 
-		// If the TimelineType is all, we don't care about specifics.
 		if (this.timeline.timelineType != TimelineType.All) {
-			// otherwise:
-			string timeline; // the currently hovered timeline
-			HashSet<string> timelines = this.timeline.timelines ?? []; // get the current Timeline selection
-			List<string> unknowns = [.. timelines.Where(t => !Mods.HasTimeline(t))]; // create list of all timelines for which no texture exists
-			int count = Mods.timelines.Count + unknowns.Count; // total count
+			HashSet<string> timelines = this.timeline.timelines;
+			List<string> unknowns = [.. timelines.Where(t => !Mods.HasTimeline(t))];
+			int count = Mods.timelines.Count + unknowns.Count;
 
-			// go through every square in the timeline popup per row and per column (probably not resize-proof)
-			for (int row = 0; row <= (count / TimelineColumns); row++) {
-				for (int column = 0; column < TimelineColumns; column++) {
-					int id = column + row * TimelineColumns;
+			int timelineColumns = int.Min(Mathf.FloorToInt((this.bounds.Width + buttonPadding - totalSidePadding) / (buttonSize + buttonPadding)), count);
+			int timelineRows = Mathf.FloorDivide(count, timelineColumns);
+
+			for (int row = 0; row <= timelineRows; row++) {
+				for (int column = 0; column < timelineColumns; column++) {
+					int id = column + row * timelineColumns;
 					if (id >= count)
-						break; // Make sure it doesn't try to check nonexistent timelinse
+						break;
 
-					// if unknown (and as such without texture), get texturename from unknowns instead
 					bool unknown = id >= Mods.timelines.Count;
-					timeline = unknown ? unknowns[id - Mods.timelines.Count] : Mods.timelines[id];
+					string timeline = unknown ? unknowns[id - Mods.timelines.Count] : Mods.timelines[id];
 
-					// Check if current button is already selected
 					bool selected = timelines.Contains(timeline);
 
-					// create button
 					Texture texture = Mods.GetTimelineTexture(timeline);
 					UVRect rect = UVRect.FromSize(
-						centerX + (column - 0.5f * TimelineColumns) * (buttonSize + buttonPadding) + buttonPadding * 0.5f,
+						centerX + (column - 0.5f * timelineColumns) * (buttonSize + buttonPadding) + buttonPadding * 0.5f,
 						this.bounds.y1 - 0.12f - buttonPadding * 0.5f - (row + 1) * (buttonSize + buttonPadding) - this.scroll,
 						buttonSize, buttonSize
 					);
 					UI.CenteredUV(texture, ref rect);
 					UI.ButtonResponse response = UI.TextureButton(rect, new UI.TextureButtonMods { selected = selected, texture = texture, textureColor = selected ? Color.White : Color.Grey });
 
-					// if clicked, run the callback.
 					if (response.clicked) {
 						this.onSelectionChangeCallback.Invoke(selected, timeline);
 						if (this.updateSelf) {
@@ -134,9 +129,8 @@ public class TimelinePopup : Popup {
 						}
 					}
 
-					if (response.hovered) {
+					if (response.hovered)
 						hover = timeline;
-					}
 				}
 			}
 		}
