@@ -474,19 +474,6 @@ public static class WorldWindow {
 								CurrentConnectionValid = false;
 								break;
 							}
-							else if (!connectionExtensionsEnabled) {
-								Timeline otherTimeline = other.EffectiveConnectionTimeline;
-								Timeline currentTimeline = NewConnection.EffectiveConnectionTimeline;
-								if (otherTimeline.OverlapsWith(currentTimeline)) {
-									if ((other.roomA == NewConnection.roomA && other.roomAExitID == NewConnection.roomAExitID) ||
-										(other.roomA == NewConnection.roomB && other.roomAExitID == NewConnection.roomBExitID) ||
-										(other.roomB == NewConnection.roomA && other.roomBExitID == NewConnection.roomAExitID) ||
-										(other.roomB == NewConnection.roomB && other.roomBExitID == NewConnection.roomBExitID)
-									) {
-										CurrentConnectionWarn = true;
-									}
-								}
-							}
 						}
 					}
 				}
@@ -503,49 +490,6 @@ public static class WorldWindow {
 			if (NewConnection != null) {
 				if (CurrentConnectionValid) {
 					RoomAndConnectionChange change = new RoomAndConnectionChange(true);
-					{ // check for duplicate connections
-						bool foundDuplicate = false;
-						bool foundOccupiedExit = false;
-						bool overlapCanBeSolved = false; // algorithm for determining solvability should be reworked.
-						List<Connection> connections = [.. NewConnection.roomA.connections];
-						connections.AddRange(NewConnection.roomB.connections);
-
-						foreach (Connection connection in connections) {
-							Timeline connectionEffectiveTimeline = connection.EffectiveConnectionTimeline;
-
-							Timeline newConnectionEffectiveTimeline = NewConnection.EffectiveConnectionTimeline;
-							bool hasOverlap = connectionEffectiveTimeline.OverlapsWith(newConnectionEffectiveTimeline);
-							if (hasOverlap) {
-								if (connectionEffectiveTimeline.timelineType == TimelineType.All)
-									overlapCanBeSolved = false;
-								if (!connectionExtensionsEnabled) {
-									foundDuplicate |= connection.roomA == NewConnection.roomA && connection.roomB == NewConnection.roomB;
-									foundDuplicate |= connection.roomB == NewConnection.roomA && connection.roomA == NewConnection.roomB;
-								}
-
-								foundOccupiedExit |= connection.roomA == NewConnection.roomA && connection.roomAExitID == NewConnection.roomAExitID;
-								foundOccupiedExit |= connection.roomB == NewConnection.roomB && connection.roomBExitID == NewConnection.roomBExitID;
-								foundOccupiedExit |= connection.roomA == NewConnection.roomB && connection.roomAExitID == NewConnection.roomBExitID;
-								foundOccupiedExit |= connection.roomB == NewConnection.roomA && connection.roomBExitID == NewConnection.roomAExitID;
-
-								if (foundDuplicate && foundOccupiedExit)
-									break;
-							}
-						}
-						if (foundDuplicate || foundOccupiedExit) {
-							string message = "<s:1>Invalid Connection!";
-							if (foundDuplicate)
-								message += "\n-Double connection to room";
-							if (foundOccupiedExit)
-								message += "\n-Exit point already occupied";
-							if (overlapCanBeSolved)
-								message += "\nNote: can be solved with timelines";
-							PopupManager.Add(new InfoPopup(message));
-						}
-					}
-					if (VisibleTimeline.timelineType != TimelineType.All && setNewConnectionTimeline) {
-						NewConnection.timeline = new(VisibleTimeline);
-					}
 					change.AddConnection(NewConnection);
 					worldHistory.Apply(change);
 				}
@@ -1348,8 +1292,6 @@ public static class WorldWindow {
 		// TODO - make this more efficient by not rebuilding every connection every single frame.
 		foreach (ReplaceRoom replaceRoom in WorldWindow.replaceRooms) {
 			foreach (Connection connection in replaceRoom.replacedRoom.connections) {
-				if (!connection.timeline.OverlapsWith(replaceRoom.timeline))
-					continue;
 				Room roomA = connection.roomA == replaceRoom.replacedRoom ? replaceRoom.replacingRoom : connection.roomA;
 				Vector2 roomAPosition = connection.roomA == replaceRoom.replacedRoom ? replaceRoom.Position : roomA.Position;
 				Room roomB = connection.roomB == replaceRoom.replacedRoom ? replaceRoom.replacingRoom : connection.roomB;
@@ -1601,11 +1543,6 @@ public static class WorldWindow {
 											canHaveArrows = true;
 										}
 										if (finalString != "") {
-											Timeline connectionTimeline = connection.timeline;
-											if (connectionTimeline.timelineType != TimelineType.All) {
-												string timelineText = connectionTimeline.ToString();
-												finalString = $"({(timelineText != "" ? timelineText : "NONE")}){finalString}";
-											}
 											if (connection == hoveringConnection && canHaveArrows)
 												finalString = $">{finalString}<";
 											connectionList += (alreadyFoundConnectionForExit ? "/" : "") + finalString;
