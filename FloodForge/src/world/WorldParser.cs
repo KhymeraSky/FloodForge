@@ -85,7 +85,7 @@ public static class WorldParser {
 		MapDraggable positionTarget = room;
 		Room sizeSource = room;
 		if (timeline != null) {
-			ReplaceRoom? relevantReplaceRoom = room.replaceRooms.LastOrDefault(x => x.timeline.OverlapsWith(timeline));
+			ReplaceRoom? relevantReplaceRoom = room.replaceRooms.LastOrDefault(x => x.condition.timeline.OverlapsWith(timeline));
 			if (relevantReplaceRoom != null) {
 				dataTarget = relevantReplaceRoom.replacedRoom;
 				positionTarget = relevantReplaceRoom;
@@ -378,13 +378,13 @@ public static class WorldParser {
 		string[] connections = data[1].Split(',', StringSplitOptions.TrimEntries);
 		string[] tags = data[2..];
 
-		string[] preProcessorConditions = [];
+		PreProcessors? preProcessors = null;
 
 		if (roomName[0] == '{') {
 			int closingBracketPosition = roomName.IndexOf('}');
 			string conditions = roomName[1..closingBracketPosition];
 			roomName = roomName[(closingBracketPosition + 1)..].Trim();
-			preProcessorConditions = [.. conditions.Split(',')];
+			preProcessors = new(conditions.Split(','));
 		}
 		string roomAcronym = roomName.Split('_')[0];
 		if (WorldWindow.region.worldFileLowerCase == null && roomAcronym.Equals(WorldWindow.region.acronym, StringComparison.InvariantCultureIgnoreCase)) {
@@ -402,7 +402,8 @@ public static class WorldParser {
 			WorldWindow.region.rooms.Add(room);
 		}
 
-		room.preProcessorConditions = preProcessorConditions;
+		if (preProcessors != null)
+			room.conditional.conditions.Add(new(preProcessors, Timeline.All));
 
 		uint connectionId = 0;
 		for (int j = 0; j < connections.Length; j++) {
@@ -521,8 +522,7 @@ public static class WorldParser {
 
 		Den den = room.GetDen(denId);
 		DenLineage lineage = new DenLineage("", 0) {
-			timeline = timeline,
-			preProcessorConditions = preProcessorConditions
+			condition = new(new(preProcessorConditions), timeline)
 		};
 		den.creatures.Add(lineage);
 
@@ -605,8 +605,7 @@ public static class WorldParser {
 
 			Den den = room.GetDen(denId);
 			DenLineage lineage = new DenLineage(parsedCreature, 1) {
-				timeline = timeline,
-				preProcessorConditions = preProcessorConditions
+				condition = new(new(preProcessorConditions), timeline)
 			};
 			den.creatures.Add(lineage);
 
@@ -745,6 +744,7 @@ public static class WorldParser {
 			string conditions = parts[0][1..closingBracketPosition];
 			parts[0] = parts[0][(closingBracketPosition + 1)..].Trim();
 			preProcessorConditions = [.. conditions.Split(',')];
+			preProcessorConditions.ForEach(s => Mods.preProcessorConditions.Add(s)); // TODO - extend this to connections, replacerooms & creatures
 		}
 
 		bool xminus = parts[0].StartsWith("x-", StringComparison.InvariantCultureIgnoreCase);
@@ -764,61 +764,16 @@ public static class WorldParser {
 				return false;
 			}
 
-			// REVIEW - this fails to correctly parse a case such as:
-			// 		{condition}Watcher : HIDEROOM : XX_A01
-            // 		Rivulet : HIDEROOM : XX_A01
-			// overwriting the preprocessorcondition for both conditionals to be the same, practically merging two distinct cases into
-			// 		{condition}Watcher,Rivulet : HIDEROOM : XX_A01
-			// This even applies in the much simpler case of:
-			// 		{condition1}Watcher : HIDEROOM : XX_A01
-            // 		{condition2}Watcher : HIDEROOM : XX_A01
-			//
-			// REVIEW UPDATE - one way to solve this would be to
-			// -move preprocessorconditions to be contained within the Timeline class
-			// -allow timelines or rooms to define multiple individual timeline cases (HIDEROOM if {A-condition}Gourmand OR if {B-condition}Rivulet OR if Inv)
-			// in this case, the conditionalpopup would require a rework.
-			// a vague idea for how this conditionalPopup would look:
-			// the popup would contain a list of Conditions; these are independent and work like OR gates.
-			// each Condition would have a field for the timelineType, timelines & preprocessorconditions.
-			//
-			// The only case in which this would 'fail' would be if something like this happened:
-			// 		Watcher : HIDEROOM : XX_A01
-            // 		{condition2}Watcher : EXCLUSIVEROOM : XX_A01
-			// but in that case the clauses could be combined into a single line:
-			//		{!condition2}Watcher : HIDEROOM : XX_A01
-			// therefore, this case can be disregarded.
-			room2.preProcessorConditions = preProcessorConditions;
-
-			if (mod == "exclusiveroom" || (mod == "hideroom" && xminus)) {
-				if (room2.timeline.timelineType == TimelineType.Except) {
-					Logger.Warn($"Skipping line due to invalid EXCLUSIVEROOM {roomName2}");
-					Logger.Warn($"> {link}");
-					return false;
-				}
-
-				room2.timeline.timelineType = TimelineType.Only;
-				timelines.ForEach(x => room2.timeline.timelines.Add(x));
-			}
-			else if (mod == "hideroom" || (mod == "exclusiveroom" && xminus)) {
-				if (room2.timeline.timelineType == TimelineType.Only) {
-					Logger.Warn($"Skipping line due to invalid HIDEROOM {roomName2}");
-					Logger.Warn($"> {link}");
-					return false;
-				}
-
-				room2.timeline.timelineType = TimelineType.Except;
-				timelines.ForEach(x => room2.timeline.timelines.Add(x));
-			}
-
+			room2.conditional.conditions.Add(new(new(preProcessorConditions), new(mod == "exclusiveroom" ^ xminus ? TimelineType.Only : TimelineType.Except, [.. timelines])));
 			return true;
 		}
 		else if (parts.Length == 4 && mod == "replaceroom") {
 			LogParser($"Parsing REPLACEROOM: {link}");
-			ReplaceRoom? similarReplaceRoom = WorldWindow.replaceRooms.FirstOrDefault(x => x.replacedRoom.name == parts[2] && x.replacingRoom.name == parts[3] && x.preProcessorConditions.Length == 0 && preProcessorConditions.Length == 0 && !((x.timeline.timelineType == TimelineType.Except) ^ xminus));
+			ReplaceRoom? similarReplaceRoom = WorldWindow.replaceRooms.FirstOrDefault(x => x.replacedRoom.name == parts[2] && x.replacingRoom.name == parts[3] && x.condition.preProcessors.items.Count == 0 && preProcessorConditions.Length == 0 && !((x.condition.timeline.timelineType == TimelineType.Except) ^ xminus));
 			if (similarReplaceRoom != null) {
 				LogParser($"Existing replaceRoom found matching parameters.");
 				foreach (string timelineEntry in timelines) {
-					similarReplaceRoom.timeline.timelines.Add(timelineEntry);
+					similarReplaceRoom.condition.timeline.timelines.Add(timelineEntry);
 				}
 			}
 			else {
@@ -922,16 +877,8 @@ public static class WorldParser {
 				Logger.Warn($"> {link}");
 				return false;
 			}
-
-			if (connection.timeline.timelineType == TimelineType.Only) {
-				timelines.ForEach(x => connection.timeline.timelines.Remove(x));
-			}
-			else {
-				connection.timeline.timelineType = TimelineType.Except;
-				timelines.ForEach(x => connection.timeline.timelines.Add(x));
-			}
 			
-			connection.preProcessorConditions = preProcessorConditions;
+			connection.conditional.conditions.Add(new(new(preProcessorConditions), new(TimelineType.Except, [.. timelines])));
 			return true;
 		}
 
@@ -943,7 +890,7 @@ public static class WorldParser {
 			LogParser($"creating connectedList");
 			for (int index = 0; index < connected.Length; index++) {
 				foreach (Connection connection2 in room.connections) {
-					if (connection2.timeline.timelineType == TimelineType.Only)
+					if (!connection2.conditional.ShowsOnMap())
 						continue;
 					if (connection2.roomAExitID != index && connection2.roomBExitID != index)
 						continue;
@@ -984,14 +931,14 @@ public static class WorldParser {
 		LogParser($"final originConnectionId: {originConnectionId}");
 
 		if (connection != null) {
-			LogParser($"pre-existing connection found, setting timelines");
+			/*LogParser($"pre-existing connection found, setting timelines");
 			if (connection.timeline.timelineType == TimelineType.Only) {
 				timelines.ForEach(x => connection.timeline.timelines.Remove(x));
 			}
 			else {
 				connection.timeline.timelineType = TimelineType.Except;
 				timelines.ForEach(x => connection.timeline.timelines.Add(x));
-			}
+			}*/
 
 			if (room.name == toConnection && (!WorldWindow.connectionExtensionsEnabled || originConnectionId == toConnectionId)) {
 				// self-connection
@@ -1261,27 +1208,22 @@ public static class WorldParser {
 				continue;
 			}
 
-			Connection? mergeWithConnection = null;
-			foreach (Connection existingConnection in connectionData.roomA.connections) {
-				if (((existingConnection.roomA == connectionData.roomA && existingConnection.roomAExitID == connectionData.roomAExitID && 
-				existingConnection.roomB == connectionData.roomB && existingConnection.roomBExitID == connectionData.roomBExitID) ||
-				(existingConnection.roomA == connectionData.roomB && existingConnection.roomAExitID == connectionData.roomBExitID && 
-				existingConnection.roomB == connectionData.roomA && existingConnection.roomBExitID == connectionData.roomAExitID)) &&
-				existingConnection.preProcessorConditions.SequenceEqual(connectionData.preProcessorConditions)) {
-					if (existingConnection.timeline.timelineType == connectionData.timeline.timelineType) {
-						mergeWithConnection = existingConnection;
-						break;
-					}
+			Connection? connection = null;
+			bool foundExistingConnection = false;
+			foreach (Connection existingConnection in WorldWindow.region.connections) {
+				if ((existingConnection.roomA == connectionData.roomA && existingConnection.roomAExitID == connectionData.roomAExitID &&
+					existingConnection.roomB == connectionData.roomB && existingConnection.roomBExitID == connectionData.roomBExitID) ||
+					(existingConnection.roomA == connectionData.roomB && existingConnection.roomAExitID == connectionData.roomBExitID &&
+					existingConnection.roomB == connectionData.roomA && existingConnection.roomBExitID == connectionData.roomAExitID)) {
+					connection = existingConnection;
+					foundExistingConnection = true;
+					break;
 				}
 			}
-			if (mergeWithConnection != null) {
-				connectionData.timeline.timelines.ForEach(x => mergeWithConnection.timeline.timelines.Add(x));
-			}
-			else {
-				Connection connection = new Connection(connectionData.roomA, connectionData.roomAExitID, connectionData.roomB, connectionData.roomBExitID.Value) {
-					timeline = connectionData.timeline,
-					preProcessorConditions = connectionData.preProcessorConditions
-				};
+
+			connection ??= new Connection(connectionData.roomA, connectionData.roomAExitID, connectionData.roomB, connectionData.roomBExitID.Value);
+			connection.conditional.conditions.Add(new(new(connectionData.preProcessorConditions), connectionData.timeline));
+			if (!foundExistingConnection) {
 				WorldWindow.region.connections.Add(connection);
 				connectionData.roomA.Connect(connection);
 				connectionData.roomB.Connect(connection);

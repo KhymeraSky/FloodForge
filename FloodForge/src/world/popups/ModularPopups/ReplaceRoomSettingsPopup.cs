@@ -10,7 +10,7 @@ public class ReplaceRoomSettingsPopup : ModularPopup {
 	protected ButtonContainer timelineButton;
 	protected ButtonContainer deleteButton;
 	protected TextureButtonContainer hideButton;
-	protected TimelinePopup? timelinePopup = null;
+	protected ConditionPopup? conditionPopup = null;
 
 	public ReplaceRoomSettingsPopup(ReplaceRoom replaceRoom) {
 		this.replaceRoom = replaceRoom;
@@ -55,18 +55,18 @@ public class ReplaceRoomSettingsPopup : ModularPopup {
 	}
 
 	private void TimelineButton() {
-		this.timelinePopup ??= new TimelinePopup(this.replaceRoom.timeline, _ => {}, this.SelectionChange, true).SetButtons<TimelinePopup>("", "ONLY", "");
-		PopupManager.Add(this.timelinePopup);
+		this.conditionPopup ??= new ConditionPopup(this.replaceRoom.condition).SetButtons<ConditionPopup>("", "ONLY", "");
+		PopupManager.Add(this.conditionPopup);
 	}
 
 	private void SelectionChange(bool selected, string timeline) {
 		TimelineChange newTimelineChange = new TimelineChange(!selected, timeline);
-		newTimelineChange.AddReplaceRoom(this.replaceRoom);
+		newTimelineChange.AddCondition(this.replaceRoom.condition);
 		WorldWindow.worldHistory.Apply(newTimelineChange);
 	}
 
 	private bool UpdateTimelineButton(ButtonContainer button) {
-		button.settingName = "Timeline" + (this.replaceRoom.timeline.timelines.Count == 0 ? "" : $" - {this.replaceRoom.timeline}");
+		button.settingName = "Timeline" + (this.replaceRoom.condition.timeline.timelines.Count == 0 ? "" : $" - {this.replaceRoom.condition.timeline}");
 		this.RecalculateBounds(retainTopLeft: true, tryRetainScale: true);
 		return true;
 	}
@@ -75,7 +75,7 @@ public class ReplaceRoomSettingsPopup : ModularPopup {
 		ReplaceRoomChange change = new ReplaceRoomChange(false);
 		change.AddReplaceRoom(this.replaceRoom);
 		WorldWindow.worldHistory.Apply(change);
-		this.timelinePopup?.Close();
+		this.conditionPopup?.Close();
 		this.Close();
 	}
 

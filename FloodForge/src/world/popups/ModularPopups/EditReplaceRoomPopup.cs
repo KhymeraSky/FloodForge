@@ -332,13 +332,8 @@ public class EditReplaceRoomPopup : ModularPopup {
 
 	private void UpdateReplaceRoomLabels() {
 		foreach ((ReplaceRoom replaceroom, VerticalElement verticalElement) in this.associatedVerticalElements) {
-			string preProcessorConditionsToString = "";
-			bool first = true;
-			foreach (string condition in replaceroom.preProcessorConditions) {
-				preProcessorConditionsToString += (first ? "" : ",") + condition;
-			}
-			preProcessorConditionsToString = preProcessorConditionsToString == "" ? "" :  $"{{{preProcessorConditionsToString}}}";
-			verticalElement.GetByID("label")?.settingName = $"{preProcessorConditionsToString}({replaceroom.timeline}) -> {replaceroom.replacingRoom.name}";
+			string preProcessorConditionsToString = replaceroom.condition.preProcessors.items.Count == 0 ? "" : $"{{{replaceroom.condition.preProcessors}}}";
+			verticalElement.GetByID("label")?.settingName = $"{preProcessorConditionsToString}({replaceroom.condition.timeline}) -> {replaceroom.replacingRoom.name}";
 		}
 		this.RecalculateBounds(true, true);
 	}

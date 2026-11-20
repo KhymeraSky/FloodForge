@@ -20,27 +20,15 @@ public class Connection : ConnectionVisual{
 	public override bool BVisible => this.roomB.Visible;
 	public override float SizeMultiplier => WorldWindow.selectedConnections.Contains(this) ? 1.4f : 1f;
 
-	public string[] preProcessorConditions = [];
-	
-	public Timeline timeline;
-	public Timeline EffectiveConnectionTimeline {
-		get {
-			return this.timeline.And(this.roomA.timeline.And(this.roomB.timeline));
-		}
-	}
-	public override bool ConnectionVisible {
-		get {
-			return this.timeline.OverlapsWith(WorldWindow.VisibleTimeline) || WorldWindow.VisibleTimeline.timelineType == TimelineType.Only && WorldWindow.VisibleTimeline.timelines.Count == 0;
-		}
-	}
-	public ConditionalPopup? conditionalPopup;
+	public Conditional conditional;
+	public override bool ConnectionVisible => this.conditional.CheckTimelineCull();
 
 	public Connection(Room roomA, Room roomB, uint connectionA, uint connectionB) : base(false) {
 		this.roomA = roomA;
 		this.roomB = roomB;
 		this.roomAExitID = connectionA;
 		this.roomBExitID = connectionB;
-		this.timeline = new();
+		this.conditional = new();
 	}
 
 	public Connection(Room roomA, uint connectionA, Room roomB, uint connectionB) : base(false) {
@@ -48,16 +36,7 @@ public class Connection : ConnectionVisual{
 		this.roomB = roomB;
 		this.roomAExitID = connectionA;
 		this.roomBExitID = connectionB;
-		this.timeline = new();
-	}
-
-	public bool AllowsTimeline(string timeline) {
-		return this.timeline.timelineType switch {
-			TimelineType.All => true,
-			TimelineType.Only => this.timeline.timelines.Contains(timeline),
-			TimelineType.Except => !this.timeline.timelines.Contains(timeline),
-			_ => false,
-		};
+		this.conditional = new();
 	}
 
 	protected override (Color, Color) GetColorInformation(bool fadeMiddle, bool AVisible, bool BVisible, bool hovered) {
@@ -70,10 +49,8 @@ public class Connection : ConnectionVisual{
 			connectionColorB = Themes.RoomConnectionInvalid;
 		}
 		else if (roomConnectionHoverColor) {
-			Timeline timeline = this.EffectiveConnectionTimeline;
-			bool warnConflictingTimelines = timeline.timelineType == TimelineType.Only && timeline.timelines.Count == 0;
-			connectionColorA = warnConflictingTimelines ? Themes.TextWarn : Themes.RoomConnectionHover;
-			connectionColorB = warnConflictingTimelines ? Themes.TextWarn : Themes.RoomConnectionHover;
+			connectionColorA = Themes.RoomConnectionHover;
+			connectionColorB = Themes.RoomConnectionHover;
 		}
 		else {
 			connectionColorA = Themes.RoomConnection;
@@ -114,52 +91,46 @@ public class Connection : ConnectionVisual{
 		if (WorldWindow.CullTest(this.fittedAABB)) {
 			if (!this.AVisible || !this.BVisible || !this.ConnectionVisible)
 				return;
-			if (this.timeline.timelines.Count == 0 || this.timeline.timelineType == TimelineType.All)
-				return;
-
 			this.DrawTimelineIcons();
 		}
 	}
 
 	protected void DrawTimelineIcons() {
-		// TODO - make the icons center themselves within the connection bounds when the total square size exceeds the bounds
-		float size = WorldWindow.SelectorScale * (this.Hovered ? 1.5f : 1f);
-		int squareWidth = Mathf.CeilToInt(Mathf.Sqrt(this.timeline.timelines.Count));
-		int squareHeight = 0;
-		while (squareHeight * squareWidth < this.timeline.timelines.Count) {
-			squareHeight++;
-		}
-
-		Vector2 topLeftPoint = this.WorldspaceMiddlePoint - new Vector2(squareWidth / 2f, -squareHeight / 2f) * size;
-
 		if (WorldWindow.VisibleTimelineIcons) {
-			HashSet<string>.Enumerator timelineEnumerator = this.timeline.timelines.GetEnumerator();
-			for (int y = 0; y < squareHeight; y++) {
-				for (int x = 0; x < squareWidth; x++) {
-					if (!timelineEnumerator.MoveNext())
-						break;
+			List<Condition> relevantConditions = [];
+			foreach (Condition condition in this.conditional.conditions) {
+				if (condition.timeline.timelineType != TimelineType.All || condition.preProcessors.items.Count != 0)
+					relevantConditions.Add(condition);
+			}
+			float scale = WorldWindow.SelectorScale;
+			float startY = this.bezierOriginOffset.y + this.BezierMiddlePoint.y + (relevantConditions.Count - 1) * scale * 0.5f;
 
-					Immediate.Color(1f, 1f, 1f);
-					UI.CenteredTexture(Mods.GetTimelineTexture(timelineEnumerator.Current), topLeftPoint.x + (x * size) + size/2, topLeftPoint.y - (y * size) - size/2, size);
+			int i = 0;
+			foreach (Condition condition in relevantConditions) {
+				Immediate.Color(1f, 1f, 1f);
+				float yVal = startY - (i * scale);
+				float startX = this.bezierOriginOffset.x + this.BezierMiddlePoint.x - (condition.timeline.timelines.Count - 1) * scale * 0.5f;
 
-					if (this.timeline.timelineType == TimelineType.Except) {
-						Immediate.Color(1f, 0f, 0f);
-						float x0 = topLeftPoint.x + ((x + 0.1f) * size);
-						float x1 = topLeftPoint.x + ((x + 0.9f) * size);
-						float y0 = topLeftPoint.y - ((y + 0.1f) * size);
-						float y1 = topLeftPoint.y - ((y + 0.9f) * size);
-						UI.Line(x0, y0, x1, y1, WorldWindow.SelectorScale * 3f);
-						UI.Line(x0, y1, x1, y0, WorldWindow.SelectorScale * 3f);
-					}
+				int j = 0;
+				foreach (string timeline in condition.timeline.timelines) {
+					UI.CenteredTexture(Mods.GetTimelineTexture(timeline), startX + (j * scale), yVal, scale);
+					j++;
 				}
 
-				if (this.preProcessorConditions.Length != 0) {
+				if (condition.timeline.timelines.Count > 0 && condition.timeline.timelineType == TimelineType.Except) {
+					Immediate.Color(1f, 0f, 0f);
+					UI.Line(startX - 0.5f * scale, yVal, startX + (condition.timeline.timelines.Count - 0.5f) * scale, yVal, scale * 4f);
+				}
+
+				if (condition.preProcessors.items.Count != 0) {
 					Immediate.Color(1f, 1f, 0f);
-					float x0 = topLeftPoint.x;
-					float y0 = topLeftPoint.y - (y * size);
-					float y1 = topLeftPoint.y - ((y + 1) * size);
-					UI.Line(x0, y0, x0, y1, WorldWindow.SelectorScale * 3f);
+					float x0 = startX - 0.4f * scale;
+					float y0 = yVal + 0.5f * scale;
+					float y1 = yVal - 0.5f * scale;
+					UI.Line(x0, y0, x0, y1, scale * 3f);
 				}
+
+				i++;
 			}
 		}
 	}

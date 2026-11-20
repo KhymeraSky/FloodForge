@@ -34,9 +34,7 @@ public class Room : MapDraggable {
 	public List<ReplaceRoom> replaceRooms = [];
 	public List<ReplaceRoom> referencingReplaceRooms = [];
 
-	public string[] preProcessorConditions = [];
-	public Timeline timeline = new();
-	public ConditionalPopup? conditionalPopup;
+	public Conditional conditional;
 	public int width;
 	public int height;
 	public bool valid;
@@ -61,12 +59,8 @@ public class Room : MapDraggable {
 	public int GarbageWormHoleIndex => this.roomExitCount + this.denShortcutEntrances.Count + this.scavengerHoleCount + this.roomBorderExitCount + this.batflyHiveCount;
 	public bool hasGarbageWormHoles = false;
 
-
-	// IDEA: Room alerts/hints? (an exclamation mark that appears above a room's corner if there's something of note - softlocking shortcuts, lack of cameras)
-	// then, this could also be added to connections so that a room that connects to the same room multiple times isn't allowed to exist without feedback
-
 	protected override bool IsVisible() {
-		return this.CheckTimelineCull() && WorldWindow.VisibleLayers[this.data.layer];
+		return this.conditional.CheckTimelineCull() && WorldWindow.VisibleLayers[this.data.layer];
 	}
 
 	protected override bool IsSelectable() {
@@ -85,27 +79,6 @@ public class Room : MapDraggable {
 		return false;
 	}
 
-	// REVIEW - check for redundancy in terms of edge-case checks
-	public bool CheckTimelineCull() {
-		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.All)
-			return true;
-		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.Only && WorldWindow.VisibleTimeline.timelines.Count == 0 && this.timeline.timelineType != TimelineType.Only)
-			return true;
-
-		Timeline andedTimeline = this.timeline.And(WorldWindow.VisibleTimeline);
-		if (andedTimeline.timelineType == TimelineType.Only) {
-			HashSet<string> leftTLs = [.. andedTimeline.timelines];
-			foreach (ReplaceRoom replaceRoom in this.replaceRooms) {
-				if (replaceRoom.timeline.OverlapsWith(WorldWindow.VisibleTimeline) && replaceRoom.timeline.timelineType == TimelineType.Only && !replaceRoom.setHidden) {
-					replaceRoom.timeline.timelines.ForEach(tl => leftTLs.Remove(tl));
-				}
-			}
-			if (leftTLs.Count == 0)
-				return false;
-		}
-		return true;
-	}
-
 	public Room(string path, string name, bool pathOutsideRoomsFolder = false) {
 		this.pathOutsideRoomsFolder = pathOutsideRoomsFolder;
 		this.path = path;
@@ -119,6 +92,8 @@ public class Room : MapDraggable {
 
 		this.data = new RoomData();
 		this.visuals = new RoomVisuals(this);
+
+		this.conditional = new();
 
 		try {
 			this.LoadGeometryFromFile();
@@ -141,6 +116,7 @@ public class Room : MapDraggable {
 	public Room(string roomName, int width, int height, bool fillLayer1, bool fillLayer2, bool createCameras) {
 		this.path = "";
 		this.name = roomName;
+		this.conditional = new();
 
 		this.width = width;
 		this.height = height;
@@ -1726,7 +1702,7 @@ public class Room : MapDraggable {
 	public virtual void PostDraw(WorldWindow.RoomPosition positionType) {
 		Vector2 renderedPosition = positionType == WorldWindow.RoomPosition.Canon ? this.CanonPosition : this.DevPosition;
 
-		if (this.timeline.timelineType != TimelineType.All)
+		if (this.conditional.conditions.Count != 0)
 			this.DrawTimelineIcons(renderedPosition);
 
 		this.DrawStateIcons(renderedPosition, this.width);
@@ -1905,34 +1881,46 @@ public class Room : MapDraggable {
 
 	protected void DrawTimelineIcons(Vector2 renderedPosition) {
 		if (WorldWindow.VisibleTimelineIcons) {
+			List<Condition> relevantConditions = [];
+			foreach (Condition condition in this.conditional.conditions) {
+				if (condition.timeline.timelineType != TimelineType.All || condition.preProcessors.items.Count != 0)
+					relevantConditions.Add(condition);
+			}
 			float scale = WorldWindow.SelectorScale;
+			float roomCenterY = renderedPosition.y - this.height * 0.5f;
+			float iconsCenterY = renderedPosition.y - relevantConditions.Count * scale * 0.5f;
+			iconsCenterY = Math.Max(roomCenterY, iconsCenterY);
+			float startY = iconsCenterY + (relevantConditions.Count - 1) * scale * 0.5f;
 			int i = 0;
-			Immediate.Color(1f, 1f, 1f);
-			float roomCenterX = renderedPosition.x + this.width / 2;
-			float centerX = renderedPosition.x + this.timeline.timelines.Count * scale / 2;
-			centerX = Math.Min(roomCenterX, centerX);
-			float startX = centerX - (this.timeline.timelines.Count - 1f) * scale / 2;
 
-			float roomCenterY = renderedPosition.y - this.height / 2;
-			float yVal = renderedPosition.y - 0.5f * scale;
-			yVal = Math.Max(roomCenterY, yVal);
+			foreach (Condition condition in relevantConditions) {
+				int j = 0;
+				Immediate.Color(1f, 1f, 1f);
+				float yVal = startY - (i * scale);
+				float roomCenterX = renderedPosition.x + this.width * 0.5f;
+				float iconsCenterX = renderedPosition.x + condition.timeline.timelines.Count * scale * 0.5f;
+				iconsCenterX = Math.Min(roomCenterX, iconsCenterX);
+				float startX = iconsCenterX - (condition.timeline.timelines.Count - 1) * scale * 0.5f;
 
-			foreach (string timeline in this.timeline.timelines) {
-				UI.CenteredTexture(Mods.GetTimelineTexture(timeline), startX + (i * scale), yVal, scale);
+				foreach (string timeline in condition.timeline.timelines) {
+					UI.CenteredTexture(Mods.GetTimelineTexture(timeline), startX + (j * scale), yVal, scale);
+					j++;
+				}
+
+				if (condition.timeline.timelines.Count > 0 && condition.timeline.timelineType == TimelineType.Except) {
+					Immediate.Color(1f, 0f, 0f);
+					UI.Line(startX - 0.5f * scale, yVal, startX + (condition.timeline.timelines.Count - 0.5f) * scale, yVal, scale * 4f);
+				}
+
+				if (condition.preProcessors.items.Count != 0) {
+					Immediate.Color(1f, 1f, 0f);
+					float x0 = startX - 0.4f * scale;
+					float y0 = yVal + 0.5f * scale;
+					float y1 = yVal - 0.5f * scale;
+					UI.Line(x0, y0, x0, y1, scale * 3f);
+				}
+
 				i++;
-			}
-
-			if (this.timeline.timelines.Count > 0 && this.timeline.timelineType == TimelineType.Except) {
-				Immediate.Color(1f, 0f, 0f);
-				UI.Line(startX - 0.5f * scale, yVal, startX + (this.timeline.timelines.Count - 0.5f) * scale, yVal, scale * 4f);
-			}
-
-			if (this.preProcessorConditions.Length != 0) {
-				Immediate.Color(1f, 1f, 0f);
-				float x0 = startX - 0.4f * scale;
-				float y0 = yVal + 0.5f * scale;
-				float y1 = yVal - 0.5f * scale;
-				UI.Line(x0, y0, x0, y1, scale * 3f);
 			}
 		}
 	}
@@ -2019,20 +2007,20 @@ public class Room : MapDraggable {
 
 	//REVIEW - it's currently possible to add creatures with conditionals that will never appear
 	// (such as, a lizard spawning in Hunter's timeline, but the room being hidden in Hunter)
-	public static void DrawDen(Den den, float x, float y, bool hovered, bool roomHovered, Timeline? timelineFilter = null, string[]? preProcessorConditionFilter = null) {
+	public static void DrawDen(Den den, float x, float y, bool hovered, bool roomHovered, Timeline? timelineFilter = null) {
 		bool denEmpty = true;
 		bool drawnDen = false;
 
 		float scale = WorldWindow.SelectorScale * (hovered ? 1.5f : 1f);
 		int drawnCreatures = 0;
-		List<DenLineage> visibleLineages = den.creatures.FindAll(d => d.timeline.OverlapsWith(WorldWindow.VisibleTimeline) && (timelineFilter == null || d.timeline.OverlapsWith(timelineFilter)));
+		List<DenLineage> visibleLineages = den.creatures.FindAll(d => d.condition.timeline.OverlapsWith(WorldWindow.VisibleTimeline) && (timelineFilter == null || d.condition.timeline.OverlapsWith(timelineFilter)));
 		for (int i = 0; i < visibleLineages.Count; i++) {
 			DenCreature creature = visibleLineages[i];
 			if (creature.type.IsNullOrEmpty() && creature.lineageTo == null) {
 				drawnCreatures++;
 				continue;
 			}
-			if (creature is DenLineage denLineage && !denLineage.timeline.OverlapsWith(WorldWindow.VisibleTimeline))
+			if (creature is DenLineage denLineage && !denLineage.condition.timeline.OverlapsWith(WorldWindow.VisibleTimeline))
 				continue;
 
 			float rectX = x + drawnCreatures * scale - (visibleLineages.Count - 1f) * 0.5f * scale + 0.5f;

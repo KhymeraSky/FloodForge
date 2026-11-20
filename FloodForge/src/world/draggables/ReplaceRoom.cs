@@ -7,8 +7,7 @@ public class ReplaceRoom : MapDraggable {
 	public RoomLockState lockState;
 	public Room replacingRoom;
 	public Room replacedRoom;
-	public Timeline timeline;
-	public string[] preProcessorConditions;
+	public Condition condition;
 	public bool setHidden = false;
 	public bool IsHidden => this.setHidden && !Input.Pressed(Keys.ShowHiddenReplaceRooms);
 
@@ -17,7 +16,7 @@ public class ReplaceRoom : MapDraggable {
 	public Vector2i size;
 
 	protected override bool IsVisible() {
-		return WorldWindow.VisibleTimeline.OverlapsWith(this.timeline) && !this.IsHidden;
+		return WorldWindow.VisibleTimeline.OverlapsWith(this.condition.timeline) && !this.IsHidden;
 	}
 
 	protected override bool IsSelectable() {
@@ -31,8 +30,7 @@ public class ReplaceRoom : MapDraggable {
 	public ReplaceRoom(Room replacingRoom, Room replacedRoom, Timeline replacingTimeline, string[] preProcessorConditions) {
 		this.replacingRoom = replacingRoom;
 		this.replacedRoom = replacedRoom;
-		this.timeline = replacingTimeline;
-		this.preProcessorConditions = preProcessorConditions;
+		this.condition = new(new(preProcessorConditions), replacingTimeline);
 		this.size = new (replacingRoom.width, replacingRoom.height);
 	}
 	
@@ -77,7 +75,7 @@ public class ReplaceRoom : MapDraggable {
 
 		for (int j = 0; j < this.replacingRoom.denShortcutEntrances.Count && j < this.replacedRoom.dens.Count; j++) {
 			Vector2i denPosition = this.replacingRoom.denShortcutEntrances[j];
-			Room.DrawDen(this.replacedRoom.dens[j], renderedPosition.x + denPosition.x, renderedPosition.y - denPosition.y, WorldWindow.denRoom == this.replacedRoom && WorldWindow.hoveredDen == j, WorldWindow.HoveringDraggable == this, this.timeline);
+			Room.DrawDen(this.replacedRoom.dens[j], renderedPosition.x + denPosition.x, renderedPosition.y - denPosition.y, WorldWindow.denRoom == this.replacedRoom && WorldWindow.hoveredDen == j, WorldWindow.HoveringDraggable == this, this.condition.timeline);
 		}
 
 		if (WorldWindow.VisibleTimelineIcons) {
@@ -85,25 +83,25 @@ public class ReplaceRoom : MapDraggable {
 			int i = 0;
 			Immediate.Color(1f, 1f, 1f);
 			float roomCenterX = renderedPosition.x + this.replacingRoom.width / 2;
-			float centerX = renderedPosition.x + this.timeline.timelines.Count * scale / 2;
+			float centerX = renderedPosition.x + this.condition.timeline.timelines.Count * scale / 2;
 			centerX = Math.Min(roomCenterX, centerX);
-			float startX = centerX - (this.timeline.timelines.Count - 1f) * scale / 2;
+			float startX = centerX - (this.condition.timeline.timelines.Count - 1f) * scale / 2;
 
 			float roomCenterY = renderedPosition.y - this.replacingRoom.height / 2;
 			float yVal = renderedPosition.y - 0.5f * scale;
 			yVal = Math.Max(roomCenterY, yVal);
 
-			foreach (string timeline in this.timeline.timelines) {
+			foreach (string timeline in this.condition.timeline.timelines) {
 				UI.CenteredTexture(Mods.GetTimelineTexture(timeline), startX + (i * scale), yVal, scale);
 				i++;
 			}
 
-			if (this.timeline.timelines.Count > 0 && this.timeline.timelineType == TimelineType.Except) {
+			if (this.condition.timeline.timelines.Count > 0 && this.condition.timeline.timelineType == TimelineType.Except) {
 				Immediate.Color(1f, 0f, 0f);
-				UI.Line(startX - 0.5f * scale, yVal, startX + (this.timeline.timelines.Count - 0.5f) * scale, yVal, scale * 4f);
+				UI.Line(startX - 0.5f * scale, yVal, startX + (this.condition.timeline.timelines.Count - 0.5f) * scale, yVal, scale * 4f);
 			}
 
-			if (this.preProcessorConditions.Length != 0) {
+			if (this.condition.preProcessors.items.Count != 0) {
 				Immediate.Color(1f, 1f, 0f);
 				float x0 = startX - 0.4f * scale;
 				float y0 = yVal + 0.5f * scale;

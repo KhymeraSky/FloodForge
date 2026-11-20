@@ -98,12 +98,10 @@ public class DenCreature {
 }
 
 public class DenLineage : DenCreature {
-	public Timeline timeline = new ();
-	public string[] preProcessorConditions = [];
-	public ConditionalPopup? conditionalPopup;
+	public Condition condition = new(new(), new());
+	public ConditionPopup? conditionPopup;
 
-	public DenLineage(string type, int count) : base(type, count) {
-	}
+	public DenLineage(string type, int count) : base(type, count) { }
 }
 
 public class Den {

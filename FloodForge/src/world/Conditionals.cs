@@ -1,12 +1,34 @@
 namespace FloodForge.World;
 
 public class Conditional {
+	public NewConditionalPopup? conditionalPopup;
 	public List<Condition> conditions = [];
-	
-	public bool PassesConditions(Condition check) {
-		foreach (Condition condition in this.conditions)
-			if (!condition.Passes(check))
+
+	public bool ShowsOnMap(string timeline = "") {
+		bool anyConditionPassed = this.conditions.Count == 0;
+		foreach (Condition condition in this.conditions) {
+			if (condition.timeline.timelineType == TimelineType.Only) {
+				if (condition.timeline.timelines.Contains(timeline))
+					anyConditionPassed = true;
+			}
+			if (condition.timeline.timelineType == TimelineType.Except) {
+				if (!condition.timeline.timelines.Contains(timeline))
+					anyConditionPassed = true;
+			}
+		}
+		return anyConditionPassed;
+	}
+
+	// REVIEW - check for redundancy in terms of edge-case checks
+	public bool CheckTimelineCull() {
+		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.All || this.conditions.Count == 0)
+			return true;
+		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.Only && WorldWindow.VisibleTimeline.timelines.Count == 0 && this.conditions.Count == 0)
+			return true;
+		foreach (Condition condition in this.conditions) {
+			if (!condition.timeline.OverlapsWith(WorldWindow.VisibleTimeline))
 				return false;
+		}
 		return true;
 	}
 }
@@ -14,38 +36,33 @@ public class Conditional {
 public class Condition {
 	public PreProcessors preProcessors;
 	public Timeline timeline;
+	public ConditionPopup? conditionPopup;
 
 	public Condition(PreProcessors preProcessors, Timeline timeline) {
 		this.preProcessors = preProcessors;
 		this.timeline = timeline;
 	}
-	
-	public bool Passes(Condition check) {
-		return this.preProcessors.Passes(check.preProcessors) && this.timeline.OverlapsWith(check.timeline);
-	}
 }
 
 public class PreProcessors {
-	public List<PreProcessor> items = [];
+	public List<string> items = [];
 
-	public bool Passes(PreProcessors preProcessors) {
-		foreach (PreProcessor item in this.items)
-			if (!preProcessors.PassesItem(item))
-				return false;
-		return true;
-	}
-	
-	public bool PassesItem(PreProcessor check) {
-		foreach (PreProcessor item in this.items)
-			if (item.condition.Equals(check.condition, StringComparison.InvariantCultureIgnoreCase) == item.negate)
-				return false;
-		return true;
-	}
-}
+	public PreProcessors() { }
 
-public class PreProcessor {
-	public string condition = "";
-	public bool negate = false;
+	public PreProcessors(IEnumerable<string> items) {
+		this.items = [.. items];
+	}
+
+	public override string ToString() => ToString([.. this.items]);
+
+	public static string ToString(string[] items) {
+		if (items == null)
+			throw new NullReferenceException("Could not convert null preProcessorConditions to string");
+		string preProcessors = string.Join(',', items);
+		if (preProcessors != "")
+			preProcessors = $"{{{preProcessors}}}";
+		return preProcessors;
+	}
 }
 
 public class Timeline {

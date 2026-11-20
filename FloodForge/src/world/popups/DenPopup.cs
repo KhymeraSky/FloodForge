@@ -449,7 +449,7 @@ public class DenPopup : Popup {
 			this.hoverText = "Edit conditionals";
 		}
 		if (editConditionalsResponse.clicked) {
-			this.den.creatures[this.selectedCreature].conditionalPopup = PopupManager.Add(new ConditionalPopup(this.den.creatures[this.selectedCreature]));
+			this.den.creatures[this.selectedCreature].conditionPopup = PopupManager.Add(new ConditionPopup(this.den.creatures[this.selectedCreature].condition));
 		}
 	}
 

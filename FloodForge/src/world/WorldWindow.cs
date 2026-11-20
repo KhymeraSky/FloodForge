@@ -490,6 +490,9 @@ public static class WorldWindow {
 			if (NewConnection != null) {
 				if (CurrentConnectionValid) {
 					RoomAndConnectionChange change = new RoomAndConnectionChange(true);
+					// TODO - re-implement validity checks
+					if (VisibleTimeline.timelineType != TimelineType.All && setNewConnectionTimeline)
+						NewConnection.conditional.conditions.Add(new(new(), new(VisibleTimeline)));
 					change.AddConnection(NewConnection);
 					worldHistory.Apply(change);
 				}
@@ -1010,33 +1013,12 @@ public static class WorldWindow {
 		}
 
 		if (Input.JustPressed(Keys.ChangeConditionals)) {
-			bool hasSelectedRooms = HoveringOrSelectedRooms(out HashSet<Room> rooms);
-			bool hasSelectedConnections = HoveringOrSelectedConnections(out HashSet<Connection> connections);
-			if (hasSelectedRooms || hasSelectedConnections) {
-				connections ??= [];
-				HashSet<Room> unlockedRooms = [];
-				rooms.ForEach(r => { if (r.data.lockState == RoomLockState.none) unlockedRooms.Add(r); } );
-
-				if (unlockedRooms.Count != 0 || connections.Count != 0) {
-					ConditionalPopup? conditionalPopup = null;
-
-					if (hasSelectedRooms && !hasSelectedConnections) {
-						conditionalPopup = PopupManager.Add(new ConditionalPopup(unlockedRooms)).SetButtons<ConditionalPopup>("DEFAULT", "EXCLUSIVE", "HIDE");
-						conditionalPopup.Title($"Conditional - {(unlockedRooms.Count > 1 ? $"{unlockedRooms.Count} Multiple Rooms" : "Room")}");
-					}
-					else if (hasSelectedConnections && !hasSelectedRooms) {
-						conditionalPopup = PopupManager.Add(new ConditionalPopup(connections));
-						conditionalPopup.Title($"Conditional - {(connections.Count > 1 ? $"{connections.Count} Connections" : "Connection")}");
-					}
-					else {
-						conditionalPopup = PopupManager.Add(new ConditionalPopup(connections, unlockedRooms));
-						conditionalPopup.Title($"Conditional - {$"{connections.Count} Connection{(connections.Count > 1 ? "s" : "")} and {unlockedRooms.Count} Room{(unlockedRooms.Count > 1 ? "s" : "")}"}");
-					}
-
-					unlockedRooms.ForEach((room) => { room.conditionalPopup = conditionalPopup; });
-					connections.ForEach((connection) => { connection.conditionalPopup = conditionalPopup; });
-				}
-			}
+			if (HoveringConnection != null)
+				PopupManager.Add(new NewConditionalPopup(HoveringConnection.conditional)).Title("Conditional - Connection");
+			else if (HoveringReplaceRoom != null && HoveringReplaceRoom.lockState != RoomLockState.locked)
+				PopupManager.Add(new ConditionPopup(HoveringReplaceRoom.condition).Title($"Condition - {HoveringReplaceRoom.replacingRoom.name}"));
+			else if (HoveringRoom != null && HoveringRoom.data.lockState != RoomLockState.locked)
+				PopupManager.Add(new NewConditionalPopup(HoveringRoom.conditional)).Title($"Conditional - {HoveringRoom.name}");
 		}
 
 		if (Input.JustPressed(Keys.EditRoom)) {
@@ -1187,7 +1169,7 @@ public static class WorldWindow {
 
 		Program.gl.Enable(EnableCap.Blend);
 		foreach (Room room in WorldWindow.region.rooms) {
-			bool timelineCullResult = room.CheckTimelineCull();
+			bool timelineCullResult = room.conditional.CheckTimelineCull();
 			timelineCullResults.Add(room, timelineCullResult);
 
 			if (!room.data.merge)
@@ -1251,7 +1233,7 @@ public static class WorldWindow {
 
 		if (VisibleReplaceRooms) {
 			foreach (ReplaceRoom replaceRoom in replaceRooms) {
-				if (!VisibleLayers[replaceRoom.replacedRoom.data.layer] || !VisibleTimeline.OverlapsWith(replaceRoom.timeline) || replaceRoom.IsHidden)
+				if (!VisibleLayers[replaceRoom.replacedRoom.data.layer] || !VisibleTimeline.OverlapsWith(replaceRoom.condition.timeline) || replaceRoom.IsHidden)
 					continue;
 
 				bool canonCull = WorldWindow.CullTest(new Rect(replaceRoom.CanonPosition.x, replaceRoom.CanonPosition.y - replaceRoom.replacingRoom.height, replaceRoom.CanonPosition.x + replaceRoom.replacingRoom.width, replaceRoom.CanonPosition.y));
@@ -1369,13 +1351,13 @@ public static class WorldWindow {
 		foreach (DenLineage lineage in den.creatures) {
 			DenCreature creature = lineage;
 			string line = "";
-			if (lineage.timeline.timelineType != TimelineType.All) {
-				line += $"({lineage.timeline})";
+			if (lineage.condition.timeline.timelineType != TimelineType.All) {
+				line += $"({lineage.condition.timeline})";
 			}
-			if (lineage.preProcessorConditions.Length != 0) {
+			if (lineage.condition.preProcessors.items.Count != 0) {
 				line += "{";
 				bool first = true;
-				foreach(string item in lineage.preProcessorConditions) {
+				foreach(string item in lineage.condition.preProcessors.items) {
 					line += (first ? "" : ",") + item;
 					first = false;
 				}
@@ -1462,7 +1444,7 @@ public static class WorldWindow {
 				debugText.Add($"ReplaceReferenceRooms: {replaceReferenceRooms.Count}");
 
 			if (hoveringConnection != null) {
-				bool specifyTimelines = hoveringConnection.timeline.timelineType != TimelineType.All || hoveringConnection.roomA.timeline.timelineType != TimelineType.All || hoveringConnection.roomB.timeline.timelineType != TimelineType.All;
+				bool specifyTimelines = hoveringConnection.conditional.conditions.Count != 0 || hoveringConnection.roomA.conditional.conditions.Count != 0 || hoveringConnection.roomB.conditional.conditions.Count != 0;
 				debugText.Add("");
 				debugText.Add("    Connection:");
 				debugText.Add($"Room A: {hoveringConnection.roomA.name}");
@@ -1472,24 +1454,18 @@ public static class WorldWindow {
 				if (specifyTimelines) {
 					debugText.Add("");
 					debugText.Add("    Connection Timelines:");
-					debugText.Add($"Connection: {hoveringConnection.timeline}");
-					debugText.Add($"Room A: {hoveringConnection.roomA.timeline}");
-					debugText.Add($"Room B: {hoveringConnection.roomB.timeline}");
-					string timelineToTextText = hoveringConnection.EffectiveConnectionTimeline.ToString();
-					debugText.Add($"Effective Timeline: {(timelineToTextText == "" ? "NONE" : timelineToTextText)}");
-					if (timelineToTextText == "" && hoveringConnection.timeline.timelines.Count != 0)
-						debugText.Add($" > Connection timeline conflicts with room(s)");
-				}
-					
-				if (hoveringConnection.preProcessorConditions.Length != 0) {
-					string line = "PreProcessorConditions: {";
-					bool first = true;
-					foreach(string item in hoveringConnection.preProcessorConditions) {
-						line += (first ? "" : ",") + item;
-						first = false;
-					}
-					line += "}";
-					debugText.Add(line);
+					debugText.Add($"Connection:");
+					hoveringConnection.conditional.conditions.ForEach(c => debugText.Add($"    {c.preProcessors}{c.timeline}"));
+					debugText.Add($"Room A:");
+					if (hoveringConnection.roomA.conditional.conditions.Count != 0)
+						hoveringConnection.roomA.conditional.conditions.ForEach(c => debugText.Add($"    {c.preProcessors}{c.timeline}"));
+					else
+						debugText.Add($"    no conditions");
+					debugText.Add($"Room B:");
+					if (hoveringConnection.roomB.conditional.conditions.Count != 0)
+						hoveringConnection.roomB.conditional.conditions.ForEach(c => debugText.Add($"    {c.preProcessors}{c.timeline}"));
+					else
+						debugText.Add($"    no conditions");
 				}
 			}
 
@@ -1508,17 +1484,11 @@ public static class WorldWindow {
 							debugText.Add($" > Room imported from outside {region.acronym}-rooms");
 						debugText.Add($"Tags: {string.Join(" ", room.data.tags)}");
 						debugText.Add($"Size: {room.width}x{room.height}");
-						if (room.timeline.timelineType != TimelineType.All)
-							debugText.Add($"Timeline: {room.timeline}");	
-						if (room.preProcessorConditions.Length != 0) {
-							string line = "PreProcessorConditions: {";
-							bool first = true;
-							foreach(string item in room.preProcessorConditions) {
-								line += (first ? "" : ",") + item;
-								first = false;
+						if (room.conditional.conditions.Count != 0) {
+							foreach (Condition condition in room.conditional.conditions) {
+								if (condition.timeline.timelineType != TimelineType.All)
+									debugText.Add($"Condition: {condition.preProcessors}{condition.timeline}");
 							}
-							line += "}";
-							debugText.Add(line);
 						}
 						debugText.Add($"Dens: {room.dens.Count}");
 						// CONNECTION DEBUG
@@ -1600,18 +1570,10 @@ public static class WorldWindow {
 					debugText.Add("    ReplaceRoom:");
 					debugText.Add($"Name: {replaceRoom.replacingRoom.name}");
 					debugText.Add($"Replaces: {replaceRoom.replacedRoom.name}");
-					if (replaceRoom.timeline.timelineType != TimelineType.All)
-						debugText.Add($"Timeline: {replaceRoom.timeline}");	
-					if (replaceRoom.preProcessorConditions.Length != 0) {
-						string line = "PreProcessorConditions: {";
-						bool first = true;
-						foreach(string item in replaceRoom.preProcessorConditions) {
-							line += (first ? "" : ",") + item;
-							first = false;
-						}
-						line += "}";
-						debugText.Add(line);
-					}
+					if (replaceRoom.condition.timeline.timelineType != TimelineType.All)
+						debugText.Add($"Timeline: {replaceRoom.condition.timeline}");	
+					if (replaceRoom.condition.preProcessors.items.Count != 0)
+						debugText.Add($"PreProcessorConditions: {{{replaceRoom.condition.preProcessors}}}");
 				}
 				else if (HoveringDraggable is ReferenceImage image) {
 					debugText.Add("");
