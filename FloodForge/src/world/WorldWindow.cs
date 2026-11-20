@@ -1353,18 +1353,10 @@ public static class WorldWindow {
 		foreach (DenLineage lineage in den.creatures) {
 			DenCreature creature = lineage;
 			string line = "";
-			if (lineage.condition.timeline.timelineType != TimelineType.All) {
+			if (lineage.condition.timeline.timelineType != TimelineType.All)
 				line += $"({lineage.condition.timeline})";
-			}
-			if (lineage.condition.preProcessors.items.Count != 0) {
-				line += "{";
-				bool first = true;
-				foreach(string item in lineage.condition.preProcessors.items) {
-					line += (first ? "" : ",") + item;
-					first = false;
-				}
-				line += "}";
-			}
+			if (lineage.condition.preProcessors.items.Count != 0)
+				line += $"{{{string.Join(',', lineage.condition.preProcessors.items)}}}";
 			if (line != "")
 				line += " - ";
 			line += $"{Mods.ExportCreatureName(creature.type)} x {creature.count}";
