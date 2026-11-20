@@ -4,7 +4,9 @@ public struct Rect {
 	public float x0, y0, x1, y1;
 
 	public readonly float CenterX => (this.x0 + this.x1) * 0.5f;
+	public readonly float Width => this.x1 - this.x0;
 	public readonly float CenterY => (this.y0 + this.y1) * 0.5f;
+	public readonly float Height => this.y1 - this.y0;
 
 	public Rect() {
 		this.x0 = this.y0 = this.x1 = this.y1 = 0f;
