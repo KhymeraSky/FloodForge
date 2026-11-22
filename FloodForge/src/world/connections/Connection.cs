@@ -21,7 +21,7 @@ public class Connection : ConnectionVisual{
 	public override float SizeMultiplier => WorldWindow.selectedConnections.Contains(this) ? 1.4f : 1f;
 
 	public Conditional conditional;
-	public override bool ConnectionVisible => this.conditional.CheckTimelineCull();
+	public override bool ConnectionVisible => this.conditional.CheckWorldTimelineVisibility();
 
 	public Connection(Room roomA, Room roomB, uint connectionA, uint connectionB) : base(false) {
 		this.roomA = roomA;

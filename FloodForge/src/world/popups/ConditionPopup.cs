@@ -19,7 +19,6 @@ public class ConditionPopup : TimelinePopup {
 		}
 	}
 
-	// REVIEW - check if a timeline change makes sense - for example, a connection set to "X-Red" while it connects to a room with timeline "Red" doesn't make sense
 	public void TimelineChangeCallback(TimelineType timelineType) {
 		this.ConditionalTimelineType = timelineType;
 	}

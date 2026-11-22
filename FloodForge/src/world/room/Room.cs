@@ -60,7 +60,7 @@ public class Room : MapDraggable {
 	public bool hasGarbageWormHoles = false;
 
 	protected override bool IsVisible() {
-		return this.conditional.CheckTimelineCull() && WorldWindow.VisibleLayers[this.data.layer];
+		return this.conditional.CheckWorldTimelineVisibility() && WorldWindow.VisibleLayers[this.data.layer];
 	}
 
 	protected override bool IsSelectable() {

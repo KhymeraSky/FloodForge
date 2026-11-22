@@ -1169,7 +1169,7 @@ public static class WorldWindow {
 
 		Program.gl.Enable(EnableCap.Blend);
 		foreach (Room room in WorldWindow.region.rooms) {
-			bool timelineCullResult = room.conditional.CheckTimelineCull();
+			bool timelineCullResult = room.conditional.CheckWorldTimelineVisibility();
 			timelineCullResults.Add(room, timelineCullResult);
 
 			if (!room.data.merge)
