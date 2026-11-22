@@ -4,12 +4,8 @@ using System.Threading.Tasks;
 using FloodForge.Droplet;
 using FloodForge.Popups;
 using FloodForge.History;
-using Silk.NET.Input;
-using StbImageWriteSharp;
 using Stride.Core;
 using Stride.Core.Extensions;
-using TextCopy;
-using static FloodForge.Main;
 
 namespace FloodForge.World;
 
