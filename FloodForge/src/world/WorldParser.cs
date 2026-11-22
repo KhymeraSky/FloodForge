@@ -870,17 +870,10 @@ public static class WorldParser {
 		});
 		LogParser($"foundConnection: {connection?.roomA.name}<{connection?.roomAExitID}>-{connection?.roomB.name}<{connection?.roomBExitID}>");
 
-		if (toConnection.Equals("disconnected", StringComparison.InvariantCultureIgnoreCase)) {
-			LogParser($"to == disconnected, setting timelines to exclude");
-			if (connection == null) {
-				Logger.Warn("Skipping line due to missing connection");
-				Logger.Warn($"> {link}");
-				return false;
-			}
-			
-			connection.conditional.conditions.Add(new(new(preProcessorConditions), new(TimelineType.Except, [.. timelines])));
-			return true;
-		}
+		bool disconnects = toConnection.Equals("disconnected", StringComparison.InvariantCultureIgnoreCase);
+		LogParser($"Disconnects: {disconnects}");
+		if (disconnects)
+			timeline.timelineType = TimelineType.Except;
 
 		int originConnectionId = -1;
 		if (isOriginallyDisconnected) {
@@ -930,19 +923,13 @@ public static class WorldParser {
 		}
 		LogParser($"final originConnectionId: {originConnectionId}");
 
-		if (connection != null) {
-			/*LogParser($"pre-existing connection found, setting timelines");
-			if (connection.timeline.timelineType == TimelineType.Only) {
-				timelines.ForEach(x => connection.timeline.timelines.Remove(x));
-			}
-			else {
-				connection.timeline.timelineType = TimelineType.Except;
-				timelines.ForEach(x => connection.timeline.timelines.Add(x));
-			}*/
+		string relevantConnection = disconnects ? currentConnection : toConnection;
+		int relevantConnectionId = disconnects ? originConnectionId : toConnectionId;
 
-			if (room.name == toConnection && (!WorldWindow.connectionExtensionsEnabled || originConnectionId == toConnectionId)) {
+		if (connection != null) {
+			if (room.name == relevantConnection && (!WorldWindow.connectionExtensionsEnabled || originConnectionId == relevantConnectionId)) {
 				// self-connection
-				conditionalConnectionsToAdd.Add(new ConditionalConnection(room, (uint)originConnectionId, toConnection, link) with {
+				conditionalConnectionsToAdd.Add(new ConditionalConnection(room, (uint)originConnectionId, relevantConnection, link) with {
 					roomB = room,
 					roomBExitID = (uint)originConnectionId,
 					timeline = timeline,
@@ -957,24 +944,50 @@ public static class WorldParser {
 			LogParser($"Looking for matching unpaired connections");
 			for (int i = 0; i < conditionalConnectionsToAdd.Count; i++) {
 				ConditionalConnection potentialMatch = conditionalConnectionsToAdd[i];
-				if (!potentialMatch.timeline.Match(timeline) || !preProcessorConditions.SequenceEqual(potentialMatch.preProcessorConditions))
-					continue;
 				LogParser($"checking {potentialMatch.roomA.name}<{potentialMatch.roomAExitID}> - {potentialMatch.roomB?.name ?? $"'{potentialMatch.roomBName}'"}<{potentialMatch.roomBExitID}>");
-				bool roomAExitIDMatches = !WorldWindow.connectionExtensionsEnabled || toConnectionId == -1 || potentialMatch.roomAExitID == (uint)toConnectionId;
-				bool roomBExitIDMatches = !WorldWindow.connectionExtensionsEnabled || potentialMatch.roomBExitID == null || originConnectionId == -1 || potentialMatch.roomBExitID == (uint)originConnectionId;
-				if (potentialMatch.roomB == null && potentialMatch.roomBName.Equals(roomA.name, (StringComparison)3) && potentialMatch.roomA.name.Equals(toConnection, (StringComparison)3) && roomAExitIDMatches && roomBExitIDMatches) {
-					LogParser($"Found matching unpaired connection. Setting roomB to {room.name}({originConnectionId})");
-					conditionalConnectionsToAdd[i] = potentialMatch with {
-						roomB = room,
-						roomBExitID = (uint) originConnectionId
-					};
-					return true;
+				LogParser($"this timeline: {(disconnects ? "X-" : "")}{string.Join(',', timelines)};");
+				LogParser($"potentialMatch timeline: {(potentialMatch.timeline.timelineType == TimelineType.Except ? "X-" : "")}{string.Join(',', potentialMatch.timeline.timelines)};");
+				if (!potentialMatch.timeline.timelines.SetEquals(timeline.timelines) || !preProcessorConditions.SequenceEqual(potentialMatch.preProcessorConditions)) {
+					LogParser($"Nonmatching conditionals, skipping");
+					continue;
 				}
+				bool originalFound = false;
+				bool toFound = disconnects;
+				// step 1: look for connections matching the original connection
+				if (!originalFound) {
+					bool roomAExitIDMatches = !WorldWindow.connectionExtensionsEnabled || currentConnectionId == -1 || potentialMatch.roomAExitID == (uint)currentConnectionId;
+					bool roomBExitIDMatches = !WorldWindow.connectionExtensionsEnabled || potentialMatch.roomBExitID == null || originConnectionId == -1 || potentialMatch.roomBExitID == (uint)originConnectionId;
+					if (potentialMatch.roomB == null && potentialMatch.roomBName.Equals(roomA.name, (StringComparison)3) && potentialMatch.roomA.name.Equals(currentConnection, (StringComparison)3) && roomAExitIDMatches && roomBExitIDMatches) {
+						LogParser($"Found unpaired connection matching original connection. Setting roomB to {room.name}({originConnectionId})");
+						conditionalConnectionsToAdd[i] = potentialMatch with {
+							roomB = room,
+							roomBExitID = (uint) originConnectionId
+						};
+						originalFound = true;
+					}
+				}
+
+				// step 2: look for connections matching the to-connection, if not disconnects
+				if (!toFound) {
+					bool roomAExitIDMatches = !WorldWindow.connectionExtensionsEnabled || toConnectionId == -1 || potentialMatch.roomAExitID == (uint)toConnectionId;
+					bool roomBExitIDMatches = !WorldWindow.connectionExtensionsEnabled || potentialMatch.roomBExitID == null || originConnectionId == -1 || potentialMatch.roomBExitID == (uint)originConnectionId;
+					if (potentialMatch.roomB == null && potentialMatch.roomBName.Equals(roomA.name, (StringComparison)3) && potentialMatch.roomA.name.Equals(toConnection, (StringComparison)3) && roomAExitIDMatches && roomBExitIDMatches) {
+						LogParser($"Found unpaired connection matching new connection. Setting roomB to {room.name}({originConnectionId})");
+						conditionalConnectionsToAdd[i] = potentialMatch with {
+							roomB = room,
+							roomBExitID = (uint) originConnectionId
+						};
+						toFound = true;
+					}
+				}
+
+				if (originalFound && toFound)
+					return true;
 			}
 
-			LogParser($"Adding to unpaired connections: {roomA.name}<{originConnectionId}> - '{toConnection}'<{(toConnectionId == -1 ? null : (uint)toConnectionId)}>");
-			ConditionalConnection conditionalConnection = new(roomA, (uint)originConnectionId, toConnection, link) {
-				roomBExitID = toConnectionId == -1 ? null : (uint)toConnectionId,
+			LogParser($"(A) Adding to unpaired connections: {{{string.Join(',', preProcessorConditions)}}}({(timeline.timelineType == TimelineType.Except ? "X-" : "")}{string.Join(',', timeline.timelines)}) {roomA.name}<{originConnectionId}> - '{relevantConnection}'<{(relevantConnectionId == -1 ? null : (uint)relevantConnectionId)}>");
+			ConditionalConnection conditionalConnection = new(roomA, (uint)originConnectionId, relevantConnection, link) {
+				roomBExitID = relevantConnectionId == -1 ? null : (uint)relevantConnectionId,
 				timeline = timeline,
 				preProcessorConditions = preProcessorConditions
 			};
@@ -990,9 +1003,9 @@ public static class WorldParser {
 			return false;
 		}
 
-		if (room.name == toConnection && (!WorldWindow.connectionExtensionsEnabled || originConnectionId == toConnectionId)) {
+		if (room.name == relevantConnection && (!WorldWindow.connectionExtensionsEnabled || originConnectionId == relevantConnectionId)) {
 			// self-connection
-			conditionalConnectionsToAdd.Add(new ConditionalConnection(room, (uint)originConnectionId, toConnection, link) with {
+			conditionalConnectionsToAdd.Add(new ConditionalConnection(room, (uint)originConnectionId, relevantConnection, link) with {
 				roomB = room,
 				roomBExitID = (uint)originConnectionId,
 				timeline = timeline,
@@ -1004,12 +1017,14 @@ public static class WorldParser {
 		LogParser($"Looking for matching unpaired connections");
 		for (int i = 0; i < conditionalConnectionsToAdd.Count; i++) {
 			ConditionalConnection connectionData = conditionalConnectionsToAdd[i];
-			if (!connectionData.timeline.Match(timeline) || !preProcessorConditions.SequenceEqual(connectionData.preProcessorConditions))
-				continue;
 			LogParser($"checking {connectionData.roomA.name}<{connectionData.roomAExitID}> - {connectionData.roomB?.name ?? $"'{connectionData.roomBName}'"}<{connectionData.roomBExitID}>");
-			bool roomAExitIDMatches = !WorldWindow.connectionExtensionsEnabled || toConnectionId == -1 || connectionData.roomAExitID == (uint)toConnectionId;
+			if (!connectionData.timeline.Match(timeline) || !preProcessorConditions.SequenceEqual(connectionData.preProcessorConditions)) {
+				LogParser($"Nonmatching conditionals, skipping");
+				continue;
+			}
+			bool roomAExitIDMatches = !WorldWindow.connectionExtensionsEnabled || relevantConnectionId == -1 || connectionData.roomAExitID == (uint)relevantConnectionId;
 			bool roomBExitIDMatches = !WorldWindow.connectionExtensionsEnabled || connectionData.roomBExitID == null || originConnectionId == -1 || connectionData.roomBExitID == (uint)originConnectionId;
-			if (connectionData.roomB == null && connectionData.roomA.name.Equals(toConnection, (StringComparison)3) && connectionData.roomBName.Equals(room.name, (StringComparison)3) && roomAExitIDMatches && roomBExitIDMatches) {
+			if (connectionData.roomB == null && connectionData.roomA.name.Equals(relevantConnection, (StringComparison)3) && connectionData.roomBName.Equals(room.name, (StringComparison)3) && roomAExitIDMatches && roomBExitIDMatches) {
 				LogParser($"Found matching unpaired connection. Setting roomB to {room.name}({originConnectionId})");
 				conditionalConnectionsToAdd[i] = connectionData with {
 					roomB = room,
@@ -1019,14 +1034,15 @@ public static class WorldParser {
 			}
 		}
 
-		LogParser($"Adding to unpaired connections: {room.name}<{originConnectionId}> - '{toConnection}'<{(toConnectionId == -1 ? null : (uint)toConnectionId)}>");
+		bool makeExcept = disconnects ^ timeline.timelineType == TimelineType.Except;
+		LogParser($"(B) Adding to unpaired connections: {{{string.Join(',', preProcessorConditions)}}}({(makeExcept ? "X-" : "")}{string.Join(',', timelines)}) {room.name}<{originConnectionId}> - '{relevantConnection}'<{(relevantConnectionId == -1 ? null : (uint)relevantConnectionId)}>");
 		conditionalConnectionsToAdd.Add(new ConditionalConnection() {
 			roomA = room,
 			roomAExitID = (uint) originConnectionId,
-			roomBName = toConnection,
+			roomBName = relevantConnection,
 			roomB = null,
-			roomBExitID = toConnectionId == -1 ? null : (uint)toConnectionId,
-			timeline = new Timeline(TimelineType.Only, [..timelines]),
+			roomBExitID = relevantConnectionId == -1 ? null : (uint)relevantConnectionId,
+			timeline = new Timeline(makeExcept ? TimelineType.Except : TimelineType.Only, [..timelines]),
 			preProcessorConditions = preProcessorConditions,
 			originLine = link
 		});
