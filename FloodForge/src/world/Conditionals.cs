@@ -160,38 +160,7 @@ public class Timeline {
 		return result;
 	}
 
-	public bool OverlapsWith(Timeline timeline) {
-		if (this.timelineType == TimelineType.All || timeline.timelineType == TimelineType.All)
-			return true;
-		switch (this.timelineType) {
-			case TimelineType.Except:
-				switch (timeline.timelineType) {
-					case TimelineType.Except: // theoretically this should return false if timeline.timelines excludes every scug not excluded by this.timelines, but that does not take custom scugs into account, so there's always a possible overlap
-						return true;
-					case TimelineType.Only: // if any timeline.timelines isn't excluded by this.timelines they can overlap
-						foreach (string timelineEntry in timeline.timelines)
-							if (!this.timelines.Contains(timelineEntry))
-								return true;
-						return false;
-				}
-				break;
-			case TimelineType.Only:
-				switch (timeline.timelineType) {
-					case TimelineType.Except: // if any this.timelines isn't excluded by timeline.timelines they can overlap
-						foreach (string timelineEntry in this.timelines)
-							if (!timeline.timelines.Contains(timelineEntry))
-								return true;
-						return false;
-					case TimelineType.Only: // if this.timelines includes any timeline.timelines they can overlap
-						foreach (string timelineEntry in this.timelines)
-							if (timeline.timelines.Contains(timelineEntry))
-								return true;
-						return false;
-				}
-				break;
-		}
-		return false;
-	}
+	public bool OverlapsWith(Timeline timeline) => this.OverlapsWith(timeline.timelineType, timeline.timelines);
 
 	public bool OverlapsWith(string timeline) => this.OverlapsWith(TimelineType.Only, [timeline]);
 
