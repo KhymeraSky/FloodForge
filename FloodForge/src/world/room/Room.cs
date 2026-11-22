@@ -224,6 +224,12 @@ public class Room : MapDraggable {
 		return this.denShortcutEntrances.IndexOf(pos);
 	}
 
+	public int GetDenId(Den den) {
+		if (!this.dens.Contains(den))
+			throw new Exception($"Den not present in room {this.name}!");
+		return this.dens.IndexOf(den) + this.roomExitCount;
+	}
+
 	public Den GetDen01(int id) {
 		if (id < 0 || id >= this.dens.Count) {
 			throw new Exception($"Invalid Den {id} for {this.name}");

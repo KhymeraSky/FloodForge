@@ -1345,7 +1345,7 @@ public static class WorldWindow {
 
 	public static void DebugDen(Den den, Room room, ref List<string> debugText) {
 		debugText.Add("");
-		debugText.Add($"Den: {room.name}");
+		debugText.Add($"Den: {room.name} - {room.GetDenId(den)}");
 		foreach (DenLineage lineage in den.creatures) {
 			DenCreature creature = lineage;
 			string line = "";
@@ -1510,9 +1510,8 @@ public static class WorldWindow {
 										}
 									}
 								}
-								else {
-									connectionList += "DISCONNECTED";
-								}
+								else
+									connectionList += hoveredRoomExit == index ? ">DISCONNECTED<" : "DISCONNECTED";
 								if (index + 1 < room.roomExits.Count)
 									connectionList += ", ";
 								if (connectionList.Length > 75) {
