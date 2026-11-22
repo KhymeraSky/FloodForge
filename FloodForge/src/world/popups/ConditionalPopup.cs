@@ -26,9 +26,18 @@ public class ConditionalPopup : Popup {
 		float buttonHeight = 0.05f;
 		float buttonStride = buttonHeight + 0.01f;
 
-		foreach (Condition condition in this.relevantConditional.conditions) {
+		(int, int)? swapIndices = null;
+		for (int i = 0; i < this.relevantConditional.conditions.Count; i++) {
+			Condition condition = this.relevantConditional.conditions[i];
 			Immediate.Color(Themes.Text);
 			UI.font.Write($"{(condition.preProcessors.items.Count != 0 ? $"{condition.preProcessors} " : "")}{condition.timeline}", this.bounds.CenterX, yValue - buttonHeight * 0.5f, 0.03f, Font.Align.MiddleCenter);
+
+			UVRect upButton = new(rightBound - buttonHeight * 2 - 0.01f, yValue - buttonHeight, rightBound - buttonHeight - 0.01f, yValue);
+			if (UI.TextureButton(upButton.AtlasUV("ChevronUp"), new UI.TextureButtonMods() { disabled = i == 0 }))
+				swapIndices = (i, i-1);
+			UVRect downButton = new(rightBound - buttonHeight, yValue - buttonHeight, rightBound, yValue);
+			if (UI.TextureButton(downButton.AtlasUV("ChevronDown"), new UI.TextureButtonMods() { disabled = i == this.relevantConditional.conditions.Count - 1 }))
+				swapIndices = (i, i+1);
 
 			yValue -= buttonStride;
 
@@ -47,6 +56,9 @@ public class ConditionalPopup : Popup {
 
 			yValue -= 0.02f;
 		}
+
+		if (swapIndices != null)
+			WorldWindow.worldHistory.Apply(new ListSwapChange<Condition>(this.relevantConditional.conditions, swapIndices.Value.Item1, swapIndices.Value.Item2));
 
 		yValue -= 0.01f;
 
