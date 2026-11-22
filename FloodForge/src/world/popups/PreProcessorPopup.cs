@@ -10,7 +10,7 @@ public class PreProcessorPopup : Popup {
 		this.relevantPreProcessors = [.. preProcessors];
 		float width = 0.6f;
 		foreach (string condition in Mods.preProcessorConditions)
-			width = Math.Max(width, UI.font.Measure(condition, 0.03f).x + 0.02f);
+			width = Math.Max(width, UI.font.Measure(condition, 0.03f).x + 0.04f);
 		this.bounds = new(-width * 0.5f, -0.25f, width * 0.5f, 0.25f);
 	}
 
