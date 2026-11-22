@@ -31,6 +31,44 @@ public class Conditional {
 		}
 		return true;
 	}
+
+	public bool CheckWorldTimelineVisibility() {
+		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.All || this.conditions.Count == 0)
+			return true;
+		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.Only && WorldWindow.VisibleTimeline.timelines.Count == 0)
+			return true;
+		bool result = false;
+		foreach (Condition condition in this.conditions) {
+			if (condition.timeline.timelineType == TimelineType.Only) {
+				// this: ONLY; world: ONLY;
+				if (WorldWindow.VisibleTimeline.timelineType == TimelineType.Only) {	
+					foreach (string timeline in condition.timeline.timelines)
+						result |= WorldWindow.VisibleTimeline.timelines.Contains(timeline);
+				}
+				// this: ONLY; world: HIDE;
+				else {
+					foreach (string timeline in condition.timeline.timelines)
+						result |= !WorldWindow.VisibleTimeline.timelines.Contains(timeline);
+				}
+			}
+			else if (condition.timeline.timelineType == TimelineType.Except) {
+				// this: HIDE; world: ONLY;
+				if (WorldWindow.VisibleTimeline.timelineType == TimelineType.Only) {	
+					bool foundAll = true;
+					foreach (string timeline in WorldWindow.VisibleTimeline.timelines)
+						foundAll &= condition.timeline.timelines.Contains(timeline);
+					if (foundAll)
+						result = false;
+					else
+						result = true;
+				}
+				// this: HIDE; world: HIDE;
+				else
+					result = true; // as with Timeline.OverlapsWith, this case should return false only if all other possible timelines are hidden. However, to account for modded timelines, we just set the result to true.
+			}
+		}
+		return result;
+	}
 }
 
 public class Condition {
