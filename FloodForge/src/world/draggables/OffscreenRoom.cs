@@ -39,11 +39,21 @@ public class OffscreenRoom : Room {
 		
 	}
 
+	// TODO - figure out what causes this issue in the first place
+	private bool warnedLastDraw = false;
 	public override void DrawOccupiedDens(Vector2 renderedPosition) {
 		if (this.dens.Count == 0) {
-			Logger.Warn("No dens in offscreenden!!!");
+			Logger.Error("No dens in offscreenDen! Adding new den.");
+			this.dens.Add(new());
 			return;
 		}
+		if (this.dens.Count > 1) {
+			if (!this.warnedLastDraw)
+				Logger.Error("Multiple dens in offscreenDen!");
+			this.warnedLastDraw = true;
+		}
+		else
+			this.warnedLastDraw = false;
 		DrawDen(this.dens[0], renderedPosition.x + this.width * 0.5f, renderedPosition.y - this.height * 0.25f, WorldWindow.denRoom == this && WorldWindow.hoveredDen == 0, WorldWindow.HoveringDraggable == this);
 	}
 
