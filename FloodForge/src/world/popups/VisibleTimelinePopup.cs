@@ -2,6 +2,7 @@ using FloodForge.Popups;
 
 namespace FloodForge.World;
 
+// TODO - add preProcessors
 public class VisibleTimelinePopup : TimelinePopup {
 	public SettingsPopup.BoolSettingContainer setNewConnectionsContainer;
 
@@ -9,6 +10,7 @@ public class VisibleTimelinePopup : TimelinePopup {
 		this.setNewConnectionsContainer = new("Set new connection timelines", WorldWindow.setNewConnectionTimeline, b => {
 			WorldWindow.setNewConnectionTimeline = b;
 		});
+		this.Title("Visible Timeline");
 	}
 
 	public override void Draw() {
