@@ -652,6 +652,7 @@ public static class WorldParser {
 				string conditions = splits[0][1..closingBracketPosition];
 				splits[0] = splits[0][(closingBracketPosition + 1)..].Trim();
 				preProcessorConditions = [.. conditions.Split(',')];
+				preProcessorConditions.ForEach(c => Mods.preProcessorConditions.Add(c));
 			}
 
 			bool lineage = splits[0].Equals("lineage", StringComparison.InvariantCultureIgnoreCase);
