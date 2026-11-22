@@ -19,19 +19,6 @@ public class Conditional {
 		return anyConditionPassed;
 	}
 
-	// REVIEW - check for redundancy in terms of edge-case checks
-	public bool CheckTimelineCull() {
-		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.All || this.conditions.Count == 0)
-			return true;
-		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.Only && WorldWindow.VisibleTimeline.timelines.Count == 0 && this.conditions.Count == 0)
-			return true;
-		foreach (Condition condition in this.conditions) {
-			if (!condition.timeline.OverlapsWith(WorldWindow.VisibleTimeline))
-				return false;
-		}
-		return true;
-	}
-
 	public bool CheckWorldTimelineVisibility() {
 		if (WorldWindow.VisibleTimeline.timelineType == TimelineType.All || this.conditions.Count == 0)
 			return true;
