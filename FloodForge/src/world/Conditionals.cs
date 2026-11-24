@@ -67,6 +67,8 @@ public class Condition {
 		this.preProcessors = preProcessors;
 		this.timeline = timeline;
 	}
+
+	public override string ToString() => (this.preProcessors.items.Count != 0 ? $"{this.preProcessors}" : "") + this.timeline;
 }
 
 public class PreProcessors {
