@@ -56,6 +56,14 @@ public class Conditional {
 		}
 		return result;
 	}
+
+	public Conditional GetConditionalForTimeline(string timeline) {
+		Conditional newConditional = new();
+		foreach (Condition condition in this.conditions)
+			if (condition.timeline.timelines.Contains(timeline))
+				newConditional.conditions.Add(new Condition(condition.preProcessors, new(condition.timeline.timelineType, [timeline])));
+		return newConditional;
+	}
 }
 
 public class Condition {
