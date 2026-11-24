@@ -98,6 +98,16 @@ public class PreProcessors {
 			preProcessors = $"{{{preProcessors}}}";
 		return preProcessors;
 	}
+
+	public bool Match(PreProcessors compare) {
+		foreach (string thisItem in this.items)
+			if (!compare.items.Contains(thisItem))
+				return false;
+		foreach (string compareItem in compare.items)
+			if (!this.items.Contains(compareItem))
+				return false;
+		return true;
+	}
 }
 
 public class Timeline {
