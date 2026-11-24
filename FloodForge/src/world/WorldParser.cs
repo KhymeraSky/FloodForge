@@ -238,43 +238,45 @@ public static class WorldParser {
 			room.data.merge = pair.Value.merge;
 		}
 
-		List<(float, int)> xOffsetCounters = [];
-		List<(float, int)> yOffsetCounters = [];
-		foreach ((Room room, Vector2 offset) in gridOffsets) {
-			bool found = false;
-			for (int i = 0; i < xOffsetCounters.Count; i++) {
-				(float existingXOffset, int count) = xOffsetCounters[i];
-				if (Math.Round(existingXOffset, 4) == Math.Round(offset.x, 4)) {
-					xOffsetCounters[i] = (offset.x, count + 1);
-					found = true;
-					break;
+		if (gridOffsets.Count != 0) {
+			List<(float, int)> xOffsetCounters = [];
+			List<(float, int)> yOffsetCounters = [];
+			foreach ((Room room, Vector2 offset) in gridOffsets) {
+				bool found = false;
+				for (int i = 0; i < xOffsetCounters.Count; i++) {
+					(float existingXOffset, int count) = xOffsetCounters[i];
+					if (Math.Round(existingXOffset, 4) == Math.Round(offset.x, 4)) {
+						xOffsetCounters[i] = (offset.x, count + 1);
+						found = true;
+						break;
+					}
 				}
-			}
-			if (!found)
-				xOffsetCounters.Add((offset.x, 1));
-			found = false;
-			for (int i = 0; i < yOffsetCounters.Count; i++) {
-				(float existingYOffset, int count) = yOffsetCounters[i];
-				if (Math.Round(existingYOffset, 4) == Math.Round(offset.y, 4)) {
-					yOffsetCounters[i] = (offset.y, count + 1);
-					found = true;
-					break;
+				if (!found)
+					xOffsetCounters.Add((offset.x, 1));
+				found = false;
+				for (int i = 0; i < yOffsetCounters.Count; i++) {
+					(float existingYOffset, int count) = yOffsetCounters[i];
+					if (Math.Round(existingYOffset, 4) == Math.Round(offset.y, 4)) {
+						yOffsetCounters[i] = (offset.y, count + 1);
+						found = true;
+						break;
+					}
 				}
+				if (!found)
+					yOffsetCounters.Add((offset.y, 1));
 			}
-			if (!found)
-				yOffsetCounters.Add((offset.y, 1));
-		}
-		List<(float, int)> orderedXOffsetCounters = [.. xOffsetCounters.OrderByDescending(x => x.Item2)];
-		List<(float, int)> orderedYOffsetCounters = [.. yOffsetCounters.OrderByDescending(x => x.Item2)];
-		Vector2 commonDir = new(orderedXOffsetCounters.First().Item1, orderedYOffsetCounters.First().Item1);
-		if (commonDir != Vector2.Zero) {
-			Vector2 reverseOffset = -commonDir;
-			foreach (Room room in WorldWindow.region.rooms) {
-				room.CanonPosition += reverseOffset;
-				room.DevPosition += reverseOffset;
-				foreach (ReplaceRoom replaceRoom in room.replaceRooms) {
-					replaceRoom.CanonPosition += reverseOffset;
-					replaceRoom.DevPosition += reverseOffset;
+			List<(float, int)> orderedXOffsetCounters = [.. xOffsetCounters.OrderByDescending(x => x.Item2)];
+			List<(float, int)> orderedYOffsetCounters = [.. yOffsetCounters.OrderByDescending(x => x.Item2)];
+			Vector2 commonDir = new(orderedXOffsetCounters.First().Item1, orderedYOffsetCounters.First().Item1);
+			if (commonDir != Vector2.Zero) {
+				Vector2 reverseOffset = -commonDir;
+				foreach (Room room in WorldWindow.region.rooms) {
+					room.CanonPosition += reverseOffset;
+					room.DevPosition += reverseOffset;
+					foreach (ReplaceRoom replaceRoom in room.replaceRooms) {
+						replaceRoom.CanonPosition += reverseOffset;
+						replaceRoom.DevPosition += reverseOffset;
+					}
 				}
 			}
 		}
