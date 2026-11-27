@@ -64,8 +64,6 @@ public class CreateTimelineRoomPopup : ModularPopup {
 	}
 
 	private void CreateRoom() {
-		PopupManager.Add("Temporarily disabled due to timeline system modifications");
-		/*
 		string newRoomName = $"{WorldWindow.region.acronym}_{this.newName}";
 
 		WorldWindow.selectedDraggables = [];
@@ -73,85 +71,41 @@ public class CreateTimelineRoomPopup : ModularPopup {
 		Room newRoom = new(newRoomName, this.relevantRoom.width, this.relevantRoom.height, false, false, false);
 		this.relevantRoom.CopyTo(newRoom);
 
+		List<Change> changes = [];
+
 		RoomAndConnectionChange addChange = new(adding: true);
 		addChange.AddRoom(newRoom);
-		RoomAndConnectionChange removeChange = new(adding: false);
+		changes.Add(addChange);
 
-		string key = "TIMELINEROOM";
-		WorldWindow.worldHistory.StartCollectingChanges([], key);
 		newRoom.DevPosition = this.relevantRoom.DevPosition + Vector2.NegY * 5;
 		newRoom.CanonPosition = this.relevantRoom.CanonPosition + Vector2.NegY * 5;
-		newRoom.timeline = new(this.newTimeline);
+		newRoom.conditional.conditions.Add(new(new(), this.newTimeline));
 
-		List<Change> tlModifications = [];
-
-		Timeline newInverted = this.newTimeline.Inverted();
-		Timeline newInvertedAndRoom = this.relevantRoom.timeline.And(newInverted);
-		TimelineTypeChange roomTLTypeChange = new(newInvertedAndRoom.timelineType);
-		roomTLTypeChange.AddRoom(this.relevantRoom);
-		tlModifications.Add(roomTLTypeChange);
-
-		foreach (string timeline in this.relevantRoom.timeline.timelines) {
-			if (!newInvertedAndRoom.timelines.Contains(timeline)) {
-				TimelineChange roomTLChange = new(false, timeline);
-				roomTLChange.AddRoom(this.relevantRoom);
-				tlModifications.Add(roomTLChange);
-			}
-		}
-		foreach (string timeline in newInvertedAndRoom.timelines) {
-			if (!this.relevantRoom.timeline.timelines.Contains(timeline)) {
-				TimelineChange roomTLChange = new(true, timeline);
-				roomTLChange.AddRoom(this.relevantRoom);
-				tlModifications.Add(roomTLChange);
-			}
-		}
+		ConditionChange conditionChange = new(this.relevantRoom.conditional, true);
+		conditionChange.AddCondition(new(new(), this.newTimeline.Inverted()));
+		changes.Add(conditionChange);
 		
 		if (this.copyConnections) {
 			foreach (Connection connection in this.relevantRoom.connections) {
-				if (!connection.timeline.OverlapsWith(this.newTimeline)) {
+				if (!connection.conditional.CanOverlapWith(this.newTimeline))
 					continue;
-				}
 
-				Connection copiedConnection = new Connection(connection.roomA == this.relevantRoom ? newRoom : connection.roomA, connection.roomB == this.relevantRoom ? newRoom : connection.roomB, connection.roomAExitID, connection.roomBExitID) {
-					timeline = this.newTimeline.And(connection.timeline)
-				};
+				Connection copiedConnection = new Connection(connection.roomA == this.relevantRoom ? newRoom : connection.roomA, connection.roomB == this.relevantRoom ? newRoom : connection.roomB, connection.roomAExitID, connection.roomBExitID);
 				addChange.AddConnection(copiedConnection);
-				if (!connection.timeline.OverlapsWith(newInvertedAndRoom)) {
-					removeChange.AddConnection(connection);
-				}
-				else {
-					if (connection.timeline.timelineType == TimelineType.Only) {
-						foreach (string timeline in this.newTimeline.timelines) {
-							if (connection.timeline.timelines.Contains(timeline)) {
-								TimelineChange connectionTimelineChange = new(false, timeline);
-								connectionTimelineChange.AddConnection(connection);
-								tlModifications.Add(connectionTimelineChange);
-							}
-						}
-					}
-					else {
-						if (connection.timeline.timelineType == TimelineType.All) {
-							TimelineTypeChange connectionTimelineTypeChange = new(TimelineType.Except);
-							connectionTimelineTypeChange.AddConnection(connection);
-							tlModifications.Add(connectionTimelineTypeChange);
-						}
-						foreach (string timeline in this.newTimeline.timelines) {
-							if (!connection.timeline.timelines.Contains(timeline)) {
-								TimelineChange connectionTimelineChange = new(true, timeline);
-								connectionTimelineChange.AddConnection(connection);
-								tlModifications.Add(connectionTimelineChange);
-							}
-						}
-					}
-				}
+
+				// REVIEW - some kind of redundancy check here would be nice to have.
+				// Right now, for example, it'll add a "X-YELLOW" condition to a connection that was already "X-YELLOW" or for example "WHITE".
+				ConditionChange originalConditionAdd = new(connection.conditional, true);
+				originalConditionAdd.AddCondition(new(new(), this.newTimeline.Inverted()));
+				changes.Add(originalConditionAdd);
+
+				ConditionChange copiedConditionAdd = new(copiedConnection.conditional, true);
+				copiedConditionAdd.AddCondition(new(new(), this.newTimeline));
+				changes.Add(copiedConditionAdd);
 			}
 		}
-		WorldWindow.worldHistory.Apply(new MassChange([..tlModifications]));
-		WorldWindow.worldHistory.Apply(removeChange);
-		WorldWindow.worldHistory.Apply(addChange);
-		WorldWindow.worldHistory.GetAndApplyCollectedMassChange(key);
+		WorldWindow.worldHistory.Apply(new MassChange(changes));
 		this.parent.Close();
 		this.Close();
-		*/
 	}
 }

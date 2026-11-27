@@ -64,6 +64,20 @@ public class Conditional {
 				newConditional.conditions.Add(new Condition(condition.preProcessors, new(condition.timeline.timelineType, [timeline])));
 		return newConditional;
 	}
+
+	// REVIEW - This logic is incomplete as far as I can tell.
+	public bool CanOverlapWith(Timeline timeline) {
+		if (timeline.timelineType == TimelineType.All || this.conditions.Count == 0)
+			return true;
+		bool anyNotExcluded = false;
+		foreach (string entry in timeline.timelines) {
+			if (!this.ShowsOnMap(entry))
+				anyNotExcluded = true;
+			else if (timeline.timelineType == TimelineType.Only)
+				return true;
+		}
+		return anyNotExcluded;
+	}
 }
 
 public class Condition {
