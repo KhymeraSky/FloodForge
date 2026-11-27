@@ -4,8 +4,8 @@ public class MassChange : Change {
 	readonly Change[] changes;
 	readonly Action? callback;
 	protected MassChange[] mergedChanges = [];
-	public MassChange(Change[] changes, Action? callback = null) {
-		this.changes = changes;
+	public MassChange(IEnumerable<Change> changes, Action? callback = null) {
+		this.changes = [.. changes];
 		this.callback = callback;
 	}
 
