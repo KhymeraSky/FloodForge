@@ -6,8 +6,13 @@ namespace FloodForge.World;
 public class ConditionalPopup : Popup {
 	public Conditional relevantConditional; // TODO - allow this to add multiple conditionals
 
+	protected float scroll;
+	protected float targetScroll;
+	protected float maxScroll;
+
 	public ConditionalPopup(Conditional conditional) {
 		this.bounds = new Rect(-0.4f, -0.4f, 0.4f, 0.4f);
+		Main.Scroll += this.Scroll;
 		this.relevantConditional = conditional;
 		this.relevantConditional.conditionalPopup = this;
 	}
@@ -18,11 +23,16 @@ public class ConditionalPopup : Popup {
 		if (this.collapsed)
 			return;
 
+		this.scroll += (this.targetScroll - this.scroll) * (1f - MathF.Pow(1f - Settings.PopupScrollSpeed, Program.Delta * 60f));
+
 		float leftBound = this.bounds.x0 + 0.04f;
 		float rightBound = this.bounds.x1 - 0.04f;
 		float upperBound = this.bounds.y1 - 0.06f;
 
-		float yValue = upperBound;
+		Program.gl.Enable(EnableCap.ScissorTest);
+		UI.ScissorRect(this.bounds.x0 + 0.01f, this.bounds.y0 + 0.01f, this.bounds.x1 - 0.01f, this.bounds.y1 - 0.06f);
+
+		float yValue = upperBound + this.scroll;
 		float buttonHeight = 0.05f;
 		float buttonStride = buttonHeight + 0.01f;
 
@@ -68,6 +78,10 @@ public class ConditionalPopup : Popup {
 			conditionChange.AddCondition(new Condition(new(), Timeline.All));
 			WorldWindow.worldHistory.Apply(conditionChange);
 		}
+
+		this.maxScroll = -(yValue - 0.09f - this.scroll);
+
+		Program.gl.Disable(EnableCap.ScissorTest);
 	}
 
 	protected void DeleteCondition(Condition conditionToDelete) {
@@ -76,9 +90,32 @@ public class ConditionalPopup : Popup {
 		WorldWindow.worldHistory.Apply(conditionChange);
 	}
 
+	protected void Scroll(float x, float y) {
+		if (!this.isHovered || this.collapsed) return;
+
+		this.targetScroll -= y * 0.1f;
+		this.ClampScroll();
+	}
+
 	public override void Close() {
+		Main.Scroll -= this.Scroll;
 		if (this.relevantConditional.conditionalPopup == this)
 			this.relevantConditional.conditionalPopup = null;
 		base.Close();
+	}
+
+	protected void ClampScroll() {
+		float trueMaxScroll = this.maxScroll + this.bounds.y0;
+		if (this.targetScroll >= trueMaxScroll) {
+			this.targetScroll = trueMaxScroll;
+			if (this.scroll >= trueMaxScroll - 0.03f)
+				this.scroll = trueMaxScroll + 0.03f;
+		}
+
+		if (this.targetScroll < 0) {
+			this.targetScroll = 0;
+			if (this.scroll < 0.03f)
+				this.scroll = -0.03f;
+		}
 	}
 }
