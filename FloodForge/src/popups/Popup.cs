@@ -8,7 +8,7 @@ public abstract class Popup {
 	public string popupTitle = "";
 
 	protected bool cursorOverButton = false;
-	protected bool isHovered = false;
+	public bool isHovered = false;
 	protected bool hoverRetained = false;
 	protected bool collapsed = false;
 	protected bool slatedForDeletion = false;
@@ -47,19 +47,17 @@ public abstract class Popup {
 
 	private void UpdateResizing() {
 		this.UpdateScaleControls(this.bounds);
-		this.isHovered = this.InteractBounds().Inside(Mouse.X, Mouse.Y);
-		if (this.isHovered == true) {
+		if (this.isHovered)
 			this.hoverRetained = true;
-		}
-		bool isOutsideExcludor = !this.scaleControlExcluder.Inside(Mouse.X, Mouse.Y);
+		bool isOutsideExcluder = !this.scaleControlExcluder.Inside(Mouse.X, Mouse.Y);
 		bool isInsideIncluder = this.scaleControlIncluder.Inside(Mouse.X, Mouse.Y);
 		if (this.IsDragArea(Mouse.X, Mouse.Y)) {
 			return;
 		}
 
-		if (!this.collapsed && !this.cursorOverButton && !this.resizingWindow) {
+		if (!this.collapsed && !this.cursorOverButton && !this.resizingWindow && PopupManager.mousePopup == this) {
 			Immediate.Color(Themes.Layer2Color);
-			if (this.hoverRetained && isOutsideExcludor) {
+			if (this.hoverRetained && isOutsideExcluder) {
 				if (isInsideIncluder) {
 					if (Settings.DEBUGVisiblePopupVisuals)
 						UI.FillRect(this.scaleControlExcluder.x0, this.scaleControlExcluder.y0, this.scaleControlExcluder.x1, this.scaleControlExcluder.y1);

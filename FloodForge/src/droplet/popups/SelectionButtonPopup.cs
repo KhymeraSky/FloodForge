@@ -19,7 +19,7 @@ public class SelectionButtonPopup : Popup {
 		this.bounds = new Rect(position.x, position.y, position.x + 0.3f, position.y + 0.07f);
 	}
 
-	public override bool InsideBoundsOrIncluder(Vector2 mousePos) => false;
+	public override bool InsideBoundsOrIncluder(Vector2 mousePos) => this.InteractBounds().Inside(mousePos);
 
 	public Vector2 GetBottomLeft() {
 		return new Vector2(this.bounds.x0, this.bounds.y1);

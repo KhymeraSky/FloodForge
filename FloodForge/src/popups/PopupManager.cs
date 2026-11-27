@@ -4,7 +4,7 @@ public static class PopupManager {
 	private static readonly List<Popup> trash = [];
 	private static readonly List<(Popup, bool)> toAdd = [];
 	private static Popup? holdingPopup = null;
-	private static Popup? mousePopup = null;
+	public static Popup? mousePopup = null;
 	private static Popup? interactingPopup = null;
 	private static Vector2 holdingOffset;
 	private static bool doResizeBoundsCheck = false;
@@ -58,18 +58,22 @@ public static class PopupManager {
 	public static void Draw() {
 		Mouse.Disabled = false;
 
+		bool foundHoveredPopup = false;
 		for (int i = Windows.Count - 1; i >= 0; i--) {
 			Popup popup = Windows[i];
 
-			if (popup.InteractBounds().Inside(Mouse.X, Mouse.Y) || popup == interactingPopup) {
+			if (!foundHoveredPopup && (popup.InsideBoundsOrIncluder(Mouse.Pos) || popup == interactingPopup)) {
 				if (Mouse.JustLeft && popup.IsDragArea(Mouse.X, Mouse.Y)) {
 					holdingPopup = popup;
 					holdingOffset = holdingPopup.TopLeft - Mouse.Pos;
 				}
 
 				mousePopup = popup;
-				break;
+				popup.isHovered = true;
+				foundHoveredPopup = true;
 			}
+			else
+				popup.isHovered = false;
 		}
 
 		if (holdingPopup != null && holdingPopup.Draggable) {
