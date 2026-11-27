@@ -242,7 +242,7 @@ public abstract class Popup {
 			this.collapsed = !this.collapsed;
 		}
 
-		Immediate.Color(this.isHovered ? Themes.BorderHighlight : Themes.Border);
+		Immediate.Color(this.hoverRetained ? Themes.BorderHighlight : Themes.Border);
 		if (this.collapsed) {
 			UI.ButtonStrokeRect(this.bounds.x1 - this.CollapsedWidth, this.bounds.y1 - 0.05f, this.bounds.x1, this.bounds.y1);
 		}
